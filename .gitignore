@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.ds-metrics/
+*.js.map
+*.d.ts
+coverage/
+.cache/
+repos/
+.claude/
