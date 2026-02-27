@@ -52,24 +52,26 @@ export function categorizeUsage(
 
   // Rule 4: Source or resolvedPath matches localLibraryPatterns
   if (matchesLocalLibrary(source, resolved.resolvedPath, config)) {
-    return {
+    const localLib: CategorizedUsage = {
       ...usage,
       category: 'local-library',
       dsName: null,
       packageName: resolved.isNodeModule ? (resolved.packageName ?? null) : null,
       resolvedPath: resolved.resolvedPath,
     };
+    return applyTransitiveRule(localLib, config);
   }
 
   // Rule 5: Non-relative import (node module not matched above) = third-party
   if (!source.startsWith('.') && !source.startsWith('/') && resolved.isNodeModule) {
-    return {
+    const thirdParty: CategorizedUsage = {
       ...usage,
       category: 'third-party',
       dsName: null,
       packageName: resolved.packageName ?? extractPackageName(source),
       resolvedPath: null,
     };
+    return applyTransitiveRule(thirdParty, config);
   }
 
   // Rule 6: Everything else = local
@@ -80,6 +82,38 @@ export function categorizeUsage(
     packageName: null,
     resolvedPath: resolved.resolvedPath,
   };
+}
+
+/**
+ * Applies declarative transitiveRules from config to local-library and third-party usages.
+ * Sets transitiveDS annotation without changing the category.
+ * Called synchronously during categorization.
+ */
+function applyTransitiveRule(
+  categorized: CategorizedUsage,
+  config: ResolvedConfig
+): CategorizedUsage {
+  if (!config.transitiveRules || config.transitiveRules.length === 0) return categorized;
+
+  const pkgName = categorized.packageName
+    ?? (categorized.importEntry ? extractPackageName(categorized.importEntry.source) : null);
+
+  if (!pkgName) return categorized;
+
+  for (const rule of config.transitiveRules) {
+    if (matchesPackage(pkgName, rule.package)) {
+      return {
+        ...categorized,
+        transitiveDS: {
+          dsName: rule.backedBy,
+          coverage: rule.coverage ?? 1.0,
+          source: 'declared',
+        },
+      };
+    }
+  }
+
+  return categorized;
 }
 
 export function findDesignSystem(source: string, config: ResolvedConfig): string | null {

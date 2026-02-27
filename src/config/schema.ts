@@ -15,6 +15,18 @@ export interface ThresholdConfig {
   perDesignSystem?: Record<string, { minAdoptionRate?: number }>;
 }
 
+// Declarative rule: package X is built on DS Y with coverage C.
+// Works for both local-library and third-party packages.
+export interface TransitiveRule {
+  package: string;    // npm package name or pattern (same syntax as designSystems.packages)
+  backedBy: string;   // must match one of designSystems[].name
+  coverage?: number;  // 0.0–1.0, fraction of components backed by DS (default: 1.0)
+}
+
+export interface TransitiveAdoptionConfig {
+  enabled?: boolean;  // auto-scan local-library source files to detect DS usage (default: false)
+}
+
 export interface DSScannerConfig {
   repositories: string[];
   designSystems: DesignSystemDef[];
@@ -26,10 +38,13 @@ export interface DSScannerConfig {
   output?: OutputConfig;
   thresholds?: ThresholdConfig;
   historyDir?: string;
+  transitiveRules?: TransitiveRule[];
+  transitiveAdoption?: TransitiveAdoptionConfig;
 }
 
-export type ResolvedConfig = Required<Omit<DSScannerConfig, 'thresholds'>> & {
+export type ResolvedConfig = Required<Omit<DSScannerConfig, 'thresholds' | 'transitiveAdoption'>> & {
   thresholds: ThresholdConfig;
+  transitiveAdoption: Required<TransitiveAdoptionConfig>;
 };
 
 // Helper function for user configs

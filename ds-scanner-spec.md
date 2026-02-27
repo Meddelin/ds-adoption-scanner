@@ -52,6 +52,7 @@ ds-scanner/
 │   │   ├── import-resolver.ts    # Резолв импортов через TS API
 │   │   ├── jsx-extractor.ts      # Извлечение JSX usage из AST
 │   │   ├── categorizer.ts        # Категоризация компонентов
+│   │   ├── transitive-resolver.ts # Авто-детектирование DS в исходниках local-library
 │   │   └── orchestrator.ts       # Оркестрация полного скана
 │   ├── metrics/
 │   │   ├── calculator.ts         # Расчёт adoption метрик
@@ -179,6 +180,32 @@ export default defineConfig({
 
   // Директория для хранения истории сканов
   historyDir: './.ds-metrics',
+
+  // ===== Транзитивный адопшен =====
+
+  // Декларативные правила для third-party пакетов и local-library,
+  // которые сами построены на основе ваших дизайн-систем.
+  // Использования таких пакетов учитываются в effectiveAdoptionRate.
+  transitiveRules: [
+    {
+      package: '@company/shared-ui', // npm-пакет или паттерн (как designSystems.packages)
+      backedBy: 'TUI',               // имя DS из designSystems[].name
+      coverage: 1.0,                 // 0.0–1.0: доля компонентов пакета, основанных на DS
+    },
+    {
+      package: '@admin-kit',
+      backedBy: 'Beaver',
+      coverage: 0.8,                 // 80% компонентов admin-kit построены на Beaver
+    },
+  ],
+
+  // Авто-сканирование исходников local-library для обнаружения транзитивного адопшена.
+  // Работает только для local-library с известным resolvedPath (не node_modules).
+  // При включении: если исходник компонента импортирует из DS-пакета → coverage: 1.0.
+  // Декларативные transitiveRules имеют приоритет над авто-детекцией.
+  transitiveAdoption: {
+    enabled: false, // default false — не сканируем source файлы без явного разрешения
+  },
 });
 ```
 
@@ -196,11 +223,24 @@ interface DSScannerConfig {
   output?: OutputConfig;
   thresholds?: ThresholdConfig;
   historyDir?: string;
+  transitiveRules?: TransitiveRule[];
+  transitiveAdoption?: TransitiveAdoptionConfig;
 }
 
 interface DesignSystemDef {
   name: string;        // Имя DS для отчёта ("TUI", "Beaver")
   packages: string[];  // npm-пакеты, относящиеся к этой DS
+}
+
+// Декларативное правило: пакет X построен на DS Y с покрытием C
+interface TransitiveRule {
+  package: string;    // npm-пакет или паттерн (аналогично designSystems.packages)
+  backedBy: string;   // имя DS из designSystems[].name — только существующие DS учитываются
+  coverage?: number;  // 0.0–1.0, какая доля компонентов основана на DS (default: 1.0)
+}
+
+interface TransitiveAdoptionConfig {
+  enabled?: boolean;  // авто-сканировать источники local-library (default: false)
 }
 
 interface OutputConfig {
@@ -364,6 +404,14 @@ interface CategorizedUsage extends JSXUsageRecord {
   dsName: string | null;       // Имя DS ("TUI", "Beaver") — только для category === 'design-system'
   packageName: string | null;  // Для node_modules
   resolvedPath: string | null; // Для локальных
+
+  // Транзитивная аннотация — присваивается local-library / third-party,
+  // если они сами построены на DS. Не меняет category.
+  transitiveDS?: {
+    dsName: string;                          // DS из config.designSystems[].name
+    coverage: number;                        // 0.0–1.0
+    source: 'declared' | 'auto-detected';   // declared = из transitiveRules
+  };
 }
 ```
 
@@ -379,6 +427,21 @@ interface CategorizedUsage extends JSXUsageRecord {
    ИЛИ resolvedPath матчит localLibraryPatterns → 'local-library'
 5. Не-relative import (не начинается с . или /) → 'third-party'
 6. Всё остальное → 'local'
+```
+
+**Транзитивная аннотация** (применяется после категоризации, только к 'local-library' и 'third-party'):
+
+```
+Декларативный путь (sync, в categorizer):
+  7. packageName/source матчит transitiveRules[].package
+     → добавить transitiveDS = { dsName: rule.backedBy, coverage: rule.coverage ?? 1.0, source: 'declared' }
+     ⚠️ rule.backedBy должен совпадать с именем из config.designSystems — иначе игнорируется
+
+Авто-детекция (async, только local-library с resolvedPath):
+  8. Если transitiveAdoption.enabled && нет уже установленного transitiveDS
+     → парсим resolvedPath-файл, ищем импорты из config.designSystems[].packages
+     → если найден DS-импорт: transitiveDS = { dsName, coverage: 1.0, source: 'auto-detected' }
+     → результат кешируется по resolvedPath (один раз на файл)
 ```
 
 **Пример матчинга по DS**:
@@ -415,12 +478,46 @@ ds_adoption["Beaver"] = Beaver_instances / (total_DS + local_library + local) ×
 
 ⚠️ Сумма `ds_adoption["TUI"]` + `ds_adoption["Beaver"]` + local_library_share + local_share = 100%
 
+**Транзитивная формула (effectiveAdoptionRate)**:
+
+```
+transitive_weighted = Σ transitiveDS.coverage  для всех usages с transitiveDS
+transitive_third_party_count = count(third-party usages с transitiveDS)
+
+effective_denominator = total_DS + local_library + local + transitive_third_party_count
+effective_adoption_rate = (total_DS + transitive_weighted) / effective_denominator × 100
+```
+
+Логика знаменателя:
+- `local-library` с transitiveDS уже входит в знаменатель (как local_library) → не дублируем
+- `third-party` с transitiveDS ранее был excluded → добавляем в знаменатель (это был DS-выбор)
+- `third-party` без transitiveDS → по-прежнему excluded
+
+```
+Per-DS effective adoption:
+ds_effective["TUI"] = (TUI_direct + TUI_transitive_weighted) / effective_denominator × 100
+```
+
 **Дополнительные метрики**:
 
 ```typescript
 interface ScanMetrics {
-  // Основная метрика (суммарно по всем DS)
+  // Прямой adoption (только явные DS-импорты, формула не изменилась)
   adoptionRate: number;          // % от 0 до 100
+
+  // Эффективный adoption (с учётом транзитивных)
+  effectiveAdoptionRate: number; // % от 0 до 100 (>= adoptionRate)
+
+  // Транзитивная статистика
+  transitiveDS: {
+    totalInstances: number;      // кол-во usages с transitiveDS-аннотацией
+    weightedInstances: number;   // сумма coverage (для дробных правил)
+    byDS: {
+      name: string;
+      instances: number;
+      weightedInstances: number;
+    }[];
+  };
 
   // Breakdown по каждой DS отдельно
   designSystems: DesignSystemMetrics[];
@@ -442,8 +539,11 @@ interface ScanMetrics {
 interface DesignSystemMetrics {
   name: string;                  // "TUI", "Beaver"
   packages: string[];            // Пакеты этой DS (из конфига)
-  adoptionRate: number;          // Доля ЭТОЙ DS в общем adoption
-  instances: number;
+  adoptionRate: number;          // Прямая доля ЭТОЙ DS в общем adoption
+  effectiveAdoptionRate: number; // С учётом транзитивных
+  instances: number;             // Прямые использования
+  transitiveInstances: number;   // Транзитивные usages (local-lib/third-party → этот DS)
+  transitiveWeighted: number;    // Взвешенная сумма транзитивных (coverage)
   uniqueComponents: number;
   topComponents: ComponentStat[];
   filePenetration: number;       // % файлов с импортом из ЭТОЙ DS
@@ -808,15 +908,18 @@ interface ScanReport {
   };
 
   summary: {
-    adoptionRate: number;
+    adoptionRate: number;           // Прямой (только явные DS-импорты)
+    effectiveAdoptionRate: number;  // С учётом транзитивного адопшена
     totalComponentInstances: number;
     filePenetration: number;
 
     // Per-DS breakdown
     designSystems: {
       name: string;
-      adoptionRate: number;         // Доля этой DS
+      adoptionRate: number;          // Прямая доля этой DS
+      effectiveAdoptionRate: number; // С учётом транзитивных
       instances: number;
+      transitiveInstances: number;
       uniqueComponents: number;
       filePenetration: number;
     }[];
@@ -862,13 +965,16 @@ interface ScanReport {
 interface RepositoryReport {
   name: string;
   path: string;
-  adoptionRate: number;             // Суммарный
+  adoptionRate: number;             // Прямой суммарный
+  effectiveAdoptionRate: number;    // С учётом транзитивного адопшена
   filesScanned: number;
   // Per-DS в рамках этого репо
   designSystems: {
     name: string;
     adoptionRate: number;
+    effectiveAdoptionRate: number;
     instances: number;
+    transitiveInstances: number;
     uniqueComponents: number;
   }[];
   designSystemTotal: CategoryMetrics;
@@ -888,16 +994,18 @@ interface RepositoryReport {
 ║     DS Adoption Report · 2026-02-26 · 12 repos      ║
 ╠══════════════════════════════════════════════════════╣
 
-  📊 Total DS Adoption:  67.4%  ████████████████████░░░░░░░░░░
+  📊 Direct DS Adoption:    67.4%  ████████████████████░░░░░░░░░░
+  📊 Effective Adoption:    74.1%  ██████████████████████░░░░░░░░  (+6.7% via transitive)
+      └─ transitive: 87 usages (74.2 weighted) attributed to DS
 
   📐 Per Design System
-  ─────────────────────────────────────────────────
-  DS Name        Adoption   Instances   Unique   Files
-  ─────────────────────────────────────────────────
-  TUI              41.2%      5,131       32     67%
-  Beaver           26.2%      3,263       15     48%
-  ─────────────────────────────────────────────────
-  All DS total     67.4%      8,394       47     73%
+  ──────────────────────────────────────────────────────────────────
+  DS Name        Direct%   Effective%   Instances   +Transitive   Files
+  ──────────────────────────────────────────────────────────────────
+  TUI              41.2%      47.8%       5,131         +62        67%
+  Beaver           26.2%      26.3%       3,263         +12        48%
+  ──────────────────────────────────────────────────────────────────
+  All DS total     67.4%      74.1%       8,394         +74        73%
 
   📦 Full Category Breakdown
   ─────────────────────────────────────────────────
@@ -1111,6 +1219,17 @@ export const App = () => (
 18. Фикстуры-репозитории
 19. Integration тест
 
+### Phase 4: Transitive Adoption
+20. `config/schema.ts` — добавить `TransitiveRule`, `transitiveRules?`, `transitiveAdoption?`
+21. `config/loader.ts` — дефолты: `transitiveRules: []`, `transitiveAdoption: { enabled: false }`
+22. `types.ts` — `transitiveDS` в `CategorizedUsage`; `effectiveAdoptionRate`/`transitiveDS` в `ScanMetrics`; обновить `DesignSystemMetrics`, `RepositoryReport`, `ScanReport.summary`
+23. `scanner/transitive-resolver.ts` (новый) — `enrichWithTransitiveDS()`: авто-детектирование DS в исходниках local-library, кеш по resolvedPath
+24. `scanner/categorizer.ts` — declarative `transitiveRules` через `applyTransitiveRule()` (sync)
+25. `scanner/orchestrator.ts` — вызов `enrichWithTransitiveDS()` после обработки файлов репо
+26. `metrics/calculator.ts` — `effectiveAdoptionRate`, `transitiveDS` в `ScanMetrics` и per-DS
+27. `metrics/aggregator.ts` — `effectiveAdoptionRate` в repo-отчётах и summary
+28. `output/table-reporter.ts` — вывод Effective Adoption, колонка `Effective%` в per-DS таблице
+
 ---
 
 ## ⚠️ Важные edge cases для реализации
@@ -1125,3 +1244,6 @@ export const App = () => (
 8. **Compound components** (`<Select.Option>`) — считать как отдельный компонент "Select.Option", атрибутировать к пакету Select.
 9. **CSS-in-JS styled components** (`styled(Button)`) — НЕ анализировать на этом этапе (MVP). Это определение нового компонента, а его использование в JSX будет поймано обычным путём.
 10. **JSON output должен быть полным и самодостаточным** — агент (Cursor, Claude Code) будет читать этот файл целиком, поэтому в `byComponent.localMostUsed` обязательно включать `resolvedPath` для каждого компонента, чтобы агент мог найти и прочитать исходники.
+11. **Транзитивный адопшен использует только DS из конфига** — `transitiveRule.backedBy` должен совпадать с `designSystems[].name`. Если не совпадает — правило игнорируется с предупреждением.
+12. **Авто-детекция только 1 уровень глубины** — не рекурсивно. Если SharedButton.tsx сам импортирует из другой обёртки (не напрямую из DS), авто-детектор не найдёт DS. Рекомендуем declarative rule в таком случае.
+13. **Кеш transitive-resolver** — каждый resolvedPath парсится один раз за скан репозитория. Результат кешируется вне зависимости от того, сколько компонентов на него ссылается.

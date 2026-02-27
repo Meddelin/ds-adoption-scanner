@@ -5,6 +5,7 @@ import { discoverFiles } from './file-discovery.js';
 import { parseFile } from './parser.js';
 import { ImportResolver } from './import-resolver.js';
 import { categorizeUsage } from './categorizer.js';
+import { enrichWithTransitiveDS } from './transitive-resolver.js';
 import { aggregateResults, type RepoScanData } from '../metrics/aggregator.js';
 
 const CONCURRENCY_LIMIT = 16;
@@ -58,10 +59,14 @@ export async function runScan(
       }
     );
 
+    // Stage 4b: Enrich local-library usages with transitive DS detection (auto-scan)
+    const transitiveCache = new Map();
+    const finalUsages = await enrichWithTransitiveDS(repoUsages, config, transitiveCache);
+
     repoData.push({
       repositoryName: discovery.repositoryName,
       repositoryPath: discovery.repository,
-      usages: repoUsages,
+      usages: finalUsages,
       filesScanned: discovery.totalFiles,
     });
   }

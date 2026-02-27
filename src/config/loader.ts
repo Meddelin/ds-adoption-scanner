@@ -107,6 +107,10 @@ function mergeWithDefaults(userConfig: DSScannerConfig): ResolvedConfig {
       verbose: userConfig.output?.verbose ?? false,
     },
     thresholds: userConfig.thresholds ?? {},
+    transitiveRules: userConfig.transitiveRules ?? [],
+    transitiveAdoption: {
+      enabled: userConfig.transitiveAdoption?.enabled ?? false,
+    },
   };
 }
 
@@ -125,6 +129,19 @@ function validateConfig(config: ResolvedConfig, configPath: string): void {
       if (!Array.isArray(ds.packages) || ds.packages.length === 0) {
         errors.push(`designSystem "${ds.name}" must have at least one package`);
       }
+    }
+  }
+
+  // Validate transitiveRules reference known DS names
+  const dsNames = new Set(config.designSystems.map(ds => ds.name));
+  for (const rule of config.transitiveRules) {
+    if (!dsNames.has(rule.backedBy)) {
+      errors.push(
+        `transitiveRule for "${rule.package}": backedBy "${rule.backedBy}" does not match any designSystems[].name`
+      );
+    }
+    if (rule.coverage !== undefined && (rule.coverage < 0 || rule.coverage > 1)) {
+      errors.push(`transitiveRule for "${rule.package}": coverage must be between 0.0 and 1.0`);
     }
   }
 

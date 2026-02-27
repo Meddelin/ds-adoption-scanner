@@ -21,14 +21,36 @@ export function calculateMetrics(
   const thirdPartyUsages = byCategory.get('third-party') ?? [];
   const htmlNativeUsages = byCategory.get('html-native') ?? [];
 
-  // Denominator: DS + local-library + local
+  // Direct adoption: DS / (DS + local-lib + local)
   const denominator = dsUsages.length + localLibUsages.length + localUsages.length;
   const adoptionRate = denominator > 0
     ? (dsUsages.length / denominator) * 100
     : 0;
 
+  // Transitive analysis
+  const transitiveLocalLib = localLibUsages.filter(u => u.transitiveDS);
+  const transitiveThirdParty = thirdPartyUsages.filter(u => u.transitiveDS);
+  const allTransitive = [...transitiveLocalLib, ...transitiveThirdParty];
+
+  const transitiveWeightedTotal = allTransitive.reduce(
+    (sum, u) => sum + (u.transitiveDS!.coverage),
+    0
+  );
+
+  // Effective adoption: (DS + transitive_weighted) / effective_denominator
+  // third-party with transitiveDS is added to denominator (was previously excluded)
+  const effectiveDenominator = denominator + transitiveThirdParty.length;
+  const effectiveAdoptionRate = effectiveDenominator > 0
+    ? ((dsUsages.length + transitiveWeightedTotal) / effectiveDenominator) * 100
+    : 0;
+
+  // Transitive breakdown by DS
+  const transitiveByDS = buildTransitiveByDS(allTransitive, config);
+
   // Per-DS metrics
-  const designSystems = calculatePerDSMetrics(dsUsages, usages, config, denominator);
+  const designSystems = calculatePerDSMetrics(
+    dsUsages, allTransitive, usages, config, denominator, effectiveDenominator
+  );
 
   // Total DS category metrics
   const designSystemTotal = buildCategoryMetrics(dsUsages);
@@ -45,6 +67,12 @@ export function calculateMetrics(
 
   return {
     adoptionRate,
+    effectiveAdoptionRate,
+    transitiveDS: {
+      totalInstances: allTransitive.length,
+      weightedInstances: transitiveWeightedTotal,
+      byDS: transitiveByDS,
+    },
     designSystems,
     designSystemTotal,
     localLibrary,
@@ -55,6 +83,28 @@ export function calculateMetrics(
     totalComponentInstances,
     filesScanned,
   };
+}
+
+function buildTransitiveByDS(
+  transitiveUsages: CategorizedUsage[],
+  config: ResolvedConfig
+): { name: string; instances: number; weightedInstances: number }[] {
+  const map = new Map<string, { instances: number; weightedInstances: number }>();
+
+  for (const ds of config.designSystems) {
+    map.set(ds.name, { instances: 0, weightedInstances: 0 });
+  }
+
+  for (const usage of transitiveUsages) {
+    const dsName = usage.transitiveDS!.dsName;
+    const entry = map.get(dsName);
+    if (entry) {
+      entry.instances++;
+      entry.weightedInstances += usage.transitiveDS!.coverage;
+    }
+  }
+
+  return Array.from(map.entries()).map(([name, data]) => ({ name, ...data }));
 }
 
 function groupByCategory(
@@ -71,13 +121,24 @@ function groupByCategory(
 
 function calculatePerDSMetrics(
   dsUsages: CategorizedUsage[],
+  allTransitiveUsages: CategorizedUsage[],
   allUsages: CategorizedUsage[],
   config: ResolvedConfig,
-  denominator: number
+  denominator: number,
+  effectiveDenominator: number
 ): DesignSystemMetrics[] {
   return config.designSystems.map(ds => {
     const thisDS = dsUsages.filter(u => u.dsName === ds.name);
     const adoptionRate = denominator > 0 ? (thisDS.length / denominator) * 100 : 0;
+
+    // Transitive usages attributed to this DS
+    const thisTransitive = allTransitiveUsages.filter(u => u.transitiveDS?.dsName === ds.name);
+    const transitiveInstances = thisTransitive.length;
+    const transitiveWeighted = thisTransitive.reduce((s, u) => s + u.transitiveDS!.coverage, 0);
+
+    const effectiveAdoptionRate = effectiveDenominator > 0
+      ? ((thisDS.length + transitiveWeighted) / effectiveDenominator) * 100
+      : 0;
 
     // File penetration for this DS
     const filesWithThisDS = new Set(thisDS.map(u => u.filePath));
@@ -92,7 +153,10 @@ function calculatePerDSMetrics(
       name: ds.name,
       packages: ds.packages,
       adoptionRate,
+      effectiveAdoptionRate,
       instances: thisDS.length,
+      transitiveInstances,
+      transitiveWeighted,
       uniqueComponents: metrics.uniqueComponents,
       topComponents: metrics.topComponents,
       filePenetration,

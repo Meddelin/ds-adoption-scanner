@@ -7,3 +7,4 @@ coverage/
 .cache/
 repos/
 .claude/
+.ds-scanner.config.ts

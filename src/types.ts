@@ -54,6 +54,14 @@ export interface CategorizedUsage extends JSXUsageRecord {
   dsName: string | null;       // DS name ("TUI", "Beaver") — only for design-system
   packageName: string | null;  // For node_modules
   resolvedPath: string | null; // For local components
+
+  // Set for local-library / third-party usages that are backed by a DS.
+  // Does NOT change category — only feeds into effectiveAdoptionRate.
+  transitiveDS?: {
+    dsName: string;
+    coverage: number;                         // 0.0–1.0
+    source: 'declared' | 'auto-detected';
+  };
 }
 
 // ─── Metrics Types ────────────────────────────────────────────────────────────
@@ -78,7 +86,10 @@ export interface DesignSystemMetrics {
   name: string;
   packages: string[];
   adoptionRate: number;
+  effectiveAdoptionRate: number;   // Including transitive usages backed by this DS
   instances: number;
+  transitiveInstances: number;     // Count of local-lib/third-party usages backed by this DS
+  transitiveWeighted: number;      // Sum of coverage values for transitive usages
   uniqueComponents: number;
   topComponents: ComponentStat[];
   filePenetration: number;
@@ -86,6 +97,12 @@ export interface DesignSystemMetrics {
 
 export interface ScanMetrics {
   adoptionRate: number;
+  effectiveAdoptionRate: number;   // Direct + transitive weighted
+  transitiveDS: {
+    totalInstances: number;        // Count of usages with transitiveDS annotation
+    weightedInstances: number;     // Sum of coverage values
+    byDS: { name: string; instances: number; weightedInstances: number }[];
+  };
   designSystems: DesignSystemMetrics[];
   designSystemTotal: CategoryMetrics;
   localLibrary: CategoryMetrics;
@@ -110,11 +127,14 @@ export interface RepositoryReport {
   name: string;
   path: string;
   adoptionRate: number;
+  effectiveAdoptionRate: number;
   filesScanned: number;
   designSystems: {
     name: string;
     adoptionRate: number;
+    effectiveAdoptionRate: number;
     instances: number;
+    transitiveInstances: number;
     uniqueComponents: number;
   }[];
   designSystemTotal: CategoryMetrics;
@@ -137,12 +157,20 @@ export interface ScanReport {
 
   summary: {
     adoptionRate: number;
+    effectiveAdoptionRate: number;
+    transitiveDS: {
+      totalInstances: number;
+      weightedInstances: number;
+      byDS: { name: string; instances: number; weightedInstances: number }[];
+    };
     totalComponentInstances: number;
     filePenetration: number;
     designSystems: {
       name: string;
       adoptionRate: number;
+      effectiveAdoptionRate: number;
       instances: number;
+      transitiveInstances: number;
       uniqueComponents: number;
       filePenetration: number;
     }[];

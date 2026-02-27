@@ -34,26 +34,54 @@ export function printReport(report: ScanReport, verbose = false): void {
   console.log(chalk.bold.cyan('╚' + '═'.repeat(title.length + 4) + '╝') + '\n');
 
   // ── Total Adoption ───────────────────────────────────────────────────────────
-  console.log(
-    `  ${chalk.bold('📊 Total DS Adoption:')}  ` +
-    adoptionColor(summary.adoptionRate) +
-    `  ${progressBar(summary.adoptionRate)}\n`
-  );
+  const hasTransitive = summary.effectiveAdoptionRate > summary.adoptionRate + 0.05;
+
+  if (hasTransitive) {
+    const delta = summary.effectiveAdoptionRate - summary.adoptionRate;
+    console.log(
+      `  ${chalk.bold('📊 Direct DS Adoption:')}   ` +
+      adoptionColor(summary.adoptionRate) +
+      `  ${progressBar(summary.adoptionRate)}`
+    );
+    console.log(
+      `  ${chalk.bold('📊 Effective Adoption:')}   ` +
+      adoptionColor(summary.effectiveAdoptionRate) +
+      `  ${progressBar(summary.effectiveAdoptionRate)}` +
+      chalk.dim(` (+${delta.toFixed(1)}% via transitive)\n`)
+    );
+  } else {
+    console.log(
+      `  ${chalk.bold('📊 Total DS Adoption:')}  ` +
+      adoptionColor(summary.adoptionRate) +
+      `  ${progressBar(summary.adoptionRate)}\n`
+    );
+  }
 
   // ── Per Design System ────────────────────────────────────────────────────────
   if (summary.designSystems.length > 0) {
     console.log(chalk.bold('  📐 Per Design System'));
     console.log(chalk.dim('  ' + '─'.repeat(65)));
 
+    const showEffective = summary.designSystems.some(
+      ds => ds.effectiveAdoptionRate > ds.adoptionRate + 0.05
+    );
+
+    const head = [
+      chalk.bold('DS Name'),
+      chalk.bold('Direct%'),
+      ...(showEffective ? [chalk.bold('Effective%')] : []),
+      chalk.bold('Instances'),
+      ...(showEffective ? [chalk.bold('+Transitive')] : []),
+      chalk.bold('Unique'),
+      chalk.bold('Files w/ DS'),
+    ];
+    const colWidths = showEffective
+      ? [20, 11, 13, 12, 13, 10, 14]
+      : [20, 12, 12, 10, 14];
+
     const dsTable = new Table({
-      head: [
-        chalk.bold('DS Name'),
-        chalk.bold('Adoption'),
-        chalk.bold('Instances'),
-        chalk.bold('Unique'),
-        chalk.bold('Files w/ DS'),
-      ],
-      colWidths: [20, 12, 12, 10, 14],
+      head,
+      colWidths,
       style: { head: [], border: [], compact: true },
       chars: { mid: '', 'left-mid': '', 'mid-mid': '', 'right-mid': '' },
     });
@@ -62,7 +90,11 @@ export function printReport(report: ScanReport, verbose = false): void {
       dsTable.push([
         chalk.cyan(ds.name),
         adoptionColor(ds.adoptionRate),
+        ...(showEffective ? [adoptionColor(ds.effectiveAdoptionRate)] : []),
         formatNum(ds.instances),
+        ...(showEffective
+          ? [ds.transitiveInstances > 0 ? chalk.dim(`+${ds.transitiveInstances}`) : chalk.dim('—')]
+          : []),
         String(ds.uniqueComponents),
         formatPct(ds.filePenetration),
       ]);
@@ -71,7 +103,9 @@ export function printReport(report: ScanReport, verbose = false): void {
     dsTable.push([
       chalk.bold('All DS total'),
       chalk.bold(adoptionColor(summary.adoptionRate)),
+      ...(showEffective ? [chalk.bold(adoptionColor(summary.effectiveAdoptionRate))] : []),
       chalk.bold(formatNum(summary.designSystemTotal.instances)),
+      ...(showEffective ? [chalk.dim('')] : []),
       chalk.bold(String(summary.designSystemTotal.uniqueComponents)),
       chalk.bold(formatPct(summary.filePenetration)),
     ]);

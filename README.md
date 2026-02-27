@@ -184,16 +184,50 @@ export default defineConfig({
       'TUI': { minAdoptionRate: 40 },
     },
   },
+
+  // ── Транзитивный адопшен ──────────────────────────────────────────────────────
+
+  // Declarative: third-party или local-library, построенные поверх вашей DS.
+  // Использования таких пакетов учитываются в effectiveAdoptionRate.
+  transitiveRules: [
+    {
+      package: '@ant-design/pro-components',  // пакет-обёртка
+      backedBy: 'Ant Design',                 // ← имя из designSystems[].name
+      coverage: 1.0,                          // 100% компонентов построено на antd
+    },
+    {
+      package: '@company/shared-ui',
+      backedBy: 'TUI',
+      coverage: 0.8,   // 80% компонентов — обёртки над TUI, остальные — кастомные
+    },
+  ],
+
+  // Auto-detect: сканировать исходники local-library для обнаружения DS-импортов.
+  // Только для локальных библиотек с известным resolvedPath (не node_modules).
+  transitiveAdoption: {
+    enabled: false,   // включить: true — сканер проверит каждый local-library source
+  },
 });
 ```
 
 ### Формула adoption
 
+**Прямой adoption** (только явные DS-импорты):
 ```
-adoption_rate = DS_instances / (DS_instances + local_library_instances + local_instances) × 100
+adoption_rate = DS / (DS + local_library + local) × 100
 ```
 
-HTML-нативные элементы (`div`, `span`, ...) и third-party пакеты **исключены** из знаменателя — они не являются заменой для DS.
+**Эффективный adoption** (с учётом транзитивных):
+```
+transitive_weighted   = Σ coverage_i  для all usages с transitiveDS
+effective_denominator = DS + local_library + local + third_party_с_transitiveDS
+
+effective_adoption_rate = (DS + transitive_weighted) / effective_denominator × 100
+```
+
+HTML-нативные элементы (`div`, `span`, ...) и third-party пакеты **исключены** из знаменателя прямого adoption — они не являются заменой для DS. Third-party с объявленным `transitiveRules` входит в знаменатель эффективного adoption.
+
+Оба показателя есть в отчёте: `adoptionRate` (прямой, формула не изменилась) и `effectiveAdoptionRate` (новый).
 
 ---
 
@@ -296,37 +330,57 @@ ds-scanner init
 - 🟡 Жёлтый: 40–70%
 - 🔴 Красный: < 40%
 
+Если настроены `transitiveRules` или `transitiveAdoption`, выводятся обе строки:
+
+```
+📊 Direct DS Adoption:   41.2%  ████████████░░░░░░░░░░░░░░░░░░
+📊 Effective Adoption:   68.4%  ████████████████████░░░░░░░░░░  (+27.2% via transitive)
+    └─ transitive: 312 usages (312.0 weighted) attributed to Ant Design
+
+📐 Per Design System
+DS Name       Direct%   Effective%   Instances  +Transitive  Unique  Files
+Ant Design     41.2%      68.4%          487        +312        32    61%
+```
+
 ### `--format json`
 
 Полный машиночитаемый отчёт. Структура:
 
 ```jsonc
 {
-  "meta": {
-    "version": "0.1.0",
-    "timestamp": "2026-02-26T19:53:45.829Z",
-    "scanDurationMs": 215,
-    "filesScanned": 97,
-    "repositoriesScanned": 1,
-    "designSystemsConfigured": ["MUI"]
-  },
+  "meta": { "version": "0.1.0", "filesScanned": 148, ... },
   "summary": {
-    "adoptionRate": 71.1,
+    "adoptionRate": 41.2,
+    "effectiveAdoptionRate": 68.4,       // ← новый: с учётом транзитивных
     "designSystems": [
-      { "name": "MUI", "adoptionRate": 71.1, "instances": 323, "uniqueComponents": 56 }
+      {
+        "name": "Ant Design",
+        "adoptionRate": 41.2,
+        "effectiveAdoptionRate": 68.4,   // ← новый
+        "instances": 487,
+        "transitiveInstances": 312,      // ← новый: через @ant-design/pro-components
+        "uniqueComponents": 32,
+        "filePenetration": 61.2
+      }
     ],
-    "designSystemTotal": { "instances": 323, "uniqueComponents": 56, "topComponents": [...] },
-    "local": { "instances": 131, "uniqueComponents": 74, "topComponents": [...] },
-    ...
+    "localLibrary": { "instances": 0, ... },
+    "local": { "instances": 693, ... },
+    "thirdParty": { "instances": 312, ... }
   },
-  "byRepository": [...],
+  "byRepository": [
+    {
+      "name": "ant-design-pro",
+      "adoptionRate": 41.2,
+      "effectiveAdoptionRate": 68.4,     // ← новый
+      ...
+    }
+  ],
   "byComponent": {
-    "designSystems": [{ "name": "MUI", "components": [...] }],
+    "designSystems": [{ "name": "Ant Design", "components": [...] }],
     "localMostUsed": [
       {
         "name": "AlertBar",
         "instances": 6,
-        "filesUsedIn": 6,
         "resolvedPath": "/path/to/src/components/AlertBar.tsx"
       }
     ],
@@ -456,6 +510,7 @@ ds-scanner compare .ds-metrics/scans/2026-02-01T00-00-00.json \
 | `shadow-detection.md` | Хочешь найти компоненты-дубликаты DS для миграции |
 | `categorization.md` | Сканер неточно определил категорию компонента |
 | `report.md` | Нужен аналитический отчёт для техлида / PM |
+| `transitive-adoption.md` | Хочешь понять, какие библиотеки построены на DS и настроить `transitiveRules` |
 
 ---
 
@@ -476,13 +531,92 @@ ds-scanner compare .ds-metrics/scans/2026-02-01T00-00-00.json \
 
 ### Категории компонентов
 
-| Категория | Пример | В знаменателе |
-|-----------|--------|---------------|
-| `design-system` | `<Button>` из `@mui/material` | ✅ да |
-| `local-library` | `<SharedHeader>` из `@shared/components` | ✅ да |
-| `local` | `<CustomCard>` из `./components/CustomCard` | ✅ да |
-| `third-party` | `<Field>` из `formik` | ❌ нет |
-| `html-native` | `<div>`, `<span>` | ❌ нет |
+| Категория | Пример | В знаменателе прямого | В знаменателе effective |
+|-----------|--------|-----------------------|--------------------------|
+| `design-system` | `<Button>` из `@mui/material` | ✅ | ✅ |
+| `local-library` | `<SharedHeader>` из `@shared/components` | ✅ | ✅ |
+| `local` | `<CustomCard>` из `./components/CustomCard` | ✅ | ✅ |
+| `third-party` + `transitiveRule` | `<ProTable>` из `@ant-design/pro-components` | ❌ | ✅ |
+| `third-party` | `<Field>` из `formik` | ❌ | ❌ |
+| `html-native` | `<div>`, `<span>` | ❌ | ❌ |
+
+Категория компонента **не изменяется** — `local-library` и `third-party` остаются собой. `transitiveDS` — это аннотация, которая влияет только на `effectiveAdoptionRate`.
+
+---
+
+## Тестирование на реальном проекте
+
+Идеальный open-source кандидат для проверки сканера — **Ant Design Pro**.
+
+### Почему Ant Design Pro
+
+[ant-design/ant-design-pro](https://github.com/ant-design/ant-design-pro) — эталонное enterprise-приложение на React + TypeScript с 38k⭐. Идеален потому что:
+
+- Использует `antd` как DS **и** `@ant-design/pro-components` как high-level обёртки над antd
+- `@ant-design/pro-components` (`ProTable`, `ProForm`, `ProLayout`, ...) — **настоящий кейс транзитивного адопшена**: вся библиотека построена поверх antd
+- Смешивает DS-компоненты с кастомными страницами → реалистичный adoption < 100%
+- TypeScript, `tsconfig.json`, хорошая структура `src/`
+
+### Быстрый старт
+
+```bash
+git clone https://github.com/ant-design/ant-design-pro.git
+cd ant-design-pro
+```
+
+Создай `.ds-scanner.config.ts` в корне:
+
+```typescript
+import { defineConfig } from 'ds-adoption-scanner';
+
+export default defineConfig({
+  repositories: ['.'],
+
+  designSystems: [
+    {
+      name: 'Ant Design',
+      packages: ['antd', '@ant-design/icons', 'antd-style'],
+    },
+  ],
+
+  include: ['src/**/*.{ts,tsx}'],
+  exclude: ['**/*.test.*', '**/*.spec.*', '**/*.d.ts'],
+
+  // Pro-Components — high-level обёртки над antd (ProTable, ProForm, ProLayout, ...)
+  // Без transitiveRules они считаются third-party и не входят в adoption
+  transitiveRules: [
+    {
+      package: '@ant-design/pro-components',
+      backedBy: 'Ant Design',
+      coverage: 1.0,
+    },
+  ],
+});
+```
+
+Запусти сканирование:
+
+```bash
+node /path/to/dist/cli.cjs analyze --format json --output report.json
+```
+
+### Ожидаемый результат
+
+```
+📊 Direct DS Adoption:   ~40%  (только явные antd-импорты)
+📊 Effective Adoption:   ~70%  (+ ProComponents засчитываются транзитивно)
+    └─ transitive: ~300 usages attributed to Ant Design via @ant-design/pro-components
+```
+
+Разница между Direct и Effective показывает реальную ценность Pro-Components для DS adoption.
+
+### Другие кандидаты
+
+| Проект | DS | Для тестирования |
+|--------|-----|------------------|
+| [react-antd-admin](https://github.com/condorheroblog/react-antd-admin) | `antd` | Простой, один репо, ~150 tsx |
+| [Formbricks](https://github.com/formbricks/formbricks) | Radix UI | Monorepo, local-library в `packages/` |
+| [Plane](https://github.com/makeplane/plane) | Custom / Tailwind | Крупный monorepo, edge cases |
 
 ---
 
@@ -522,7 +656,8 @@ src/
 │   ├── parser.ts              # Парсинг файла через typescript-estree
 │   ├── jsx-extractor.ts       # Двухпроходный AST-обход
 │   ├── import-resolver.ts     # TypeScript API, кэш per-repo
-│   ├── categorizer.ts         # Правила категоризации
+│   ├── categorizer.ts         # Правила категоризации + declarative transitiveRules
+│   ├── transitive-resolver.ts # Auto-detect DS в исходниках local-library
 │   └── orchestrator.ts        # Оркестрация, concurrency limit 16
 ├── metrics/
 │   ├── calculator.ts          # Adoption formula, per-DS метрики
