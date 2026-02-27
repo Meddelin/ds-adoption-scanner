@@ -124,7 +124,7 @@ export function findDesignSystem(source: string, config: ResolvedConfig): string
   return null;
 }
 
-function matchesPackage(source: string, pkg: string): boolean {
+export function matchesPackage(source: string, pkg: string): boolean {
   // Exact match
   if (source === pkg) return true;
 

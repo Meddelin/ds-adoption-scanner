@@ -59,9 +59,9 @@ export async function runScan(
       }
     );
 
-    // Stage 4b: Enrich local-library usages with transitive DS detection (auto-scan)
+    // Stage 4b: Enrich usages with transitive DS detection (auto-scan)
     const transitiveCache = new Map();
-    const finalUsages = await enrichWithTransitiveDS(repoUsages, config, transitiveCache);
+    const finalUsages = await enrichWithTransitiveDS(repoUsages, config, discovery.repository, transitiveCache);
 
     repoData.push({
       repositoryName: discovery.repositoryName,

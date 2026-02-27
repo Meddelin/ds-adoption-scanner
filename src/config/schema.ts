@@ -15,16 +15,22 @@ export interface ThresholdConfig {
   perDesignSystem?: Record<string, { minAdoptionRate?: number }>;
 }
 
-// Declarative rule: package X is built on DS Y with coverage C.
-// Works for both local-library and third-party packages.
+// Declares that a package is (potentially) built on a design system.
+// When transitiveAdoption.enabled = true, the tool auto-detects which components
+// actually use DS by scanning source files in node_modules.
+// Use coverage only as an override when auto-detection is not possible.
 export interface TransitiveRule {
   package: string;    // npm package name or pattern (same syntax as designSystems.packages)
   backedBy: string;   // must match one of designSystems[].name
-  coverage?: number;  // 0.0–1.0, fraction of components backed by DS (default: 1.0)
+  coverage?: number;  // override: 0.0–1.0 fraction of components backed by DS.
+                      // If omitted, auto-detected from source files.
+                      // If source files not available, the rule is skipped (not counted).
 }
 
 export interface TransitiveAdoptionConfig {
-  enabled?: boolean;  // auto-scan local-library source files to detect DS usage (default: false)
+  enabled?: boolean;  // scan source files to detect actual DS usage (default: false)
+                      // For local-library: parses the component's resolvedPath file.
+                      // For third-party: scans node_modules package directory.
 }
 
 export interface DSScannerConfig {
