@@ -46,6 +46,11 @@ export interface DSScannerConfig {
   historyDir?: string;
   transitiveRules?: TransitiveRule[];
   transitiveAdoption?: TransitiveAdoptionConfig;
+  // When true, local/custom components are excluded from the adoption denominator.
+  // Useful when local components are intentional product-specific blocks that are
+  // not candidates for DS replacement.
+  // Formula becomes: DS / (DS + local-library)
+  excludeLocalFromAdoption?: boolean;
 }
 
 export type ResolvedConfig = Required<Omit<DSScannerConfig, 'thresholds' | 'transitiveAdoption'>> & {

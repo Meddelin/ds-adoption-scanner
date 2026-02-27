@@ -111,6 +111,7 @@ function mergeWithDefaults(userConfig: DSScannerConfig): ResolvedConfig {
     transitiveAdoption: {
       enabled: userConfig.transitiveAdoption?.enabled ?? false,
     },
+    excludeLocalFromAdoption: userConfig.excludeLocalFromAdoption ?? false,
   };
 }
 

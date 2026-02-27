@@ -22,7 +22,9 @@ export function calculateMetrics(
   const htmlNativeUsages = byCategory.get('html-native') ?? [];
 
   // Direct adoption: DS / (DS + local-lib + local)
-  const denominator = dsUsages.length + localLibUsages.length + localUsages.length;
+  // When excludeLocalFromAdoption: local is excluded from denominator
+  const denominator = dsUsages.length + localLibUsages.length +
+    (config.excludeLocalFromAdoption ? 0 : localUsages.length);
   const adoptionRate = denominator > 0
     ? (dsUsages.length / denominator) * 100
     : 0;

@@ -153,6 +153,7 @@ export interface ScanReport {
     filesScanned: number;
     repositoriesScanned: number;
     designSystemsConfigured: string[];
+    excludeLocalFromAdoption: boolean;
   };
 
   summary: {

@@ -25,6 +25,7 @@ function formatNum(n: number): string {
 
 export function printReport(report: ScanReport, verbose = false): void {
   const { summary, meta, byRepository, byComponent } = report;
+  const excludeLocal = meta.excludeLocalFromAdoption;
 
   // ── Header ──────────────────────────────────────────────────────────────────
   const date = new Date(meta.timestamp).toISOString().slice(0, 10);
@@ -33,6 +34,8 @@ export function printReport(report: ScanReport, verbose = false): void {
   console.log(chalk.bold.cyan('║  ') + chalk.bold.white(title) + chalk.bold.cyan('  ║'));
   console.log(chalk.bold.cyan('╚' + '═'.repeat(title.length + 4) + '╝') + '\n');
 
+  const localNote = excludeLocal ? chalk.dim(' (local excl.)') : '';
+
   // ── Total Adoption ───────────────────────────────────────────────────────────
   const hasTransitive = summary.effectiveAdoptionRate > summary.adoptionRate + 0.05;
 
@@ -40,19 +43,19 @@ export function printReport(report: ScanReport, verbose = false): void {
     const delta = summary.effectiveAdoptionRate - summary.adoptionRate;
     console.log(
       `  ${chalk.bold('📊 Direct DS Adoption:')}   ` +
-      adoptionColor(summary.adoptionRate) +
+      adoptionColor(summary.adoptionRate) + localNote +
       `  ${progressBar(summary.adoptionRate)}`
     );
     console.log(
       `  ${chalk.bold('📊 Effective Adoption:')}   ` +
-      adoptionColor(summary.effectiveAdoptionRate) +
+      adoptionColor(summary.effectiveAdoptionRate) + localNote +
       `  ${progressBar(summary.effectiveAdoptionRate)}` +
       chalk.dim(` (+${delta.toFixed(1)}% via transitive)\n`)
     );
   } else {
     console.log(
       `  ${chalk.bold('📊 Total DS Adoption:')}  ` +
-      adoptionColor(summary.adoptionRate) +
+      adoptionColor(summary.adoptionRate) + localNote +
       `  ${progressBar(summary.adoptionRate)}\n`
     );
   }
@@ -121,7 +124,7 @@ export function printReport(report: ScanReport, verbose = false): void {
   const denominator =
     summary.designSystemTotal.instances +
     summary.localLibrary.instances +
-    summary.local.instances;
+    (excludeLocal ? 0 : summary.local.instances);
 
   function sharePct(instances: number): string {
     if (denominator === 0) return '0.0%';
@@ -160,7 +163,7 @@ export function printReport(report: ScanReport, verbose = false): void {
     chalk.dim('Local/Custom'),
     chalk.dim(formatNum(summary.local.instances)),
     chalk.dim(String(summary.local.uniqueComponents)),
-    chalk.dim(sharePct(summary.local.instances)),
+    chalk.dim(excludeLocal ? 'excluded' : sharePct(summary.local.instances)),
   ]);
 
   catTable.push([

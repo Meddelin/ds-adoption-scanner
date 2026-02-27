@@ -47,6 +47,7 @@ export function aggregateResults(
       filesScanned: totalFilesScanned,
       repositoriesScanned: repoData.length,
       designSystemsConfigured: config.designSystems.map(ds => ds.name),
+      excludeLocalFromAdoption: config.excludeLocalFromAdoption,
     },
     summary: {
       adoptionRate: globalMetrics.adoptionRate,
