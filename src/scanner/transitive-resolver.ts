@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { fdir } from 'fdir';
 import type { CategorizedUsage } from '../types.js';
 import type { ResolvedConfig } from '../config/schema.js';
 import { parseFile } from './parser.js';
@@ -12,15 +11,13 @@ export interface TransitiveDetection {
   source: 'auto-detected';
 }
 
-const MAX_PKG_FILES = 300;
-
 /**
  * Enriches usages with transitiveDS annotations.
  *
  * Two passes:
  * 1. local-library without annotation → parse component source file, check DS imports (per-component)
  * 2. third-party with declarative annotation where rule has no explicit coverage →
- *    scan node_modules package directory, compute coverage = DS_files / total_files (per-package)
+ *    check package.json deps/peerDeps: if DS package listed → coverage 1.0 (per-package)
  *
  * Only runs when config.transitiveAdoption.enabled = true.
  * Declarative annotation with explicit coverage is never overwritten.
@@ -133,11 +130,9 @@ async function detectFromFile(
 // ─── Per-package detection (third-party node_modules) ────────────────────────
 
 /**
- * Scans a node_modules package and returns the fraction of its source files
- * that import from the specified design system.
- *
- * Prefers TypeScript source (src/) over compiled ESM (es/) over CJS (lib/).
- * Returns null if the package directory cannot be found or scanned.
+ * Checks whether a node_modules package declares a DS package in its
+ * dependencies or peerDependencies. If yes → coverage 1.0.
+ * If package.json not found → null (skip, don't count).
  */
 async function detectPackageCoverage(
   packageName: string,
@@ -154,36 +149,21 @@ async function detectPackageCoverage(
     return null;
   }
 
-  const scanDir = pickScanDir(pkgRoot);
-  if (!scanDir) {
-    cache.set(packageName, null);
-    return null;
-  }
-
   try {
-    const files = collectSourceFiles(scanDir);
-    if (files.length === 0) {
-      cache.set(packageName, null);
-      return null;
-    }
+    const pkgJson = JSON.parse(
+      fs.readFileSync(path.join(pkgRoot, 'package.json'), 'utf8')
+    ) as Record<string, unknown>;
 
-    let parsed = 0;
-    let dsFiles = 0;
+    const allDeps = {
+      ...pkgJson['dependencies'] as Record<string, string> | undefined,
+      ...pkgJson['peerDependencies'] as Record<string, string> | undefined,
+      ...pkgJson['optionalDependencies'] as Record<string, string> | undefined,
+    };
 
-    for (const file of files) {
-      try {
-        const result = await parseFile(file);
-        parsed++;
-        const usesDs = [...result.imports.values()].some(
-          entry => findDesignSystem(entry.source, config) === dsName
-        );
-        if (usesDs) dsFiles++;
-      } catch {
-        // Skip files that can't be parsed
-      }
-    }
+    const ds = config.designSystems.find(d => d.name === dsName);
+    const isDsBacked = ds?.packages.some(pkg => pkg in allDeps) ?? false;
 
-    const coverage = parsed > 0 ? dsFiles / parsed : null;
+    const coverage = isDsBacked ? 1.0 : 0;
     cache.set(packageName, coverage);
     return coverage;
   } catch {
@@ -201,36 +181,4 @@ function findPackageRoot(packageName: string, repoRoot: string): string | null {
     if (fs.existsSync(candidate)) return candidate;
   }
   return null;
-}
-
-/**
- * Picks the best directory to scan within a package:
- * src/ (TypeScript source) → es/ (compiled ESM) → lib/ (compiled CJS) → package root.
- */
-function pickScanDir(pkgRoot: string): string | null {
-  for (const sub of ['src', 'es', 'lib']) {
-    const dir = path.join(pkgRoot, sub);
-    if (fs.existsSync(dir)) return dir;
-  }
-  // Fall back to package root itself
-  return fs.existsSync(pkgRoot) ? pkgRoot : null;
-}
-
-function collectSourceFiles(dir: string): string[] {
-  const files = new fdir()
-    .withFullPaths()
-    .filter(filePath => {
-      const ext = path.extname(filePath);
-      return (
-        (ext === '.ts' || ext === '.tsx' || ext === '.js' || ext === '.mjs') &&
-        !filePath.endsWith('.d.ts') &&
-        !filePath.includes('.test.') &&
-        !filePath.includes('.spec.')
-      );
-    })
-    .exclude(dirName => dirName === '__tests__' || dirName === 'node_modules')
-    .crawl(dir)
-    .sync() as string[];
-
-  return files.slice(0, MAX_PKG_FILES);
 }

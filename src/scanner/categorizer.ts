@@ -170,6 +170,13 @@ function matchesLocalLibrary(
 }
 
 function extractPackageName(source: string): string {
+  // Handle absolute paths (e.g. Windows "C:/..." or Unix "/abs/path/node_modules/pkg")
+  const normalized = source.replace(/\\/g, '/');
+  const nmIdx = normalized.lastIndexOf('/node_modules/');
+  if (nmIdx !== -1) {
+    return extractPackageName(normalized.slice(nmIdx + '/node_modules/'.length));
+  }
+
   if (source.startsWith('@')) {
     return source.split('/').slice(0, 2).join('/');
   }
