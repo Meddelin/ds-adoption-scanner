@@ -217,6 +217,16 @@ export default defineConfig({
   transitiveAdoption: {
     enabled: true,
   },
+
+  // ── Знаменатель adoption ──────────────────────────────────────────────────────
+
+  // Исключает Local/Custom компоненты из знаменателя adoption.
+  // Полезно, когда уникальные продуктовые компоненты — ожидаемая норма,
+  // и нужно измерять только DS vs shared-библиотеки.
+  //
+  // false (по умолчанию): DS / (DS + local-library + local) × 100
+  // true:                 DS / (DS + local-library) × 100
+  excludeLocalFromAdoption: false,
 });
 ```
 
@@ -225,6 +235,11 @@ export default defineConfig({
 **Прямой adoption** (только явные DS-импорты):
 ```
 adoption_rate = DS / (DS + local_library + local) × 100
+```
+
+С `excludeLocalFromAdoption: true` — Local/Custom исключаются из знаменателя:
+```
+adoption_rate = DS / (DS + local_library) × 100
 ```
 
 **Эффективный adoption** (с учётом транзитивных):
@@ -550,12 +565,14 @@ ds-scanner compare .ds-metrics/scans/2026-02-01T00-00-00.json \
 |-----------|--------|-----------------------|--------------------------|
 | `design-system` | `<Button>` из `@mui/material` | ✅ | ✅ |
 | `local-library` | `<SharedHeader>` из `@shared/components` | ✅ | ✅ |
-| `local` | `<CustomCard>` из `./components/CustomCard` | ✅ | ✅ |
+| `local` | `<CustomCard>` из `./components/CustomCard` | ✅ *(или ❌ при `excludeLocalFromAdoption`)* | ✅ *(или ❌)* |
 | `third-party` + `transitiveRule` | `<ProTable>` из `@ant-design/pro-components` | ❌ | ✅ |
 | `third-party` | `<Field>` из `formik` | ❌ | ❌ |
 | `html-native` | `<div>`, `<span>` | ❌ | ❌ |
 
 Категория компонента **не изменяется** — `local-library` и `third-party` остаются собой. `transitiveDS` — это аннотация, которая влияет только на `effectiveAdoptionRate`.
+
+**`local` vs `local-library`**: оба — файлы внутри проекта (относительные импорты). Разница задаётся конфигом `localLibraryPatterns`: пути, которые совпадают → `local-library`; всё остальное → `local`. `local-library` участвует в авто-детекции транзитивного адопшена; `local` — нет.
 
 ---
 

@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.3.0 — excludeLocalFromAdoption
+
+### Новая опция конфига: `excludeLocalFromAdoption`
+
+```typescript
+excludeLocalFromAdoption: true
+```
+
+Исключает `local` (Local/Custom) компоненты из знаменателя adoption.
+
+**Когда использовать**: когда уникальные продуктовые компоненты — ожидаемая норма,
+и нужно измерять только DS vs общие библиотеки. Формула становится:
+
+```
+DS / (DS + local-library) × 100   вместо   DS / (DS + local-library + local) × 100
+```
+
+**В отчёте**:
+- Рядом с adoption rate появляется `(local excl.)`
+- В Category Breakdown колонка Share для Local/Custom показывает `excluded`
+- Флаг сохраняется в `ScanReport.meta.excludeLocalFromAdoption` для корректного рендеринга
+
+**`local` vs `local-library`**: оба — относительные импорты из файлов проекта.
+Компоненты из `localLibraryPatterns` → `local-library`; остальные → `local`.
+`local-library` участвует в авто-детекции транзитивного адопшена, `local` — нет.
+
+---
+
 ## v0.2.0 — Transitive Adoption (Auto-Detection Improvements)
 
 ### Упрощение API: `coverage` больше не нужен

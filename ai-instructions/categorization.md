@@ -45,17 +45,12 @@ to the config. This keeps the category accurate while crediting the DS in `effec
 **Example config change to suggest:**
 ```typescript
 transitiveRules: [
-  {
-    package: '@ant-design/pro-components',
-    backedBy: 'Ant Design',
-    coverage: 1.0,
-  },
-  {
-    package: '@company/shared-ui',
-    backedBy: 'TUI',
-    coverage: 0.8,  // if only ~80% of its components wrap TUI
-  },
+  // coverage is auto-detected from package.json when transitiveAdoption.enabled: true
+  { package: '@ant-design/pro-components', backedBy: 'Ant Design' },
+  // explicit coverage only if package is not in node_modules
+  { package: '@company/shared-ui', backedBy: 'TUI', coverage: 0.8 },
 ],
+transitiveAdoption: { enabled: true },
 ```
 
 For local libraries where you can read the source (resolvedPath is set),
