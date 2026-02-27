@@ -1,6 +1,68 @@
-# Transitive DS Adoption — Changes
+# Changelog
 
-## Что добавляется
+## v0.2.0 — Transitive Adoption (Auto-Detection Improvements)
+
+### Упрощение API: `coverage` больше не нужен
+
+`coverage` в `transitiveRules` теперь опциональный. Если не указан — сканер
+определяет его автоматически. Указывать нужно только как override.
+
+**Было:**
+```typescript
+transitiveRules: [
+  { package: '@ant-design/pro-components', backedBy: 'Ant Design', coverage: 1.0 },
+]
+```
+
+**Стало:**
+```typescript
+transitiveRules: [
+  { package: '@ant-design/pro-components', backedBy: 'Ant Design' },
+]
+transitiveAdoption: { enabled: true }
+```
+
+### Авто-детект для third-party через `package.json`
+
+Для правил без явного `coverage` и `transitiveAdoption.enabled: true` сканер проверяет
+`node_modules/{package}/package.json`:
+- Если DS-пакет найден в `dependencies` / `peerDependencies` / `optionalDependencies` → `coverage: 1.0`
+- Если не найден → правило пропускается (не считается)
+- Если пакет не установлен в `node_modules` → правило пропускается (консервативно)
+
+Этот подход надёжнее сканирования исходников: `peerDependencies` — это
+официальная декларация о зависимости от DS.
+
+Для **local-library** поведение прежнее: парсинг исходника каждого компонента
+по `resolvedPath`, проверка прямых DS-импортов.
+
+### Bug fixes
+
+- **`effective < direct`**: при сканировании исходников ESM-бандлов компоненты
+  редко импортировали DS напрямую (внутренние зависимости), что давало низкий
+  coverage и уменьшало `effectiveAdoptionRate`. Исправлено переходом на
+  `package.json` проверку.
+
+- **`pkg: C:`**: в проектах с UmiJS или аналогичными фреймворками генерированные
+  файлы могли содержать импорты по абсолютным Windows-путям. `extractPackageName`
+  теперь корректно обрабатывает такие пути, извлекая имя пакета из части после
+  `/node_modules/`.
+
+### Таблица Repository Breakdown
+
+При наличии транзитивного адопшена таблица репозиториев теперь показывает
+отдельную колонку `Effective` рядом с `Total DS`:
+
+```
+Repository       Ant Design   Total DS   Effective   Local
+ant-design-pro     68.6%       68.6%      79.7%      31.4%
+```
+
+---
+
+## v0.1.0 — Initial Implementation + Transitive Adoption (основа)
+
+### Что добавляется
 
 Поддержка **транзитивного адопшена**: учёт дизайн-системы в adoption rate,
 когда local-library или third-party пакет сам построен на основе DS.

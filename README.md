@@ -3,17 +3,23 @@
 CLI-инструмент для измерения adoption дизайн-системы в React/TypeScript проектах. Сканирует JSX-компоненты через AST, категоризирует их по источнику (DS / локальная библиотека / кастомный / third-party / HTML) и считает adoption rate.
 
 ```
-📊 Total DS Adoption:  71.1%  █████████████████████░░░░░░░░░
+📊 Direct DS Adoption:   68.6%  █████████████████████░░░░░░░░░
+📊 Effective Adoption:   79.7%  ████████████████████████░░░░░░  (+11.1% via transitive)
 
 📐 Per Design System
- MUI              71.1%      323        56     68.1%
- All DS total     71.1%      323        56     48.5%
+DS Name       Direct%   Effective%   Instances  +Transitive  Unique  Files w/ DS
+Ant Design     68.6%      79.7%          35        +28         26     100.0%
+All DS total   68.6%      79.7%          35                    26      77.8%
 
 📦 Category Breakdown
- ├ MUI                  323        56      71.1%
- Local/Custom           131        74      28.9%
- (Third-party)           60        16      excluded
- (HTML native)          307        17      excluded
+ ├ Ant Design          35        26      68.6%
+ Local/Custom          16        12      31.4%
+ (Third-party)         63        23      excluded
+ (HTML native)         29         6      excluded
+
+🏗️ Repository Breakdown
+Repository       Ant Design   Total DS   Effective   Local
+ant-design-pro     68.6%       68.6%      79.7%      31.4%
 ```
 
 ---
@@ -187,25 +193,29 @@ export default defineConfig({
 
   // ── Транзитивный адопшен ──────────────────────────────────────────────────────
 
-  // Declarative: third-party или local-library, построенные поверх вашей DS.
-  // Использования таких пакетов учитываются в effectiveAdoptionRate.
+  // Объявляет пакеты, которые могут быть построены поверх вашей DS.
+  // При transitiveAdoption.enabled = true сканер автоматически определит,
+  // является ли пакет DS-обёрткой, проверив его package.json dependencies.
+  // Если coverage не указан — вычисляется автоматически.
   transitiveRules: [
     {
       package: '@ant-design/pro-components',  // пакет-обёртка
       backedBy: 'Ant Design',                 // ← имя из designSystems[].name
-      coverage: 1.0,                          // 100% компонентов построено на antd
+      // coverage не нужен — авто-определяется из node_modules/package.json
     },
     {
       package: '@company/shared-ui',
       backedBy: 'TUI',
-      coverage: 0.8,   // 80% компонентов — обёртки над TUI, остальные — кастомные
+      coverage: 0.8,   // ручной override: если пакет недоступен в node_modules
     },
   ],
 
-  // Auto-detect: сканировать исходники local-library для обнаружения DS-импортов.
-  // Только для локальных библиотек с известным resolvedPath (не node_modules).
+  // Включает авто-детект DS-зависимостей:
+  // - для local-library: парсит исходник каждого компонента (resolvedPath)
+  // - для third-party: проверяет package.json → если DS в deps/peerDeps → coverage 1.0
+  // Если пакет не найден в node_modules и coverage не указан → правило пропускается.
   transitiveAdoption: {
-    enabled: false,   // включить: true — сканер проверит каждый local-library source
+    enabled: true,
   },
 });
 ```
@@ -330,17 +340,22 @@ ds-scanner init
 - 🟡 Жёлтый: 40–70%
 - 🔴 Красный: < 40%
 
-Если настроены `transitiveRules` или `transitiveAdoption`, выводятся обе строки:
+Если есть транзитивный адопшен, выводятся обе строки и расширенные колонки:
 
 ```
-📊 Direct DS Adoption:   41.2%  ████████████░░░░░░░░░░░░░░░░░░
-📊 Effective Adoption:   68.4%  ████████████████████░░░░░░░░░░  (+27.2% via transitive)
-    └─ transitive: 312 usages (312.0 weighted) attributed to Ant Design
+📊 Direct DS Adoption:   68.6%  █████████████████████░░░░░░░░░
+📊 Effective Adoption:   79.7%  ████████████████████████░░░░░░  (+11.1% via transitive)
 
 📐 Per Design System
-DS Name       Direct%   Effective%   Instances  +Transitive  Unique  Files
-Ant Design     41.2%      68.4%          487        +312        32    61%
+DS Name       Direct%   Effective%   Instances  +Transitive  Unique  Files w/ DS
+Ant Design     68.6%      79.7%          35        +28         26     100.0%
+
+🏗️ Repository Breakdown
+Repository       Ant Design   Total DS   Effective   Local
+ant-design-pro     68.6%       68.6%      79.7%      31.4%
 ```
+
+Если транзитивных нет — таблицы компактные, лишних колонок нет.
 
 ### `--format json`
 
@@ -580,17 +595,17 @@ export default defineConfig({
   ],
 
   include: ['src/**/*.{ts,tsx}'],
-  exclude: ['**/*.test.*', '**/*.spec.*', '**/*.d.ts'],
+  exclude: [
+    '**/*.test.*', '**/*.spec.*', '**/*.d.ts',
+    '**/.umi/**',  // исключить авто-генерированный код (UmiJS)
+  ],
 
   // Pro-Components — high-level обёртки над antd (ProTable, ProForm, ProLayout, ...)
-  // Без transitiveRules они считаются third-party и не входят в adoption
+  // Сканер сам проверит package.json и увидит antd в peerDependencies → coverage 1.0
   transitiveRules: [
-    {
-      package: '@ant-design/pro-components',
-      backedBy: 'Ant Design',
-      coverage: 1.0,
-    },
+    { package: '@ant-design/pro-components', backedBy: 'Ant Design' },
   ],
+  transitiveAdoption: { enabled: true },
 });
 ```
 
@@ -603,12 +618,14 @@ node /path/to/dist/cli.cjs analyze --format json --output report.json
 ### Ожидаемый результат
 
 ```
-📊 Direct DS Adoption:   ~40%  (только явные antd-импорты)
-📊 Effective Adoption:   ~70%  (+ ProComponents засчитываются транзитивно)
-    └─ transitive: ~300 usages attributed to Ant Design via @ant-design/pro-components
+📊 Direct DS Adoption:   68.6%  (только явные antd-импорты)
+📊 Effective Adoption:   79.7%  (+11.1% via transitive)
+
+Ant Design:
+  direct instances=35   transitive=28   unique=26
 ```
 
-Разница между Direct и Effective показывает реальную ценность Pro-Components для DS adoption.
+Сканер автоматически обнаружил, что `@ant-design/pro-components` имеет `antd` в `peerDependencies` → все 28 использований ProComponents засчитаны транзитивно.
 
 ### Другие кандидаты
 

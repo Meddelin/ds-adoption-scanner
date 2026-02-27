@@ -41,10 +41,9 @@ Look at `byComponent.thirdParty`. For each package:
    - `@mui/x-data-grid`, `@mui/x-date-pickers` → MUI ecosystem extensions
    - `@chakra-ui/icons`, `@chakra-ui/pro` → Chakra UI extensions
    - `@radix-ui/themes` → wraps Radix UI primitives
-2. If uncertain, check npm or GitHub: does the package list the DS as a peer dependency?
-3. Estimate coverage: what fraction of the package's exported components wrap the DS?
-   - 1.0 = 100% (e.g., an icon library or layout extension)
-   - 0.7-0.9 = partial (mix of DS wrappers and independent components)
+2. If uncertain, check the package's `package.json` on npm or GitHub: is the DS listed
+   in `dependencies` or `peerDependencies`? The scanner will check this automatically
+   when `transitiveAdoption.enabled: true`.
 
 ### Step 2: Identify local-library transitive candidates
 
@@ -53,6 +52,7 @@ For each one with a `resolvedPath`:
 1. Read the source file at `resolvedPath`
 2. Check the imports at the top of the file — do they import from DS packages?
 3. If the component renders DS components internally → it's DS-backed
+4. With `transitiveAdoption.enabled: true` the scanner detects this automatically.
 
 ### Step 3: Suggest configuration changes
 
@@ -60,32 +60,25 @@ For each DS-backed package found, suggest adding to `.ds-scanner.config.ts`:
 
 ```typescript
 transitiveRules: [
-  // Third-party: @ant-design/pro-components fully wraps antd
-  {
-    package: '@ant-design/pro-components',
-    backedBy: 'Ant Design',
-    coverage: 1.0,
-  },
-  // Local library with partial DS backing
-  {
-    package: '@company/design-tokens',
-    backedBy: 'TUI',
-    coverage: 0.6,  // 60% of its exports wrap TUI components
-  },
+  // Just declare the package and DS — coverage is auto-detected from package.json
+  { package: '@ant-design/pro-components', backedBy: 'Ant Design' },
+  { package: '@company/shared-ui',         backedBy: 'TUI' },
 ],
 
-// For local libraries: enable auto-detection via source scanning
-// (reads the resolvedPath file and looks for DS imports)
+// Enable auto-detection:
+// - third-party: checks package.json deps/peerDeps → coverage 1.0 if DS found
+// - local-library: parses each component source file, checks DS imports
+// If a package is not installed in node_modules and coverage is not set → rule is skipped.
 transitiveAdoption: {
   enabled: true,
 },
 ```
 
-**Coverage guidelines:**
-- `1.0` — entire package is a DS extension/wrapper (icon packs, layout helpers, pro components)
-- `0.8-0.9` — most components wrap DS, a few are independent
-- `0.5-0.7` — mixed: roughly half wrap DS, half are custom
-- `< 0.5` — mostly custom, minor DS dependency — may not be worth declaring
+Use explicit `coverage` only when auto-detection is not possible (e.g., package not
+installed in `node_modules`):
+```typescript
+{ package: '@company/shared-ui', backedBy: 'TUI', coverage: 0.8 }
+```
 
 ### Step 4: Project the impact
 
@@ -111,17 +104,18 @@ new_effective_adoption ≈ (DS + estimated_weighted) /
 
 ```
 Transitive candidates found:
-1. @ant-design/pro-components (312 instances, 28 components)
-   → Listed as antd wrapper in its README, requires antd as peer dependency
-   → Suggested: { package: '@ant-design/pro-components', backedBy: 'Ant Design', coverage: 1.0 }
+1. @ant-design/pro-components (28 instances, 14 components)
+   → Has `antd` in peerDependencies — scanner will auto-detect coverage: 1.0
+   → Suggested: { package: '@ant-design/pro-components', backedBy: 'Ant Design' }
 
 Suggested config:
   transitiveRules: [
-    { package: '@ant-design/pro-components', backedBy: 'Ant Design', coverage: 1.0 }
-  ]
+    { package: '@ant-design/pro-components', backedBy: 'Ant Design' }
+  ],
+  transitiveAdoption: { enabled: true }
 
 Projected impact:
-  Current direct adoption: 41.2%
-  With transitiveRules:    68.4%  (+27.2 percentage points)
-  Gap explained by:        312 ProComponents usages now credited to Ant Design
+  Current direct adoption: 68.6%
+  With transitiveRules:    79.7%  (+11.1 percentage points)
+  Gap explained by:        28 ProComponents usages now credited to Ant Design
 ```

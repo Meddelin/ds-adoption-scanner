@@ -191,6 +191,7 @@ export function printReport(report: ScanReport, verbose = false): void {
         chalk.bold('Repository'),
         ...dsCols.map(n => chalk.bold(n)),
         chalk.bold('Total DS'),
+        ...(hasTransitive ? [chalk.bold('Effective')] : []),
         chalk.bold('Local'),
       ],
       style: { head: [], border: [], compact: true },
@@ -209,6 +210,7 @@ export function printReport(report: ScanReport, verbose = false): void {
         repo.name.slice(0, 30),
         ...dsRates,
         adoptionColor(repo.adoptionRate),
+        ...(hasTransitive ? [adoptionColor(repo.effectiveAdoptionRate)] : []),
         chalk.dim(formatPct(localShare)),
       ]);
     }
