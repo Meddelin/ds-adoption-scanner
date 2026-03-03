@@ -193,6 +193,14 @@ export interface ScanReport {
     thirdParty: ComponentStat[];
   };
 
+  // Results of library[] pre-scan (only present when libraries[] with path/git configured)
+  libraryPrescan?: {
+    package: string;
+    backedBy: string;          // DS name
+    totalComponents: number;
+    dsBackedComponents: number;
+  }[];
+
   comparison?: {
     baselineDate: string;
     adoptionDelta: number;

@@ -117,6 +117,40 @@ export function printReport(report: ScanReport, verbose = false): void {
     console.log();
   }
 
+  // ── Library Pre-Scan Results ─────────────────────────────────────────────────
+  if (report.libraryPrescan && report.libraryPrescan.length > 0) {
+    console.log(chalk.bold('  📚 Library Pre-Scan'));
+    console.log(chalk.dim('  ' + '─'.repeat(65)));
+
+    const libTable = new Table({
+      head: [
+        chalk.bold('Package'),
+        chalk.bold('Backed by'),
+        chalk.bold('DS / Total'),
+        chalk.bold('Coverage'),
+      ],
+      colWidths: [36, 16, 13, 32],
+      style: { head: [], border: [], compact: true },
+      chars: { mid: '', 'left-mid': '', 'mid-mid': '', 'right-mid': '' },
+    });
+
+    for (const lib of report.libraryPrescan) {
+      const pct = lib.totalComponents > 0
+        ? (lib.dsBackedComponents / lib.totalComponents) * 100
+        : 0;
+      const bar = progressBar(pct, 18);
+      libTable.push([
+        chalk.cyan(lib.package.slice(0, 34)),
+        chalk.dim(lib.backedBy),
+        chalk.dim(`${lib.dsBackedComponents} / ${lib.totalComponents}`),
+        `${adoptionColor(pct)}  ${bar}`,
+      ]);
+    }
+
+    console.log(libTable.toString());
+    console.log();
+  }
+
   // ── Category Breakdown ───────────────────────────────────────────────────────
   console.log(chalk.bold('  📦 Category Breakdown'));
   console.log(chalk.dim('  ' + '─'.repeat(65)));

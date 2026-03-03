@@ -83,11 +83,28 @@ export async function runScan(
   const scanDurationMs = Date.now() - startTime;
 
   // Stage 5: Aggregate metrics
-  return aggregateResults(repoData, config, {
+  const report = aggregateResults(repoData, config, {
     version: VERSION,
     configPath: options.configPath,
     scanDurationMs,
   });
+
+  // Attach library pre-scan summary when libraries[] were configured
+  if (libraryRegistry.size > 0) {
+    report.libraryPrescan = [];
+    for (const [pkg, entry] of libraryRegistry) {
+      const total = entry.componentMap.size;
+      const dsBacked = [...entry.componentMap.values()].filter(Boolean).length;
+      report.libraryPrescan.push({
+        package: pkg,
+        backedBy: entry.backedBy,
+        totalComponents: total,
+        dsBackedComponents: dsBacked,
+      });
+    }
+  }
+
+  return report;
 }
 
 async function processWithConcurrency<T>(
