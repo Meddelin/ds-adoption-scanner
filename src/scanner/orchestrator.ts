@@ -6,6 +6,7 @@ import { parseFile } from './parser.js';
 import { ImportResolver } from './import-resolver.js';
 import { categorizeUsage } from './categorizer.js';
 import { enrichWithTransitiveDS } from './transitive-resolver.js';
+import { preScanLibraries, type LibraryRegistry } from './library-prescan.js';
 import { aggregateResults, type RepoScanData } from '../metrics/aggregator.js';
 
 const CONCURRENCY_LIMIT = 16;
@@ -22,6 +23,12 @@ export async function runScan(
   options: ScanOptions
 ): Promise<ScanReport> {
   const startTime = Date.now();
+
+  // Stage 0: Pre-scan libraries configured with path/git for per-component DS detection
+  let libraryRegistry: LibraryRegistry = new Map();
+  if ((config.libraries ?? []).some(l => l.path || l.git)) {
+    libraryRegistry = await preScanLibraries(config, options.verbose);
+  }
 
   // Stage 1: Discover files
   const discovered = await discoverFiles(config);
@@ -59,9 +66,11 @@ export async function runScan(
       }
     );
 
-    // Stage 4b: Enrich usages with transitive DS detection (auto-scan)
+    // Stage 4b: Enrich usages with transitive DS detection (registry + auto-scan)
     const transitiveCache = new Map();
-    const finalUsages = await enrichWithTransitiveDS(repoUsages, config, discovery.repository, transitiveCache);
+    const finalUsages = await enrichWithTransitiveDS(
+      repoUsages, config, discovery.repository, transitiveCache, libraryRegistry
+    );
 
     repoData.push({
       repositoryName: discovery.repositoryName,

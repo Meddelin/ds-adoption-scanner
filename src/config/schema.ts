@@ -33,6 +33,19 @@ export interface TransitiveAdoptionConfig {
                       // For third-party: scans node_modules package directory.
 }
 
+// Declares a library whose source should be pre-scanned for per-component DS coverage.
+// More accurate than transitiveRules.coverage because each component is checked individually.
+// Only direct imports from designSystems[].packages count — inter-library chains are excluded.
+export interface LibrarySource {
+  package: string;    // npm package name or glob matching what's imported (e.g. '@company/ui')
+  backedBy: string;   // must match one of designSystems[].name
+  path?: string;      // local filesystem path to library source root
+  git?: string;       // git URL — cloned with --depth 1 to historyDir/.library-cache/
+                      // If neither path nor git: entry is ignored at pre-scan phase
+  include?: string[]; // files to scan, default: ['**/*.tsx', '**/*.ts']
+  exclude?: string[]; // files to exclude, default: ['**/*.test.*','**/*.spec.*','**/*.stories.*','**/node_modules/**']
+}
+
 export interface DSScannerConfig {
   repositories: string[];
   designSystems: DesignSystemDef[];
@@ -46,6 +59,7 @@ export interface DSScannerConfig {
   historyDir?: string;
   transitiveRules?: TransitiveRule[];
   transitiveAdoption?: TransitiveAdoptionConfig;
+  libraries?: LibrarySource[];
   // When true, local/custom components are excluded from the adoption denominator.
   // Useful when local components are intentional product-specific blocks that are
   // not candidates for DS replacement.

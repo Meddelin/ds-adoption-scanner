@@ -191,29 +191,42 @@ export default defineConfig({
     },
   },
 
-  // ── Транзитивный адопшен ──────────────────────────────────────────────────────
+  // ── Транзитивный адопшен — точный режим (рекомендуется) ─────────────────────
 
-  // Объявляет пакеты, которые могут быть построены поверх вашей DS.
-  // При transitiveAdoption.enabled = true сканер автоматически определит,
-  // является ли пакет DS-обёрткой, проверив его package.json dependencies.
-  // Если coverage не указан — вычисляется автоматически.
-  transitiveRules: [
+  // Сканирует исходники библиотеки и определяет DS-backing на уровне компонента.
+  // ProTable → coverage 1.0, CustomWidget → 0  — без усреднений.
+  //
+  // path — путь к исходникам на диске (монорепо, соседний репо)
+  // git  — сканер клонирует сам --depth 1, кэш в historyDir/.library-cache/
+  libraries: [
     {
-      package: '@ant-design/pro-components',  // пакет-обёртка
-      backedBy: 'Ant Design',                 // ← имя из designSystems[].name
-      // coverage не нужен — авто-определяется из node_modules/package.json
+      package: '@ant-design/pro-components',
+      backedBy: 'Ant Design',
+      git: 'https://github.com/ant-design/pro-components',  // автоклон
     },
     {
       package: '@company/shared-ui',
       backedBy: 'TUI',
-      coverage: 0.8,   // ручной override: если пакет недоступен в node_modules
+      path: '../shared-ui',  // локальный путь
     },
   ],
 
-  // Включает авто-детект DS-зависимостей:
-  // - для local-library: парсит исходник каждого компонента (resolvedPath)
-  // - для third-party: проверяет package.json → если DS в deps/peerDeps → coverage 1.0
-  // Если пакет не найден в node_modules и coverage не указан → правило пропускается.
+  // ── Транзитивный адопшен — декларативный режим (fallback) ────────────────────
+
+  // Используй если исходники недоступны.
+  // Без coverage — сканер проверит package.json в node_modules автоматически.
+  // coverage — ручной override (0.0–1.0), применяется ко всем компонентам пакета.
+  transitiveRules: [
+    {
+      package: '@company/legacy-ui',
+      backedBy: 'TUI',
+      coverage: 0.8,  // ручной override
+    },
+  ],
+
+  // Включает авто-детект для transitiveRules:
+  // - local-library: парсит resolvedPath каждого компонента
+  // - third-party: проверяет package.json → DS в deps/peerDeps → coverage 1.0
   transitiveAdoption: {
     enabled: true,
   },
@@ -566,7 +579,8 @@ ds-scanner compare .ds-metrics/scans/2026-02-01T00-00-00.json \
 | `design-system` | `<Button>` из `@mui/material` | ✅ | ✅ |
 | `local-library` | `<SharedHeader>` из `@shared/components` | ✅ | ✅ |
 | `local` | `<CustomCard>` из `./components/CustomCard` | ✅ *(или ❌ при `excludeLocalFromAdoption`)* | ✅ *(или ❌)* |
-| `third-party` + `transitiveRule` | `<ProTable>` из `@ant-design/pro-components` | ❌ | ✅ |
+| `third-party` / `local-library` + `libraries[]` (git/path) | `<ProTable>` из `@ant-design/pro-components` | ❌ | ✅ (per-component, точно) |
+| `third-party` + `transitiveRule` | `<ProTable>` из `@ant-design/pro-components` | ❌ | ✅ (coverage-based) |
 | `third-party` | `<Field>` из `formik` | ❌ | ❌ |
 | `html-native` | `<div>`, `<span>` | ❌ | ❌ |
 
@@ -618,11 +632,15 @@ export default defineConfig({
   ],
 
   // Pro-Components — high-level обёртки над antd (ProTable, ProForm, ProLayout, ...)
-  // Сканер сам проверит package.json и увидит antd в peerDependencies → coverage 1.0
-  transitiveRules: [
-    { package: '@ant-design/pro-components', backedBy: 'Ant Design' },
+  // libraries.git: сканер клонирует исходники и проверяет каждый компонент отдельно.
+  // ProTable → DS-backed (импортирует antd внутри), кастомные утилиты → не считаются.
+  libraries: [
+    {
+      package: '@ant-design/pro-components',
+      backedBy: 'Ant Design',
+      git: 'https://github.com/ant-design/pro-components',
+    },
   ],
-  transitiveAdoption: { enabled: true },
 });
 ```
 
@@ -642,7 +660,7 @@ Ant Design:
   direct instances=35   transitive=28   unique=26
 ```
 
-Сканер автоматически обнаружил, что `@ant-design/pro-components` имеет `antd` в `peerDependencies` → все 28 использований ProComponents засчитаны транзитивно.
+Сканер клонировал исходники `pro-components`, просканировал каждый компонент и обнаружил, что `ProTable`, `ProForm`, `ProLayout` и другие импортируют `antd` напрямую → coverage 1.0 за каждый из 28 инстанций. Компоненты, не использующие `antd` внутри, в счёт не идут.
 
 ### Другие кандидаты
 
@@ -666,7 +684,7 @@ npm run build
 # Разработка с watch
 npm run dev
 
-# Тесты (85 тестов)
+# Тесты (102 теста)
 npm test
 npm run test:unit          # только unit
 npm run test:integration   # только integration
@@ -691,7 +709,8 @@ src/
 │   ├── jsx-extractor.ts       # Двухпроходный AST-обход
 │   ├── import-resolver.ts     # TypeScript API, кэш per-repo
 │   ├── categorizer.ts         # Правила категоризации + declarative transitiveRules
-│   ├── transitive-resolver.ts # Auto-detect DS в исходниках local-library
+│   ├── library-prescan.ts     # Пре-скан libraries[]: экспорты + DS-детект per-component
+│   ├── transitive-resolver.ts # Обогащение usages: registry → auto-scan → declared
 │   └── orchestrator.ts        # Оркестрация, concurrency limit 16
 ├── metrics/
 │   ├── calculator.ts          # Adoption formula, per-DS метрики
@@ -703,7 +722,7 @@ src/
     └── csv-reporter.ts
 
 tests/
-├── unit/                      # parser, categorizer, calculator, import-resolver
+├── unit/                      # parser, categorizer, calculator, import-resolver, library-prescan
 ├── integration/               # full-scan.test.ts (runScan() e2e)
 └── fixtures/                  # simple-repo, barrel-exports, namespace-imports,
                                # aliased-paths, mixed-categories

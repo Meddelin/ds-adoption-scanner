@@ -43,20 +43,25 @@ to the config. This keeps the category accurate while crediting the DS in `effec
 - Reading source files via `resolvedPath` shows DS imports at the top level
 
 **Example config change to suggest:**
+
+Preferred — `libraries[]` (per-component accuracy):
 ```typescript
-transitiveRules: [
-  // coverage is auto-detected from package.json when transitiveAdoption.enabled: true
-  { package: '@ant-design/pro-components', backedBy: 'Ant Design' },
-  // explicit coverage only if package is not in node_modules
-  { package: '@company/shared-ui', backedBy: 'TUI', coverage: 0.8 },
+libraries: [
+  // git: scanner clones source automatically and checks each component
+  { package: '@ant-design/pro-components', backedBy: 'Ant Design',
+    git: 'https://github.com/ant-design/pro-components' },
+  // path: local source on disk (monorepo, sibling repo)
+  { package: '@company/shared-ui', backedBy: 'TUI', path: '../shared-ui' },
 ],
-transitiveAdoption: { enabled: true },
 ```
 
-For local libraries where you can read the source (resolvedPath is set),
-you can also enable auto-detection:
+Fallback — `transitiveRules` (when source is unavailable):
 ```typescript
-transitiveAdoption: { enabled: true }
+transitiveRules: [
+  { package: '@ant-design/pro-components', backedBy: 'Ant Design' },
+  { package: '@company/legacy-ui', backedBy: 'TUI', coverage: 0.8 },
+],
+transitiveAdoption: { enabled: true },
 ```
 
 ## Response Format

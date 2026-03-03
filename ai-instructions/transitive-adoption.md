@@ -56,29 +56,42 @@ For each one with a `resolvedPath`:
 
 ### Step 3: Suggest configuration changes
 
-For each DS-backed package found, suggest adding to `.ds-scanner.config.ts`:
+For each DS-backed package found, choose the best option based on source availability:
+
+**Option A — `libraries[]` (preferred, per-component accuracy):**
+Use when you can access the library's TypeScript source.
+Each component is checked individually: DS-backed → coverage 1.0, not backed → 0.
+
+```typescript
+libraries: [
+  // git: scanner clones automatically (--depth 1), cached in historyDir/.library-cache/
+  { package: '@ant-design/pro-components', backedBy: 'Ant Design',
+    git: 'https://github.com/ant-design/pro-components' },
+
+  // path: local source already on disk (monorepo, sibling repo)
+  { package: '@company/shared-ui', backedBy: 'TUI',
+    path: '../shared-ui' },
+],
+```
+
+**Option B — `transitiveRules` (fallback, coverage-based):**
+Use when source is unavailable (private repo, compiled-only package).
 
 ```typescript
 transitiveRules: [
-  // Just declare the package and DS — coverage is auto-detected from package.json
+  // no coverage: auto-detected from node_modules/package.json deps/peerDeps
   { package: '@ant-design/pro-components', backedBy: 'Ant Design' },
-  { package: '@company/shared-ui',         backedBy: 'TUI' },
+  // explicit coverage: manual override when package not in node_modules
+  { package: '@company/legacy-ui', backedBy: 'TUI', coverage: 0.8 },
 ],
-
-// Enable auto-detection:
-// - third-party: checks package.json deps/peerDeps → coverage 1.0 if DS found
-// - local-library: parses each component source file, checks DS imports
-// If a package is not installed in node_modules and coverage is not set → rule is skipped.
-transitiveAdoption: {
-  enabled: true,
-},
+transitiveAdoption: { enabled: true },
 ```
 
-Use explicit `coverage` only when auto-detection is not possible (e.g., package not
-installed in `node_modules`):
-```typescript
-{ package: '@company/shared-ui', backedBy: 'TUI', coverage: 0.8 }
-```
+**Why `libraries[]` is more accurate:**
+If a library has 100 components and you use only 3 that are DS-backed,
+`coverage: 0.3` gives +0.3 per usage instead of +1.0. With `libraries[]`,
+those 3 components get coverage 1.0 and the rest get 0 — no guesswork.
+Inter-library chains are excluded: only direct DS package imports count.
 
 ### Step 4: Project the impact
 
@@ -105,10 +118,16 @@ new_effective_adoption ≈ (DS + estimated_weighted) /
 ```
 Transitive candidates found:
 1. @ant-design/pro-components (28 instances, 14 components)
-   → Has `antd` in peerDependencies — scanner will auto-detect coverage: 1.0
-   → Suggested: { package: '@ant-design/pro-components', backedBy: 'Ant Design' }
+   → ProTable, ProForm, ProLayout import antd directly in their source
+   → Recommended: libraries[] with git (per-component accuracy)
 
-Suggested config:
+Suggested config (Option A — per-component):
+  libraries: [
+    { package: '@ant-design/pro-components', backedBy: 'Ant Design',
+      git: 'https://github.com/ant-design/pro-components' }
+  ]
+
+Suggested config (Option B — coverage-based fallback):
   transitiveRules: [
     { package: '@ant-design/pro-components', backedBy: 'Ant Design' }
   ],
@@ -116,6 +135,6 @@ Suggested config:
 
 Projected impact:
   Current direct adoption: 68.6%
-  With transitiveRules:    79.7%  (+11.1 percentage points)
+  With transitive config:  79.7%  (+11.1 percentage points)
   Gap explained by:        28 ProComponents usages now credited to Ant Design
 ```

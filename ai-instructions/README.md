@@ -10,7 +10,7 @@ analyze design system adoption scan results.
 | `shadow-detection.md` | Find local components that duplicate DS components | Want to find migration candidates |
 | `categorization.md` | Clarify component categorization | Scanner miscategorized a component |
 | `report.md` | Analytical report with recommendations | Need a summary for team/stakeholders |
-| `transitive-adoption.md` | Find libraries built on DS and configure transitiveRules | Want to account for wrapper libraries in adoption metrics |
+| `transitive-adoption.md` | Find libraries built on DS, configure `libraries[]` or `transitiveRules` | Want to account for wrapper libraries in adoption metrics |
 
 ## How to Use
 

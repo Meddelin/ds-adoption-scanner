@@ -111,6 +111,7 @@ function mergeWithDefaults(userConfig: DSScannerConfig): ResolvedConfig {
     transitiveAdoption: {
       enabled: userConfig.transitiveAdoption?.enabled ?? false,
     },
+    libraries: userConfig.libraries ?? [],
     excludeLocalFromAdoption: userConfig.excludeLocalFromAdoption ?? false,
   };
 }
@@ -143,6 +144,23 @@ function validateConfig(config: ResolvedConfig, configPath: string): void {
     }
     if (rule.coverage !== undefined && (rule.coverage < 0 || rule.coverage > 1)) {
       errors.push(`transitiveRule for "${rule.package}": coverage must be between 0.0 and 1.0`);
+    }
+  }
+
+  // Validate libraries[] entries
+  for (const lib of config.libraries) {
+    if (!lib.package) {
+      errors.push(`libraries entry missing \`package\``);
+    }
+    if (!dsNames.has(lib.backedBy)) {
+      errors.push(
+        `libraries entry for "${lib.package}": backedBy "${lib.backedBy}" does not match any designSystems[].name`
+      );
+    }
+    if (lib.path && lib.git) {
+      errors.push(
+        `libraries entry for "${lib.package}": specify either \`path\` or \`git\`, not both`
+      );
     }
   }
 

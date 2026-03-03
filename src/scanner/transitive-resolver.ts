@@ -4,6 +4,7 @@ import type { CategorizedUsage } from '../types.js';
 import type { ResolvedConfig } from '../config/schema.js';
 import { parseFile } from './parser.js';
 import { findDesignSystem, matchesPackage } from './categorizer.js';
+import type { LibraryRegistry } from './library-prescan.js';
 
 export interface TransitiveDetection {
   dsName: string;
@@ -14,26 +15,32 @@ export interface TransitiveDetection {
 /**
  * Enriches usages with transitiveDS annotations.
  *
- * Two passes:
+ * Priority order:
+ * 0. pre-scanned library registry (per-component, highest accuracy) — always runs when libraries[] configured
  * 1. local-library without annotation → parse component source file, check DS imports (per-component)
  * 2. third-party with declarative annotation where rule has no explicit coverage →
  *    check package.json deps/peerDeps: if DS package listed → coverage 1.0 (per-package)
  *
- * Only runs when config.transitiveAdoption.enabled = true.
- * Declarative annotation with explicit coverage is never overwritten.
+ * Passes 1–2 only run when config.transitiveAdoption.enabled = true.
+ * Declarative annotation with explicit coverage is never overwritten (unless registry overrides).
  *
- * @param usages    - All categorized usages for a repository
- * @param config    - Resolved scanner config
- * @param repoRoot  - Absolute path to the repository root (used to locate node_modules)
- * @param cache     - Per-repo cache: resolvedPath → detection result (for local-library)
+ * @param usages           - All categorized usages for a repository
+ * @param config           - Resolved scanner config
+ * @param repoRoot         - Absolute path to the repository root (used to locate node_modules)
+ * @param cache            - Per-repo cache: resolvedPath → detection result (for local-library)
+ * @param libraryRegistry  - Pre-scanned component maps from libraries[] config
  */
 export async function enrichWithTransitiveDS(
   usages: CategorizedUsage[],
   config: ResolvedConfig,
   repoRoot: string,
-  cache: Map<string, TransitiveDetection | null> = new Map()
+  cache: Map<string, TransitiveDetection | null> = new Map(),
+  libraryRegistry: LibraryRegistry = new Map()
 ): Promise<CategorizedUsage[]> {
-  if (!config.transitiveAdoption?.enabled) {
+  const hasRegistry = libraryRegistry.size > 0;
+  const hasAutoScan = config.transitiveAdoption?.enabled;
+
+  if (!hasRegistry && !hasAutoScan) {
     return usages;
   }
 
@@ -43,8 +50,32 @@ export async function enrichWithTransitiveDS(
   const result: CategorizedUsage[] = [];
 
   for (const usage of usages) {
+    // Case 0: pre-scanned library registry — per-component, takes priority
+    if (
+      hasRegistry &&
+      (usage.category === 'third-party' || usage.category === 'local-library') &&
+      usage.packageName
+    ) {
+      const libEntry = findRegistryEntry(libraryRegistry, usage.packageName);
+      if (libEntry !== null) {
+        const isDSBacked = libEntry.componentMap.get(usage.componentName) ?? false;
+        if (isDSBacked) {
+          result.push({
+            ...usage,
+            transitiveDS: { dsName: libEntry.backedBy, coverage: 1.0, source: 'auto-detected' },
+          });
+        } else {
+          // Explicitly not DS-backed — strip any transitiveDS set by declarative rule
+          const { transitiveDS: _removed, ...rest } = usage;
+          result.push(rest as CategorizedUsage);
+        }
+        continue;
+      }
+    }
+
     // Case 1: local-library without annotation → per-component auto-detect
     if (
+      hasAutoScan &&
       usage.category === 'local-library' &&
       usage.resolvedPath &&
       !usage.transitiveDS
@@ -57,6 +88,7 @@ export async function enrichWithTransitiveDS(
     // Case 2: third-party with declarative annotation, but rule had no explicit coverage →
     // replace the default 1.0 with an auto-detected package-level ratio
     if (
+      hasAutoScan &&
       usage.category === 'third-party' &&
       usage.transitiveDS?.source === 'declared' &&
       usage.packageName
@@ -179,6 +211,21 @@ function findPackageRoot(packageName: string, repoRoot: string): string | null {
   ];
   for (const candidate of candidates) {
     if (fs.existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
+// ─── Library registry helpers ─────────────────────────────────────────────────
+
+function findRegistryEntry(
+  registry: LibraryRegistry,
+  packageName: string
+): { componentMap: Map<string, boolean>; backedBy: string } | null {
+  // Exact match first
+  if (registry.has(packageName)) return registry.get(packageName)!;
+  // Pattern match (supports globs like '@company/*')
+  for (const [pattern, entry] of registry) {
+    if (matchesPackage(packageName, pattern)) return entry;
   }
   return null;
 }
