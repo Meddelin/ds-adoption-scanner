@@ -14,6 +14,11 @@ Read the scan JSON report. Key sections:
 - `summary.transitiveDS` — breakdown of transitive usage by DS
 - `byRepository[]` — breakdown by repository (both adoptionRate and effectiveAdoptionRate)
 - `byComponent` — usage by component
+- `localReuseAnalysis` — local component reuse breakdown:
+  - `topCandidates[]` sorted by `reposUsedIn` desc — prime DS migration candidates
+  - `crossRepoCount` — components used across multiple repos (highest priority)
+  - `localReuseCount` — reused within one repo
+  - `singletonCount` + `inlineCount` — one-off page components (not migration targets)
 
 If `effectiveAdoptionRate` is significantly higher than `adoptionRate`, it means
 the codebase uses DS indirectly through wrapper libraries — this is valuable signal.
@@ -39,10 +44,16 @@ the codebase uses DS indirectly through wrapper libraries — this is valuable s
 5. **Underperforming Repositories**
    Who is lagging and why (many local components? which ones?)
 
-6. **Quick Wins**
+6. **Local Component Reuse Opportunities**
+   Check `localReuseAnalysis`. If `crossRepoCount > 0`: name the top cross-repo candidates
+   (from `topCandidates`) and explain they are likely duplicating DS functionality.
+   If `localReuseCount > 0`: note the top locally-reused candidates.
+   Skip if both counts are 0.
+
+7. **Quick Wins**
    What can be improved quickly with maximum impact on adoption
 
-7. **Priority Actions**
+8. **Priority Actions**
    What the team should do first (ranked by impact)
 
 ## Tone and Format

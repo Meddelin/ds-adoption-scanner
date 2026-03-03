@@ -104,3 +104,13 @@ See spec section "Важные edge cases":
 - Files within a repo: parallel via `Promise.all` with concurrency limit (8–16)
 - Between repos: sequential (one TS resolver per repo)
 - File-level cache: SHA-256 hash → cached `FileParseResult` stored in `${historyDir}/.cache/file-hashes.json`
+
+## Documentation Rule
+
+**After every feature implementation, always update all relevant MD files before finishing:**
+- `CHANGES.md` — add a changelog entry for the new version
+- `README.md` — update table/JSON output examples, test count, project structure, config reference
+- `ai-instructions/*.md` — update key report fields, add new sections if the feature adds new JSON output
+- `ds-scanner-spec.md` — reflect architectural changes in the spec
+
+Never skip this step. Push only on explicit user request.

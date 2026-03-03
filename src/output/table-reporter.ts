@@ -279,6 +279,51 @@ export function printReport(report: ScanReport, verbose = false): void {
     }
   }
 
+  // ── Local Reuse Opportunities ────────────────────────────────────────────────
+  const reuse = report.localReuseAnalysis;
+  if (reuse.localReuseCount + reuse.crossRepoCount > 0) {
+    console.log(chalk.bold('  ♻️  Reuse Opportunities'));
+    console.log(chalk.dim('  ' + '─'.repeat(65)));
+
+    const hasCrossRepo = reuse.crossRepoCount > 0;
+    const summary = [
+      chalk.dim(`${formatNum(reuse.totalTracked)} unique tracked`),
+      chalk.dim(`${formatNum(reuse.singletonCount)} singletons`),
+      reuse.localReuseCount > 0 ? chalk.yellow(`${formatNum(reuse.localReuseCount)} local-reuse`) : null,
+      reuse.crossRepoCount > 0 ? chalk.green(`${formatNum(reuse.crossRepoCount)} cross-repo`) : null,
+    ].filter(Boolean).join(chalk.dim('  ·  '));
+    console.log(`  ${summary}`);
+    if (reuse.inlineCount > 0) {
+      console.log(`  ${chalk.dim(`+ ${formatNum(reuse.inlineCount)} inline/anonymous (not trackable)`)}`);
+    }
+    console.log();
+
+    const reuseTable = new Table({
+      head: [
+        chalk.bold('Component'),
+        chalk.bold('Instances'),
+        chalk.bold('Files'),
+        ...(hasCrossRepo ? [chalk.bold('Repos')] : []),
+      ],
+      colWidths: hasCrossRepo ? [32, 11, 8, 7] : [36, 11, 8],
+      style: { head: [], border: [], compact: true },
+      chars: { mid: '', 'left-mid': '', 'mid-mid': '', 'right-mid': '' },
+    });
+
+    const top = reuse.topCandidates.slice(0, 10);
+    for (const g of top) {
+      reuseTable.push([
+        chalk.cyan(g.componentName.slice(0, 30)),
+        formatNum(g.instances),
+        String(g.filesUsedIn),
+        ...(hasCrossRepo ? [g.reposUsedIn > 1 ? chalk.green(String(g.reposUsedIn)) : chalk.dim('1')] : []),
+      ]);
+    }
+
+    console.log(reuseTable.toString());
+    console.log();
+  }
+
   // ── Footer ───────────────────────────────────────────────────────────────────
   console.log(chalk.dim('  ' + '─'.repeat(65)));
   printAIHint();

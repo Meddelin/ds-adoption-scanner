@@ -35,3 +35,6 @@ The JSON report (`report.json`) contains:
 | `summary.designSystems[].transitiveInstances` | How many usages are credited transitively to each DS |
 | `byComponent.localMostUsed[].resolvedPath` | Absolute path to component source — use for reading the file |
 | `byComponent.thirdParty[]` | Third-party packages — check if any wrap the DS |
+| `localReuseAnalysis.topCandidates` | Local components used in 2+ files/repos — prime DS migration candidates |
+| `localReuseAnalysis.topCandidates[].reposUsedIn` | How many repos use this component — cross-repo = strongest DS migration signal |
+| `localReuseAnalysis.topCandidates[].resolvedPath` | Absolute path to the component source — use for reading the file |

@@ -2,6 +2,7 @@ import type {
   CategorizedUsage,
   CategoryMetrics,
   ComponentStat,
+  LocalReuseReport,
   RepositoryReport,
   ScanReport,
 } from '../types.js';
@@ -38,6 +39,9 @@ export function aggregateResults(
   // Component-level aggregation
   const byComponent = buildByComponent(allUsages, config);
 
+  // Local reuse analysis
+  const localReuseAnalysis = buildLocalReuseAnalysis(repoData);
+
   return {
     meta: {
       version: meta.version,
@@ -72,6 +76,7 @@ export function aggregateResults(
     },
     byRepository,
     byComponent,
+    localReuseAnalysis,
   };
 }
 
@@ -127,6 +132,65 @@ function buildByComponent(
   const thirdParty = buildComponentStats(thirdPartyUsages).slice(0, 20);
 
   return { designSystems, localMostUsed, thirdParty };
+}
+
+export function buildLocalReuseAnalysis(repoData: RepoScanData[]): LocalReuseReport {
+  const byPath = new Map<string, {
+    name: string;
+    files: Set<string>;
+    repos: Set<string>;
+    count: number;
+  }>();
+  let inlineCount = 0;
+
+  for (const repo of repoData) {
+    for (const usage of repo.usages) {
+      if (usage.category !== 'local') continue;
+      if (!usage.resolvedPath) { inlineCount++; continue; }
+
+      if (!byPath.has(usage.resolvedPath)) {
+        byPath.set(usage.resolvedPath, {
+          name: usage.componentName,
+          files: new Set(),
+          repos: new Set(),
+          count: 0,
+        });
+      }
+      const entry = byPath.get(usage.resolvedPath)!;
+      entry.files.add(usage.filePath);
+      entry.repos.add(repo.repositoryName);
+      entry.count++;
+    }
+  }
+
+  const groups = Array.from(byPath.entries()).map(([resolvedPath, d]) => ({
+    componentName: d.name,
+    resolvedPath,
+    instances: d.count,
+    filesUsedIn: d.files.size,
+    reposUsedIn: d.repos.size,
+  }));
+
+  const singletons = groups.filter(g => g.filesUsedIn === 1);
+  const localReuse = groups.filter(g => g.filesUsedIn >= 2 && g.reposUsedIn === 1);
+  const crossRepo = groups.filter(g => g.reposUsedIn >= 2);
+
+  const topCandidates = [...crossRepo, ...localReuse]
+    .sort((a, b) =>
+      b.reposUsedIn - a.reposUsedIn ||
+      b.filesUsedIn - a.filesUsedIn ||
+      b.instances - a.instances
+    )
+    .slice(0, 20);
+
+  return {
+    totalTracked: byPath.size,
+    inlineCount,
+    singletonCount: singletons.length,
+    localReuseCount: localReuse.length,
+    crossRepoCount: crossRepo.length,
+    topCandidates,
+  };
 }
 
 function buildComponentStats(usages: CategorizedUsage[]): ComponentStat[] {

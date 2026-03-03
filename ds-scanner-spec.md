@@ -53,10 +53,11 @@ ds-scanner/
 │   │   ├── jsx-extractor.ts      # Извлечение JSX usage из AST
 │   │   ├── categorizer.ts        # Категоризация компонентов
 │   │   ├── transitive-resolver.ts # Авто-детектирование DS в исходниках local-library
+│   │   ├── library-prescan.ts    # Пре-скан sources libraries[]: per-component DS-backing
 │   │   └── orchestrator.ts       # Оркестрация полного скана
 │   ├── metrics/
 │   │   ├── calculator.ts         # Расчёт adoption метрик
-│   │   ├── aggregator.ts         # Агрегация по репо/компоненту
+│   │   ├── aggregator.ts         # Агрегация по репо/компоненту + buildLocalReuseAnalysis()
 │   │   └── history.ts            # Сравнение с предыдущими сканами
 │   ├── output/
 │   │   ├── json-reporter.ts      # JSON вывод
@@ -68,7 +69,8 @@ ds-scanner/
 │   ├── README.md
 │   ├── shadow-detection.md
 │   ├── categorization.md
-│   └── report.md
+│   ├── report.md
+│   └── transitive-adoption.md
 ├── package.json
 ├── tsconfig.json
 └── README.md
@@ -942,6 +944,23 @@ interface ScanReport {
     }[];
     localMostUsed: ComponentStat[];
     thirdParty: ComponentStat[];
+  };
+
+  // Анализ переиспользования локальных компонентов
+  // Идентичность по resolvedPath: один исходный файл = один компонент
+  localReuseAnalysis: {
+    totalTracked: number;           // Уникальных resolvedPath среди 'local'
+    inlineCount: number;            // resolvedPath==null (определены в том же файле)
+    singletonCount: number;         // filesUsedIn === 1 (page-specific, не кандидаты)
+    localReuseCount: number;        // filesUsedIn >= 2, reposUsedIn === 1
+    crossRepoCount: number;         // reposUsedIn >= 2 (сильнейший сигнал для DS-миграции)
+    topCandidates: {
+      componentName: string;
+      resolvedPath: string;
+      instances: number;
+      filesUsedIn: number;
+      reposUsedIn: number;
+    }[];                            // Топ-20, сортировка: reposUsedIn desc → filesUsedIn desc
   };
 
   // Сравнение с предыдущим сканом (если --compare)

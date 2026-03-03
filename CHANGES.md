@@ -1,5 +1,44 @@
 # Changelog
 
+## v0.4.0 — Local Component Reuse Analysis
+
+### Новая секция отчёта: `localReuseAnalysis`
+
+Сканер теперь анализирует локальные компоненты и выделяет кандидатов на
+замену дизайн-системой — те, которые импортируются из нескольких мест.
+
+**Критерий идентичности**: `resolvedPath` (абсолютный путь к исходному файлу).
+Если несколько consumer-файлов импортируют один и тот же файл — это реальное переиспользование.
+Компоненты, определённые inline в том же файле (`resolvedPath == null`) — всегда синглтоны.
+
+**Три класса компонентов:**
+- `singleton` — используется в 1 файле; page-specific, не кандидат на DS
+- `local-reuse` — 2+ файлов, 1 репо; потенциальный кандидат на вынос в `local-library`
+- `cross-repo` — 2+ репо; сильнейший сигнал для DS-миграции
+
+**В JSON-отчёте** — новое поле `localReuseAnalysis`:
+```json
+"localReuseAnalysis": {
+  "totalTracked": 312,
+  "inlineCount": 847,
+  "singletonCount": 280,
+  "localReuseCount": 25,
+  "crossRepoCount": 7,
+  "topCandidates": [
+    { "componentName": "FormField", "resolvedPath": "/repo/src/FormField.tsx",
+      "instances": 45, "filesUsedIn": 12, "reposUsedIn": 3 }
+  ]
+}
+```
+
+**В табличном выводе** — секция `♻️ Reuse Opportunities` появляется, если есть компоненты
+с `filesUsedIn >= 2`. Показывает сводку (`N singletons · M local-reuse · K cross-repo`)
+и таблицу топ-10 кандидатов с числом инстанций, файлов и репозиториев.
+
+**Не требует изменений конфига** — работает автоматически для всех `local`-компонентов.
+
+---
+
 ## v0.3.0 — excludeLocalFromAdoption
 
 ### Новая опция конфига: `excludeLocalFromAdoption`

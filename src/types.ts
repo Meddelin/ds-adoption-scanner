@@ -114,6 +114,25 @@ export interface ScanMetrics {
   filesScanned: number;
 }
 
+// ─── Local Reuse Types ────────────────────────────────────────────────────────
+
+export interface LocalReuseGroup {
+  componentName: string;
+  resolvedPath: string;          // identity key (absolute path to source file)
+  instances: number;             // total usage count
+  filesUsedIn: number;           // unique consumer files
+  reposUsedIn: number;           // unique repos (cross-repo = strong DS candidate signal)
+}
+
+export interface LocalReuseReport {
+  totalTracked: number;          // unique resolvedPaths among 'local' category
+  inlineCount: number;           // resolvedPath==null usages (same-file definitions)
+  singletonCount: number;        // resolvedPath-based groups with filesUsedIn === 1
+  localReuseCount: number;       // filesUsedIn >= 2, reposUsedIn === 1
+  crossRepoCount: number;        // reposUsedIn >= 2
+  topCandidates: LocalReuseGroup[]; // top 20, sorted by reposUsedIn desc, then filesUsedIn desc
+}
+
 // ─── Report Types ─────────────────────────────────────────────────────────────
 
 export interface DiscoveryResult {
@@ -200,6 +219,8 @@ export interface ScanReport {
     totalComponents: number;
     dsBackedComponents: number;
   }[];
+
+  localReuseAnalysis: LocalReuseReport;
 
   comparison?: {
     baselineDate: string;

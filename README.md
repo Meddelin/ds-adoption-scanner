@@ -20,6 +20,15 @@ All DS total   68.6%      79.7%          35                    26      77.8%
 🏗️ Repository Breakdown
 Repository       Ant Design   Total DS   Effective   Local
 ant-design-pro     68.6%       68.6%      79.7%      31.4%
+
+♻️  Reuse Opportunities
+312 unique tracked  ·  280 singletons  ·  25 local-reuse  ·  7 cross-repo
+(+ 847 inline/anonymous)
+
+Component          Instances   Files   Repos
+FormField                45      12       3
+DataTable                38       9       2
+PageHeader               22       6       2
 ```
 
 ---
@@ -385,6 +394,8 @@ ant-design-pro     68.6%       68.6%      79.7%      31.4%
 
 Если транзитивных нет — таблицы компактные, лишних колонок нет.
 
+Если среди `local`-компонентов есть переиспользованные (2+ файла), появляется секция `♻️ Reuse Opportunities` с топ-кандидатами на DS-миграцию, отсортированными по числу репозиториев и файлов.
+
 ### `--format json`
 
 Полный машиночитаемый отчёт. Структура:
@@ -428,11 +439,29 @@ ant-design-pro     68.6%       68.6%      79.7%      31.4%
       }
     ],
     "thirdParty": [...]
+  },
+  "localReuseAnalysis": {
+    "totalTracked": 312,
+    "inlineCount": 847,
+    "singletonCount": 280,
+    "localReuseCount": 25,
+    "crossRepoCount": 7,
+    "topCandidates": [
+      {
+        "componentName": "FormField",
+        "resolvedPath": "/repo/src/components/FormField.tsx",
+        "instances": 45,
+        "filesUsedIn": 12,
+        "reposUsedIn": 3
+      }
+    ]
   }
 }
 ```
 
 `byComponent.localMostUsed` содержит `resolvedPath` — абсолютный путь к файлу компонента. Это позволяет AI-агентам читать исходник и анализировать его.
+
+`localReuseAnalysis.topCandidates` — список компонентов, используемых в нескольких файлах или репозиториях. Это главные кандидаты на замену DS-компонентами. `resolvedPath` позволяет AI-агенту сразу открыть исходник.
 
 ### `--format csv`
 
@@ -684,7 +713,7 @@ npm run build
 # Разработка с watch
 npm run dev
 
-# Тесты (102 теста)
+# Тесты (113 тестов)
 npm test
 npm run test:unit          # только unit
 npm run test:integration   # только integration
@@ -722,7 +751,8 @@ src/
     └── csv-reporter.ts
 
 tests/
-├── unit/                      # parser, categorizer, calculator, import-resolver, library-prescan
+├── unit/                      # parser, categorizer, calculator, import-resolver,
+│                              # library-prescan, aggregator-reuse
 ├── integration/               # full-scan.test.ts (runScan() e2e)
 └── fixtures/                  # simple-repo, barrel-exports, namespace-imports,
                                # aliased-paths, mixed-categories
@@ -730,5 +760,6 @@ ai-instructions/
 ├── README.md
 ├── shadow-detection.md
 ├── categorization.md
-└── report.md
+├── report.md
+└── transitive-adoption.md
 ```
