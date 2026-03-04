@@ -1,5 +1,92 @@
 # Changelog
 
+## v0.5.0 — DS Component Family Pre-Scan & Family Coverage Metrics
+
+### Новая метрика: Family Coverage
+
+Сканер теперь поддерживает пре-скан исходников дизайн-системы и считает покрытие по
+**семьям компонентов** — основным бизнес-единицам DS, а не по числу инстансов.
+
+**Семья компонентов** = все компоненты в одной директории. Пример: `EmptyState/EmptyState.tsx`,
+`EmptyState/EmptyStateError.tsx`, `EmptyState/EmptyStateNotFound.tsx` → одна семья `EmptyState`.
+Это продуктовая метрика: "Команды используют 30 из 50 компонентов DS (60% покрытие)".
+
+### Конфиг: `path` для `designSystems`
+
+```typescript
+designSystems: [
+  {
+    name: 'MyDS',
+    packages: ['@myds/ui'],
+    path: '../myds-repo/packages/ui',  // путь к исходникам DS
+    groupBy: 'directory',              // 'directory' (по умолчанию) | 'none'
+  },
+],
+```
+
+- `path` — локальный путь к исходникам DS
+- `git` — URL для автоклона (кэш в `historyDir/.ds-cache/`)
+- `groupBy: 'directory'` — папка = семья (по умолчанию)
+- `groupBy: 'none'` — каждый компонент = отдельная "семья"
+
+### Новые поля в JSON-отчёте
+
+```json
+"summary": {
+  "designSystems": [{
+    "dsName": "MyDS",
+    "totalFamilies": 15,
+    "familiesUsed": 9,
+    "familyCoverage": 60.0,
+    "topFamilies": [
+      { "family": "Button", "components": ["Button", "ButtonGroup"],
+        "instances": 42, "filesUsedIn": 18, "reposUsedIn": 2 }
+    ]
+  }]
+},
+"dsPrescan": [{
+  "dsName": "MyDS",
+  "totalFamilies": 15,
+  "totalComponents": 38,
+  "familiesCoveredInScan": 9,
+  "coveragePct": 60.0
+}]
+```
+
+Также: `CategorizedUsage.componentFamily` — имя семьи для каждого DS-компонента (используется
+при выводе `byComponent`).
+
+### Новые поля в табличном выводе
+
+- **Колонка "Families"** в таблице `📐 Per Design System`: `9/15 (60.0%)`
+- **Секция `🎨 Design System Catalog`**: таблица всех семей с числом компонентов и покрытием
+- **Секция `🗂️ Top Families per DS`**: топ-5 семей по числу инстансов
+
+### Алгоритм группировки (directory-based)
+
+- `family = path.basename(path.dirname(filePath))`
+- Если родительская директория — "generic container" (`src`, `components`, `lib`, `ui`, `shared`)
+  или файл лежит в корне DS → `family = componentName`
+- Только PascalCase-экспорты отслеживаются (TypeScript interfaces/types исключены)
+- Только локально-определённые экспорты (не ре-экспорты из барелей) создают семьи
+
+### Библиотечный пре-скан: поддержка `dsFamily`
+
+`preScanLibraries(config, dsCatalog)` теперь принимает `DSCatalog` и заполняет
+`componentMap.get('X').dsFamily` — к какой семье DS относится компонент библиотеки.
+
+### Тесты
+
+- `tests/unit/ds-prescan.test.ts` — 17 новых тестов (buildFamilyCatalog, buildFamilyLookup,
+  preScanDesignSystems, группировка, статический fixture)
+- `tests/unit/family-resolver.test.ts` — 9 новых тестов (enrichWithFamily, alias lookup,
+  non-DS категории, edge cases)
+- `tests/fixtures/ds-source/` — тестовый fixture DS: 3 семьи, 6 компонентов
+- Обновлены `tests/unit/library-prescan.test.ts` — новая сигнатура `preScanLibraries`
+- **Итого: 139 тестов (было 113)**
+
+---
+
 ## v0.4.0 — Local Component Reuse Analysis
 
 ### Новая секция отчёта: `localReuseAnalysis`

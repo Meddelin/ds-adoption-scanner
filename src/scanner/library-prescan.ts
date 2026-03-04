@@ -6,12 +6,18 @@ import type { TSESTree } from '@typescript-eslint/typescript-estree';
 import { fdir } from 'fdir';
 import picomatch from 'picomatch';
 import type { LibrarySource, ResolvedConfig } from '../config/schema.js';
+import type { DSCatalog } from '../types.js';
 import { findDesignSystem } from './categorizer.js';
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 
+export interface LibraryComponentEntry {
+  isDSBacked: boolean;
+  dsFamily?: string; // DS family name when catalog available, e.g. "EmptyState"
+}
+
 export type LibraryRegistry = Map<string, {
-  componentMap: Map<string, boolean>; // componentName → isDSBacked
+  componentMap: Map<string, LibraryComponentEntry>;
   backedBy: string;
 }>;
 
@@ -29,9 +35,12 @@ interface ExportInfo {
 /**
  * Pre-scans all libraries configured with `path` or `git`.
  * Returns a registry keyed by package name. Called once before the main scan.
+ * When dsCatalog is provided (DS was pre-scanned first), each component entry
+ * also gets a dsFamily field mapping it to the DS family it belongs to.
  */
 export async function preScanLibraries(
   config: ResolvedConfig,
+  dsCatalog: DSCatalog = new Map(),
   verbose = false
 ): Promise<LibraryRegistry> {
   const registry: LibraryRegistry = new Map();
@@ -48,12 +57,12 @@ export async function preScanLibraries(
     }
 
     try {
-      const componentMap = await buildComponentMap(sourceDir, lib, config);
+      const componentMap = await buildComponentMap(sourceDir, lib, config, dsCatalog);
       registry.set(lib.package, { componentMap, backedBy: lib.backedBy });
 
       if (verbose) {
         const total = componentMap.size;
-        const backed = [...componentMap.values()].filter(Boolean).length;
+        const backed = [...componentMap.values()].filter(e => e.isDSBacked).length;
         console.log(
           `[ds-scanner] Library "${lib.package}": ${backed}/${total} components backed by "${lib.backedBy}"`
         );
@@ -148,10 +157,14 @@ const DEFAULT_EXCLUDE = [
 async function buildComponentMap(
   libRoot: string,
   lib: LibrarySource,
-  config: ResolvedConfig
-): Promise<Map<string, boolean>> {
+  config: ResolvedConfig,
+  dsCatalog: DSCatalog
+): Promise<Map<string, LibraryComponentEntry>> {
   const files = discoverLibraryFiles(libRoot, lib);
   if (files.length === 0) return new Map();
+
+  // Build DS family lookup for this library's backedBy DS
+  const dsFamilyLookup = buildDSFamilyLookup(dsCatalog, lib.backedBy);
 
   // Pass 1: parse all files → ExportInfo
   const allInfo = new Map<string, ExportInfo>();
@@ -167,19 +180,41 @@ async function buildComponentMap(
 
   // Pass 2: resolve the full export chain for each file via DFS
   const resolveCache = new Map<string, Map<string, boolean>>();
-  const componentMap = new Map<string, boolean>();
+  const componentMap = new Map<string, LibraryComponentEntry>();
 
   for (const filePath of files) {
     const resolved = resolveFileExports(filePath, allInfo, resolveCache, new Set(), libRoot);
     for (const [name, isDSBacked] of resolved) {
       // If the same component is exported from multiple files, mark as backed if ANY file backs it
-      if (!componentMap.has(name) || isDSBacked) {
-        componentMap.set(name, isDSBacked);
+      const existing = componentMap.get(name);
+      if (!existing || isDSBacked) {
+        const dsFamily = dsFamilyLookup.get(name);
+        componentMap.set(name, { isDSBacked, ...(dsFamily ? { dsFamily } : {}) });
       }
     }
   }
 
   return componentMap;
+}
+
+/**
+ * Builds a lookup from DS component export name → family name
+ * for a specific DS (identified by backedBy name).
+ */
+function buildDSFamilyLookup(
+  dsCatalog: DSCatalog,
+  backedBy: string
+): Map<string, string> {
+  const lookup = new Map<string, string>();
+  const families = dsCatalog.get(backedBy);
+  if (!families) return lookup;
+
+  for (const family of families) {
+    for (const componentName of family.components) {
+      lookup.set(componentName, family.name);
+    }
+  }
+  return lookup;
 }
 
 function discoverLibraryFiles(libRoot: string, lib: LibrarySource): string[] {
@@ -307,13 +342,12 @@ function extractDeclaredNames(decl: TSESTree.Declaration): string[] {
         d.id.type === 'Identifier' ? [d.id.name] : []
       );
 
+    // TypeScript-only declarations (interfaces, types, enums, namespaces)
+    // are NOT components — exclude them from component tracking.
     case 'TSEnumDeclaration':
     case 'TSInterfaceDeclaration':
     case 'TSTypeAliasDeclaration':
-      return [decl.id.name];
-
     case 'TSModuleDeclaration':
-      return decl.id.type === 'Identifier' ? [decl.id.name] : [];
 
     default:
       return [];

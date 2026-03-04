@@ -68,19 +68,24 @@ export function printReport(report: ScanReport, verbose = false): void {
     const showEffective = summary.designSystems.some(
       ds => ds.effectiveAdoptionRate > ds.adoptionRate + 0.05
     );
+    const hasFamilyCoverage = summary.designSystems.some(ds => ds.totalFamilies !== undefined);
 
     const head = [
       chalk.bold('DS Name'),
       chalk.bold('Direct%'),
       ...(showEffective ? [chalk.bold('Effective%')] : []),
+      ...(hasFamilyCoverage ? [chalk.bold('Families')] : []),
       chalk.bold('Instances'),
       ...(showEffective ? [chalk.bold('+Transitive')] : []),
       chalk.bold('Unique'),
       chalk.bold('Files w/ DS'),
     ];
-    const colWidths = showEffective
-      ? [20, 11, 13, 12, 13, 10, 14]
-      : [20, 12, 12, 10, 14];
+    const colWidths = (() => {
+      if (showEffective && hasFamilyCoverage) return [20, 11, 13, 18, 12, 13, 10, 14];
+      if (showEffective) return [20, 11, 13, 12, 13, 10, 14];
+      if (hasFamilyCoverage) return [20, 11, 18, 12, 10, 14];
+      return [20, 12, 12, 10, 14];
+    })();
 
     const dsTable = new Table({
       head,
@@ -90,10 +95,15 @@ export function printReport(report: ScanReport, verbose = false): void {
     });
 
     for (const ds of summary.designSystems) {
+      const familiesCell = ds.totalFamilies !== undefined
+        ? `${ds.familiesUsed}/${ds.totalFamilies} (${formatPct(ds.familyCoverage ?? 0)})`
+        : chalk.dim('—');
+
       dsTable.push([
         chalk.cyan(ds.name),
         adoptionColor(ds.adoptionRate),
         ...(showEffective ? [adoptionColor(ds.effectiveAdoptionRate)] : []),
+        ...(hasFamilyCoverage ? [familiesCell] : []),
         formatNum(ds.instances),
         ...(showEffective
           ? [ds.transitiveInstances > 0 ? chalk.dim(`+${ds.transitiveInstances}`) : chalk.dim('—')]
@@ -107,6 +117,7 @@ export function printReport(report: ScanReport, verbose = false): void {
       chalk.bold('All DS total'),
       chalk.bold(adoptionColor(summary.adoptionRate)),
       ...(showEffective ? [chalk.bold(adoptionColor(summary.effectiveAdoptionRate))] : []),
+      ...(hasFamilyCoverage ? [chalk.dim('')] : []),
       chalk.bold(formatNum(summary.designSystemTotal.instances)),
       ...(showEffective ? [chalk.dim('')] : []),
       chalk.bold(String(summary.designSystemTotal.uniqueComponents)),
@@ -114,6 +125,37 @@ export function printReport(report: ScanReport, verbose = false): void {
     ]);
 
     console.log(dsTable.toString());
+    console.log();
+  }
+
+  // ── DS Pre-Scan (Family Catalog) ─────────────────────────────────────────────
+  if (report.dsPrescan && report.dsPrescan.length > 0) {
+    console.log(chalk.bold('  🎨 Design System Catalog'));
+    console.log(chalk.dim('  ' + '─'.repeat(65)));
+
+    const dsCatalogTable = new Table({
+      head: [
+        chalk.bold('Design System'),
+        chalk.bold('Families'),
+        chalk.bold('Components'),
+        chalk.bold('Scan Coverage'),
+      ],
+      colWidths: [24, 12, 14, 32],
+      style: { head: [], border: [], compact: true },
+      chars: { mid: '', 'left-mid': '', 'mid-mid': '', 'right-mid': '' },
+    });
+
+    for (const entry of report.dsPrescan) {
+      const bar = progressBar(entry.coveragePct, 18);
+      dsCatalogTable.push([
+        chalk.cyan(entry.dsName),
+        String(entry.totalFamilies),
+        String(entry.totalComponents),
+        `${entry.familiesCoveredInScan}/${entry.totalFamilies} ${adoptionColor(entry.coveragePct)}  ${bar}`,
+      ]);
+    }
+
+    console.log(dsCatalogTable.toString());
     console.log();
   }
 
@@ -256,6 +298,32 @@ export function printReport(report: ScanReport, verbose = false): void {
     console.log();
   }
 
+  // ── Top Families per DS ──────────────────────────────────────────────────────
+  const hasFamilies = byComponent.designSystems.some(ds => ds.topFamilies && ds.topFamilies.length > 0);
+  if (hasFamilies) {
+    console.log(chalk.bold('  🗂️  Top Families per DS'));
+    console.log(chalk.dim('  ' + '─'.repeat(65)));
+
+    for (const ds of byComponent.designSystems) {
+      if (!ds.topFamilies || ds.topFamilies.length === 0) continue;
+      console.log(`  ${chalk.cyan.bold(ds.name + ':')}`);
+
+      const top = ds.topFamilies.slice(0, 10);
+      for (const fam of top) {
+        const subcomps = fam.components.length > 1
+          ? chalk.dim(` [${fam.components.join(', ')}]`)
+          : '';
+        console.log(
+          `    ${chalk.white(fam.family.padEnd(28))}` +
+          `${formatNum(fam.instances).padStart(6)} instances   ` +
+          `${String(fam.filesUsedIn).padStart(4)} files` +
+          subcomps
+        );
+      }
+      console.log();
+    }
+  }
+
   // ── Top Components per DS ────────────────────────────────────────────────────
   const hasComponents = byComponent.designSystems.some(ds => ds.components.length > 0);
   if (hasComponents) {
@@ -268,7 +336,6 @@ export function printReport(report: ScanReport, verbose = false): void {
 
       const top = ds.components.slice(0, 5);
       for (const comp of top) {
-        const bar = progressBar(Math.min(100, (comp.instances / (ds.components[0]?.instances ?? 1)) * 100), 15);
         console.log(
           `    ${chalk.white(comp.name.padEnd(28))} ` +
           `${formatNum(comp.instances).padStart(6)} instances   ` +

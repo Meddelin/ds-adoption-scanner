@@ -53,7 +53,9 @@ ds-scanner/
 │   │   ├── jsx-extractor.ts      # Извлечение JSX usage из AST
 │   │   ├── categorizer.ts        # Категоризация компонентов
 │   │   ├── transitive-resolver.ts # Авто-детектирование DS в исходниках local-library
-│   │   ├── library-prescan.ts    # Пре-скан sources libraries[]: per-component DS-backing
+│   │   ├── library-prescan.ts    # Пре-скан sources libraries[]: per-component DS-backing + dsFamily
+│   │   ├── ds-prescan.ts         # Пре-скан исходников DS → DSCatalog (семьи компонентов)
+│   │   ├── family-resolver.ts    # enrichWithFamily(): назначает componentFamily per usage
 │   │   └── orchestrator.ts       # Оркестрация полного скана
 │   ├── metrics/
 │   │   ├── calculator.ts         # Расчёт adoption метрик
@@ -1248,6 +1250,30 @@ export const App = () => (
 26. `metrics/calculator.ts` — `effectiveAdoptionRate`, `transitiveDS` в `ScanMetrics` и per-DS
 27. `metrics/aggregator.ts` — `effectiveAdoptionRate` в repo-отчётах и summary
 28. `output/table-reporter.ts` — вывод Effective Adoption, колонка `Effective%` в per-DS таблице
+
+### Phase 5: Library Pre-Scan (Per-Component DS-Backing)
+29. `config/schema.ts` — `LibrarySource` интерфейс (`package`, `backedBy`, `path?`, `git?`, `include?`, `exclude?`); добавить `libraries[]` в `DSScannerConfig`
+30. `config/loader.ts` — валидация `libraries[]` (backedBy должен совпадать с DS name, не оба path+git)
+31. `scanner/library-prescan.ts` (новый) — `preScanLibraries()`, `parseFileExports()`, `buildComponentMap()`, DFS `resolveFileExports()`; git clone через spawnSync; кеш в `historyDir/.library-cache/`
+32. `scanner/transitive-resolver.ts` — Case 0 per-component lookup из LibraryRegistry (приоритет над общими правилами)
+33. `scanner/orchestrator.ts` — Stage 0.5: пре-скан библиотек перед основным циклом
+
+### Phase 6: Local Component Reuse Analysis
+34. `types.ts` — `LocalReuseGroup`, `LocalReuseReport`, добавить `localReuseAnalysis` в `ScanReport`
+35. `metrics/aggregator.ts` — `buildLocalReuseAnalysis()`: группировка local по resolvedPath, три класса (singleton/local-reuse/cross-repo)
+36. `output/table-reporter.ts` — секция `♻️ Reuse Opportunities`
+
+### Phase 7: DS Component Family Pre-Scan & Family Coverage Metrics
+37. `config/schema.ts` — добавить `path?`, `git?`, `include?`, `exclude?`, `groupBy?` в `DesignSystemDef`; тип `FamilyGroupBy`
+38. `config/loader.ts` — валидация path-XOR-git для DS записей
+39. `types.ts` — `ComponentFamily`, `DSCatalog`, `FamilyStat`; расширить `CategorizedUsage` (`componentFamily?`), `DesignSystemMetrics` (`totalFamilies?`, `familiesUsed?`, `familyCoverage?`, `topFamilies?`), `ScanReport` (`dsPrescan?`)
+40. `scanner/ds-prescan.ts` (новый) — `preScanDesignSystems()`, `buildFamilyCatalog()`, `buildFamilyLookup()`, `groupIntoFamilies()`; переиспользует `parseFileExports()` из library-prescan; группировка по директории с GENERIC_DIRS fallback; только PascalCase value-exports (interfaces/types исключены)
+41. `scanner/family-resolver.ts` (новый) — `enrichWithFamily()`: назначает `componentFamily` per DS usage; lookup через `importEntry.importedName` (не localName/componentName — для корректной обработки алиасов)
+42. `scanner/library-prescan.ts` — расширить `LibraryComponentEntry` полем `dsFamily?`; `preScanLibraries()` принимает `DSCatalog` и заполняет `dsFamily` для DS-backed компонентов
+43. `scanner/orchestrator.ts` — Stage 0 DS prescan (первым); Stage 0.5 library prescan получает DSCatalog; Stage 4.5 family enrichment; передать `dsCatalog` в `aggregateResults`
+44. `metrics/calculator.ts` — опциональный `catalog?: DSCatalog` в `calculateMetrics`/`calculatePerDSMetrics`; `buildTopFamilies()`; расчёт `familyCoverage`
+45. `metrics/aggregator.ts` — пробросить `dsCatalog` через `aggregateResults` → `buildRepositoryReport` → `buildByComponent`; propagate family fields в отчёт
+46. `output/table-reporter.ts` — колонка `Families` в DS-таблице; секция `🎨 Design System Catalog`; секция `🗂️ Top Families per DS`
 
 ---
 

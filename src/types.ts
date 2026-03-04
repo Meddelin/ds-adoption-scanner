@@ -62,6 +62,11 @@ export interface CategorizedUsage extends JSXUsageRecord {
     coverage: number;                         // 0.0–1.0
     source: 'declared' | 'auto-detected';
   };
+
+  // Set for design-system usages when DSCatalog is available (DS has path/git configured).
+  // The product-level component family this component belongs to, e.g. "EmptyState"
+  // for EmptyStateError/EmptyStateNotFound.
+  componentFamily?: string;
 }
 
 // ─── Metrics Types ────────────────────────────────────────────────────────────
@@ -93,6 +98,12 @@ export interface DesignSystemMetrics {
   uniqueComponents: number;
   topComponents: ComponentStat[];
   filePenetration: number;
+
+  // Family coverage — only present when DS was pre-scanned with path/git
+  totalFamilies?: number;           // Total component families in DS catalog
+  familiesUsed?: number;            // Distinct families used in scanned repos
+  familyCoverage?: number;          // familiesUsed / totalFamilies * 100
+  topFamilies?: FamilyStat[];       // Top families by instances, capped at 20
 }
 
 export interface ScanMetrics {
@@ -112,6 +123,25 @@ export interface ScanMetrics {
   filePenetration: number;
   totalComponentInstances: number;
   filesScanned: number;
+}
+
+// ─── DS Family Types ──────────────────────────────────────────────────────────
+
+export interface ComponentFamily {
+  name: string;         // "EmptyState" (parent directory name, or component name at root)
+  components: string[]; // ["EmptyState", "EmptyStateError", "EmptyStateNotFound"]
+  files: string[];      // absolute source file paths (for AI agent reference)
+}
+
+// Maps dsName → list of component families in that DS
+export type DSCatalog = Map<string, ComponentFamily[]>;
+
+export interface FamilyStat {
+  family: string;
+  components: string[];  // sub-components used in this family
+  instances: number;
+  filesUsedIn: number;
+  reposUsedIn: number;
 }
 
 // ─── Local Reuse Types ────────────────────────────────────────────────────────
@@ -155,6 +185,9 @@ export interface RepositoryReport {
     instances: number;
     transitiveInstances: number;
     uniqueComponents: number;
+    totalFamilies?: number;
+    familiesUsed?: number;
+    familyCoverage?: number;
   }[];
   designSystemTotal: CategoryMetrics;
   localLibrary: CategoryMetrics;
@@ -193,6 +226,9 @@ export interface ScanReport {
       transitiveInstances: number;
       uniqueComponents: number;
       filePenetration: number;
+      totalFamilies?: number;
+      familiesUsed?: number;
+      familyCoverage?: number;
     }[];
     designSystemTotal: CategoryMetrics;
     localLibrary: CategoryMetrics;
@@ -207,6 +243,7 @@ export interface ScanReport {
     designSystems: {
       name: string;
       components: ComponentStat[];
+      topFamilies?: FamilyStat[];
     }[];
     localMostUsed: ComponentStat[];
     thirdParty: ComponentStat[];
@@ -218,6 +255,15 @@ export interface ScanReport {
     backedBy: string;          // DS name
     totalComponents: number;
     dsBackedComponents: number;
+  }[];
+
+  // Results of DS pre-scan (only present when designSystems[] have path/git configured)
+  dsPrescan?: {
+    dsName: string;
+    totalFamilies: number;
+    totalComponents: number;
+    familiesCoveredInScan: number;
+    coveragePct: number;
   }[];
 
   localReuseAnalysis: LocalReuseReport;

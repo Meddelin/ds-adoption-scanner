@@ -1,6 +1,14 @@
+export type FamilyGroupBy = 'directory' | 'none';
+
 export interface DesignSystemDef {
   name: string;       // Human-readable name for report ("TUI", "Beaver")
   packages: string[]; // npm packages belonging to this DS
+  // Optional: point to DS source for family catalog pre-scan
+  path?: string;      // local filesystem path to DS source root
+  git?: string;       // git URL — cloned with --depth 1 to historyDir/.ds-cache/
+  include?: string[]; // files to scan, default: ['**/*.tsx', '**/*.ts']
+  exclude?: string[]; // default: ['**/*.test.*','**/*.spec.*','**/*.stories.*','**/node_modules/**']
+  groupBy?: FamilyGroupBy; // default: 'directory'
 }
 
 export interface OutputConfig {

@@ -1,8 +1,11 @@
 import type {
   CategorizedUsage,
   CategoryMetrics,
+  ComponentFamily,
   ComponentStat,
+  DSCatalog,
   DesignSystemMetrics,
+  FamilyStat,
   ScanMetrics,
 } from '../types.js';
 import type { ResolvedConfig } from '../config/schema.js';
@@ -10,7 +13,8 @@ import type { ResolvedConfig } from '../config/schema.js';
 export function calculateMetrics(
   usages: CategorizedUsage[],
   config: ResolvedConfig,
-  filesScanned: number
+  filesScanned: number,
+  catalog?: DSCatalog
 ): ScanMetrics {
   // Group usages by category
   const byCategory = groupByCategory(usages);
@@ -51,7 +55,7 @@ export function calculateMetrics(
 
   // Per-DS metrics
   const designSystems = calculatePerDSMetrics(
-    dsUsages, allTransitive, usages, config, denominator, effectiveDenominator
+    dsUsages, allTransitive, usages, config, denominator, effectiveDenominator, catalog
   );
 
   // Total DS category metrics
@@ -127,7 +131,8 @@ function calculatePerDSMetrics(
   allUsages: CategorizedUsage[],
   config: ResolvedConfig,
   denominator: number,
-  effectiveDenominator: number
+  effectiveDenominator: number,
+  catalog?: DSCatalog
 ): DesignSystemMetrics[] {
   return config.designSystems.map(ds => {
     const thisDS = dsUsages.filter(u => u.dsName === ds.name);
@@ -151,6 +156,25 @@ function calculatePerDSMetrics(
 
     const metrics = buildCategoryMetrics(thisDS);
 
+    // Family coverage (only when DS was pre-scanned with path/git)
+    let totalFamilies: number | undefined;
+    let familiesUsed: number | undefined;
+    let familyCoverage: number | undefined;
+    let topFamilies: FamilyStat[] | undefined;
+
+    const dsFamilies = catalog?.get(ds.name);
+    if (dsFamilies) {
+      totalFamilies = dsFamilies.length;
+      const usedFamilyNames = new Set(
+        thisDS.filter(u => u.componentFamily).map(u => u.componentFamily!)
+      );
+      familiesUsed = usedFamilyNames.size;
+      familyCoverage = totalFamilies > 0
+        ? (familiesUsed / totalFamilies) * 100
+        : 0;
+      topFamilies = buildTopFamilies(thisDS, dsFamilies);
+    }
+
     return {
       name: ds.name,
       packages: ds.packages,
@@ -162,8 +186,54 @@ function calculatePerDSMetrics(
       uniqueComponents: metrics.uniqueComponents,
       topComponents: metrics.topComponents,
       filePenetration,
+      ...(totalFamilies !== undefined && {
+        totalFamilies,
+        familiesUsed,
+        familyCoverage,
+        topFamilies,
+      }),
     };
   });
+}
+
+function buildTopFamilies(
+  dsUsages: CategorizedUsage[],
+  families: ComponentFamily[]
+): FamilyStat[] {
+  const familyComponentsMap = new Map<string, string[]>(
+    families.map(f => [f.name, f.components])
+  );
+
+  const familyData = new Map<string, {
+    usedComponents: Set<string>;
+    instances: number;
+    files: Set<string>;
+  }>();
+
+  for (const usage of dsUsages) {
+    if (!usage.componentFamily) continue;
+    const fName = usage.componentFamily;
+    if (!familyData.has(fName)) {
+      familyData.set(fName, { usedComponents: new Set(), instances: 0, files: new Set() });
+    }
+    const entry = familyData.get(fName)!;
+    entry.instances++;
+    entry.files.add(usage.filePath);
+    // Track which sub-components were actually used
+    const lookupKey = usage.importEntry?.importedName ?? usage.componentName;
+    entry.usedComponents.add(lookupKey);
+  }
+
+  return Array.from(familyData.entries())
+    .map(([family, data]) => ({
+      family,
+      components: Array.from(data.usedComponents).sort(),
+      instances: data.instances,
+      filesUsedIn: data.files.size,
+      reposUsedIn: 1, // single-scope here; aggregator may compute cross-repo
+    }))
+    .sort((a, b) => b.instances - a.instances || a.family.localeCompare(b.family))
+    .slice(0, 20);
 }
 
 export function buildCategoryMetrics(usages: CategorizedUsage[]): CategoryMetrics {

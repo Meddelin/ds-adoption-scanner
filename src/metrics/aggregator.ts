@@ -2,6 +2,7 @@ import type {
   CategorizedUsage,
   CategoryMetrics,
   ComponentStat,
+  DSCatalog,
   LocalReuseReport,
   RepositoryReport,
   ScanReport,
@@ -23,21 +24,23 @@ export function aggregateResults(
     version: string;
     configPath: string;
     scanDurationMs: number;
+    dsCatalog?: DSCatalog;
   }
 ): ScanReport {
   const allUsages = repoData.flatMap(r => r.usages);
   const totalFilesScanned = repoData.reduce((sum, r) => sum + r.filesScanned, 0);
+  const dsCatalog = meta.dsCatalog;
 
   // Global metrics
-  const globalMetrics = calculateMetrics(allUsages, config, totalFilesScanned);
+  const globalMetrics = calculateMetrics(allUsages, config, totalFilesScanned, dsCatalog);
 
   // Per-repository reports
   const byRepository: RepositoryReport[] = repoData.map(repo =>
-    buildRepositoryReport(repo, config)
+    buildRepositoryReport(repo, config, dsCatalog)
   );
 
   // Component-level aggregation
-  const byComponent = buildByComponent(allUsages, config);
+  const byComponent = buildByComponent(allUsages, config, globalMetrics.designSystems);
 
   // Local reuse analysis
   const localReuseAnalysis = buildLocalReuseAnalysis(repoData);
@@ -67,6 +70,11 @@ export function aggregateResults(
         transitiveInstances: ds.transitiveInstances,
         uniqueComponents: ds.uniqueComponents,
         filePenetration: ds.filePenetration,
+        ...(ds.totalFamilies !== undefined && {
+          totalFamilies: ds.totalFamilies,
+          familiesUsed: ds.familiesUsed,
+          familyCoverage: ds.familyCoverage,
+        }),
       })),
       designSystemTotal: globalMetrics.designSystemTotal,
       localLibrary: globalMetrics.localLibrary,
@@ -82,9 +90,10 @@ export function aggregateResults(
 
 function buildRepositoryReport(
   repo: RepoScanData,
-  config: ResolvedConfig
+  config: ResolvedConfig,
+  dsCatalog?: DSCatalog
 ): RepositoryReport {
-  const metrics = calculateMetrics(repo.usages, config, repo.filesScanned);
+  const metrics = calculateMetrics(repo.usages, config, repo.filesScanned, dsCatalog);
 
   return {
     name: repo.repositoryName,
@@ -99,6 +108,11 @@ function buildRepositoryReport(
       instances: ds.instances,
       transitiveInstances: ds.transitiveInstances,
       uniqueComponents: ds.uniqueComponents,
+      ...(ds.totalFamilies !== undefined && {
+        totalFamilies: ds.totalFamilies,
+        familiesUsed: ds.familiesUsed,
+        familyCoverage: ds.familyCoverage,
+      }),
     })),
     designSystemTotal: metrics.designSystemTotal,
     localLibrary: metrics.localLibrary,
@@ -110,7 +124,8 @@ function buildRepositoryReport(
 
 function buildByComponent(
   allUsages: CategorizedUsage[],
-  config: ResolvedConfig
+  config: ResolvedConfig,
+  dsMetrics?: import('../types.js').DesignSystemMetrics[]
 ): ScanReport['byComponent'] {
   const dsUsages = allUsages.filter(u => u.category === 'design-system');
   const localUsages = allUsages.filter(u => u.category === 'local' || u.category === 'local-library');
@@ -119,9 +134,11 @@ function buildByComponent(
   // DS components grouped by DS name
   const designSystems = config.designSystems.map(ds => {
     const thisDS = dsUsages.filter(u => u.dsName === ds.name);
+    const dsMetric = dsMetrics?.find(d => d.name === ds.name);
     return {
       name: ds.name,
       components: buildComponentStats(thisDS).slice(0, 50),
+      ...(dsMetric?.topFamilies ? { topFamilies: dsMetric.topFamilies } : {}),
     };
   });
 

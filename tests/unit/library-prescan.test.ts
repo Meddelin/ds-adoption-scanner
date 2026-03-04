@@ -159,12 +159,12 @@ describe('preScanLibraries — component map building', () => {
       }],
     });
 
-    const registry = await preScanLibraries(config, false);
+    const registry = await preScanLibraries(config, new Map(), false);
     const entry = registry.get('@company/ui');
     expect(entry).toBeDefined();
     expect(entry!.backedBy).toBe('Beaver');
-    expect(entry!.componentMap.get('DSButton')).toBe(true);
-    expect(entry!.componentMap.get('CustomWidget')).toBe(false);
+    expect(entry!.componentMap.get('DSButton')?.isDSBacked).toBe(true);
+    expect(entry!.componentMap.get('CustomWidget')?.isDSBacked).toBe(false);
   });
 
   it('resolves barrel re-exports correctly', async () => {
@@ -191,13 +191,13 @@ describe('preScanLibraries — component map building', () => {
       }],
     });
 
-    const registry = await preScanLibraries(config, false);
+    const registry = await preScanLibraries(config, new Map(), false);
     const map = registry.get('@pro/components')!.componentMap;
 
     // ProTable is backed (imported through barrel)
-    expect(map.get('ProTable')).toBe(true);
+    expect(map.get('ProTable')?.isDSBacked).toBe(true);
     // formatDate is not backed
-    expect(map.get('formatDate')).toBe(false);
+    expect(map.get('formatDate')?.isDSBacked).toBe(false);
   });
 
   it('handles star re-export (export * from)', async () => {
@@ -215,14 +215,14 @@ describe('preScanLibraries — component map building', () => {
       }],
     });
 
-    const registry = await preScanLibraries(config, false);
+    const registry = await preScanLibraries(config, new Map(), false);
     const map = registry.get('@lib/ui')!.componentMap;
-    expect(map.get('Button')).toBe(true);
+    expect(map.get('Button')?.isDSBacked).toBe(true);
   });
 
   it('returns empty registry when no libraries have path/git', async () => {
     const config = makeConfig({ libraries: [] });
-    const registry = await preScanLibraries(config, false);
+    const registry = await preScanLibraries(config, new Map(), false);
     expect(registry.size).toBe(0);
   });
 
@@ -234,7 +234,7 @@ describe('preScanLibraries — component map building', () => {
         path: '/non/existent/path',
       }],
     });
-    const registry = await preScanLibraries(config, false);
+    const registry = await preScanLibraries(config, new Map(), false);
     expect(registry.size).toBe(0);
   });
 
@@ -253,9 +253,9 @@ describe('preScanLibraries — component map building', () => {
       }],
     });
 
-    const registry = await preScanLibraries(config, false);
+    const registry = await preScanLibraries(config, new Map(), false);
     const map = registry.get('@company/lib-b')!.componentMap;
     // @another/library is NOT a DS package, so WrappedComponent should be false
-    expect(map.get('WrappedComponent')).toBe(false);
+    expect(map.get('WrappedComponent')?.isDSBacked).toBe(false);
   });
 });

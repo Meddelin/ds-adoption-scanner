@@ -131,6 +131,11 @@ function validateConfig(config: ResolvedConfig, configPath: string): void {
       if (!Array.isArray(ds.packages) || ds.packages.length === 0) {
         errors.push(`designSystem "${ds.name}" must have at least one package`);
       }
+      if (ds.path && ds.git) {
+        errors.push(
+          `designSystem "${ds.name}": specify either \`path\` or \`git\`, not both`
+        );
+      }
     }
   }
 

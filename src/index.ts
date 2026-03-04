@@ -5,6 +5,7 @@ export { runScan } from './scanner/orchestrator.js';
 export type {
   DSScannerConfig,
   DesignSystemDef,
+  FamilyGroupBy,
   OutputConfig,
   ThresholdConfig,
   ResolvedConfig,
@@ -17,6 +18,9 @@ export type {
   ResolvedImport,
   ComponentCategory,
   CategorizedUsage,
+  ComponentFamily,
+  DSCatalog,
+  FamilyStat,
   ScanMetrics,
   DesignSystemMetrics,
   CategoryMetrics,

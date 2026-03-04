@@ -4,7 +4,7 @@ import type { CategorizedUsage } from '../types.js';
 import type { ResolvedConfig } from '../config/schema.js';
 import { parseFile } from './parser.js';
 import { findDesignSystem, matchesPackage } from './categorizer.js';
-import type { LibraryRegistry } from './library-prescan.js';
+import type { LibraryRegistry, LibraryComponentEntry } from './library-prescan.js';
 
 export interface TransitiveDetection {
   dsName: string;
@@ -58,7 +58,8 @@ export async function enrichWithTransitiveDS(
     ) {
       const libEntry = findRegistryEntry(libraryRegistry, usage.packageName);
       if (libEntry !== null) {
-        const isDSBacked = libEntry.componentMap.get(usage.componentName) ?? false;
+        const compEntry = libEntry.componentMap.get(usage.componentName);
+        const isDSBacked = compEntry?.isDSBacked ?? false;
         if (isDSBacked) {
           result.push({
             ...usage,
@@ -220,7 +221,7 @@ function findPackageRoot(packageName: string, repoRoot: string): string | null {
 function findRegistryEntry(
   registry: LibraryRegistry,
   packageName: string
-): { componentMap: Map<string, boolean>; backedBy: string } | null {
+): { componentMap: Map<string, LibraryComponentEntry>; backedBy: string } | null {
   // Exact match first
   if (registry.has(packageName)) return registry.get(packageName)!;
   // Pattern match (supports globs like '@company/*')
