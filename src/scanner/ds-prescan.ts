@@ -244,18 +244,29 @@ function groupIntoFamilies(
 }
 
 function getFamilyName(filePath: string, dsRoot: string, componentName: string): string {
-  const parentDirPath = path.resolve(path.dirname(filePath));
   const dsRootNorm = path.resolve(dsRoot);
+  const fileDir = path.resolve(path.dirname(filePath));
 
-  // If file is directly in the DS root → family = component name
-  if (parentDirPath === dsRootNorm) return componentName;
+  // File is directly in the DS root → family = component name
+  const rel = path.relative(dsRootNorm, fileDir);
+  if (!rel || rel === '.') return componentName;
 
-  const parentDirName = path.basename(parentDirPath);
+  // Split the relative path into segments, skip any leading GENERIC_DIRS, and
+  // take the first non-generic segment as the family name.
+  // This works at any nesting depth:
+  //   Button/Button.tsx                     → "Button"
+  //   EmptyState/EmptyStateButton/Btn.tsx   → "EmptyState"
+  //   EmptyState/src/EmptyStateNoData.tsx   → "EmptyState"
+  //   src/components/Button/Button.tsx      → "Button"
+  //   src/Button.tsx                        → componentName (all segments are generic)
+  const segments = rel.split(path.sep).filter(Boolean);
+  let i = 0;
+  while (i < segments.length && GENERIC_DIRS.has(segments[i].toLowerCase())) {
+    i++;
+  }
+  if (i >= segments.length) return componentName;
 
-  // If parent dir is a generic container → family = component name
-  if (GENERIC_DIRS.has(parentDirName.toLowerCase())) return componentName;
-
-  return parentDirName;
+  return segments[i];
 }
 
 function isPascalCase(name: string): boolean {

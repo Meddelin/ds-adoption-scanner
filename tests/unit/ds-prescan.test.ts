@@ -101,6 +101,62 @@ describe('buildFamilyCatalog — groupBy directory', () => {
     expect(families.find(f => f.name === 'components')).toBeUndefined();
   });
 
+  it('groups sub-components with their own folders into the parent family', () => {
+    // EmptyState is the family; EmptyStateButton and EmptyStateNoData are
+    // sub-components each living in their own subdirectory with helpers.
+    write('EmptyState/EmptyState.tsx', 'export function EmptyState() {}');
+    write('EmptyState/EmptyStateButton/EmptyStateButton.tsx', 'export function EmptyStateButton() {}');
+    write('EmptyState/EmptyStateButton/EmptyStateButtonIcon.tsx', 'export function EmptyStateButtonIcon() {}');
+    write('EmptyState/EmptyStateNoData/EmptyStateNoData.tsx', 'export function EmptyStateNoData() {}');
+    write('EmptyState/EmptyStateNoData/EmptyStateNoDataHelper.tsx', 'export function EmptyStateNoDataHelper() {}');
+
+    const ds = { name: 'MyDS', packages: ['@myds/ui'], path: tmpDir };
+    const families = buildFamilyCatalog(tmpDir, ds, config);
+
+    expect(families.length).toBe(1);
+    const f = families[0];
+    expect(f.name).toBe('EmptyState');
+    expect(f.components.sort()).toEqual([
+      'EmptyState',
+      'EmptyStateButton',
+      'EmptyStateButtonIcon',
+      'EmptyStateNoData',
+      'EmptyStateNoDataHelper',
+    ]);
+  });
+
+  it('groups sub-components under src/ into the parent family', () => {
+    // EmptyState/src/ variant — same result as without src/
+    write('EmptyState/src/EmptyStateButton.tsx', 'export function EmptyStateButton() {}');
+    write('EmptyState/src/EmptyStateNoData.tsx', 'export function EmptyStateNoData() {}');
+    write('EmptyState/EmptyState.tsx', 'export function EmptyState() {}');
+
+    const ds = { name: 'MyDS', packages: ['@myds/ui'], path: tmpDir };
+    const families = buildFamilyCatalog(tmpDir, ds, config);
+
+    expect(families.length).toBe(1);
+    expect(families[0].name).toBe('EmptyState');
+    expect(families[0].components.sort()).toEqual(['EmptyState', 'EmptyStateButton', 'EmptyStateNoData']);
+  });
+
+  it('skips leading generic dirs then takes first non-generic segment', () => {
+    // src/components/Button/ButtonGroup.tsx → family "Button"
+    write('src/components/Button/Button.tsx', 'export function Button() {}');
+    write('src/components/Button/ButtonGroup.tsx', 'export function ButtonGroup() {}');
+    write('src/components/EmptyState/EmptyStateButton/EmptyStateButton.tsx', 'export function EmptyStateButton() {}');
+
+    const ds = { name: 'MyDS', packages: ['@myds/ui'], path: tmpDir };
+    const families = buildFamilyCatalog(tmpDir, ds, config);
+
+    const button = families.find(f => f.name === 'Button');
+    expect(button).toBeDefined();
+    expect(button!.components.sort()).toEqual(['Button', 'ButtonGroup']);
+
+    const emptyState = families.find(f => f.name === 'EmptyState');
+    expect(emptyState).toBeDefined();
+    expect(emptyState!.components).toEqual(['EmptyStateButton']);
+  });
+
   it('ignores non-PascalCase exports (utilities, hooks, constants)', () => {
     write('components/utils.ts', 'export function formatDate() {} export const MAX_VALUE = 100;');
     write('components/useHook.ts', 'export function useHook() {}');
