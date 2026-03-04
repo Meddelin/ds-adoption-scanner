@@ -1,5 +1,43 @@
 # Changelog
 
+## v0.5.4 — Fix family overcounting; families-first report
+
+### Fix: `import X; export { X }` incorrectly treated as local definition
+
+`parseFileExports` now correctly tracks all import bindings and, when processing
+`export { A }` without a `from` clause, checks whether `A` was previously imported.
+If it was, it's treated as a **re-export** (added to `reExports`), not a local definition.
+
+**Before**: a barrel like `import { Foo } from './foo'; export { Foo }` put `Foo` into
+`info.defined`, causing `componentToFile['Foo']` to point to the barrel file. If the
+barrel was at `src/index.ts` (a GENERIC_DIR), the family fell back to the component name.
+Result: 81 families instead of 19 for a library with 19 top-level feature directories.
+
+**After**: only files that truly **declare** a component affect `componentToFile`. Barrel
+files (regardless of processing order) no longer pollute family grouping.
+
+### Report: families as primary metric
+
+- **Category Breakdown** (`📦`): when families configured, the `Unique` column is replaced
+  by `Families` showing `familiesUsed/totalFamilies (coverage%)` per DS.
+- **Top Families per DS** (`🗂️`) section now appears **before** Top Components per DS.
+- **Top Components per DS** renamed to `📋 Top Components per DS (detail)` when families
+  are shown above; capped at 3 (instead of 5) to reduce noise.
+
+### Changes
+- `src/scanner/library-prescan.ts` — `parseFileExports`: tracks `importBindings` in the
+  `ImportDeclaration` handler; `export { X }` without source routes to `reExports` when
+  `X` is an import binding, otherwise to `defined`
+- `src/output/table-reporter.ts` — Category Breakdown families column; Top Families moved
+  before Top Components; detail label + cap when families configured
+- `tests/unit/library-prescan.test.ts` — renamed 'extracts renamed export specifier' →
+  'treats imported-then-re-exported name as reExport not defined'; added test for locally
+  defined specifier
+
+Тесты: +1 тест. Итого: **155 тестов**.
+
+---
+
 ## v0.5.3 — Local library family grouping + componentsDir
 
 ### Local library components grouped into families

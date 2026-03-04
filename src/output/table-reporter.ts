@@ -207,23 +207,29 @@ export function printReport(report: ScanReport, verbose = false): void {
     return formatPct((instances / denominator) * 100);
   }
 
+  // When families are configured, show "Families" column instead of "Unique"
+  const catHasFamilies = summary.designSystems.some(ds => ds.totalFamilies !== undefined);
+
   const catTable = new Table({
     head: [
       chalk.bold('Category'),
       chalk.bold('Instances'),
-      chalk.bold('Unique'),
+      chalk.bold(catHasFamilies ? 'Families' : 'Unique'),
       chalk.bold('Share'),
     ],
-    colWidths: [25, 12, 10, 12],
+    colWidths: [25, 12, catHasFamilies ? 14 : 10, 12],
     style: { head: [], border: [], compact: true },
     chars: { mid: '', 'left-mid': '', 'mid-mid': '', 'right-mid': '' },
   });
 
   for (const ds of summary.designSystems) {
+    const familyCell = ds.totalFamilies !== undefined
+      ? `${ds.familiesUsed}/${ds.totalFamilies} (${formatPct(ds.familyCoverage ?? 0)})`
+      : String(ds.uniqueComponents);
     catTable.push([
       `  ├ ${chalk.cyan(ds.name)}`,
       formatNum(ds.instances),
-      String(ds.uniqueComponents),
+      familyCell,
       sharePct(ds.instances),
     ]);
   }
@@ -298,7 +304,7 @@ export function printReport(report: ScanReport, verbose = false): void {
     console.log();
   }
 
-  // ── Top Families per DS ──────────────────────────────────────────────────────
+  // ── Top Families per DS ─────────────────────── (primary when families configured)
   const hasFamilies = byComponent.designSystems.some(ds => ds.topFamilies && ds.topFamilies.length > 0);
   if (hasFamilies) {
     console.log(chalk.bold('  🗂️  Top Families per DS'));
@@ -324,17 +330,18 @@ export function printReport(report: ScanReport, verbose = false): void {
     }
   }
 
-  // ── Top Components per DS ────────────────────────────────────────────────────
+  // ── Top Components per DS ──────────────────────────────── (secondary / always shown)
   const hasComponents = byComponent.designSystems.some(ds => ds.components.length > 0);
   if (hasComponents) {
-    console.log(chalk.bold('  🏆 Top Components per DS'));
+    console.log(chalk.bold(hasFamilies ? '  📋 Top Components per DS (detail)' : '  🏆 Top Components per DS'));
     console.log(chalk.dim('  ' + '─'.repeat(65)));
 
     for (const ds of byComponent.designSystems) {
       if (ds.components.length === 0) continue;
       console.log(`  ${chalk.cyan.bold(ds.name + ':')}`);
 
-      const top = ds.components.slice(0, 5);
+      // Show fewer components when families are shown above (reduce noise)
+      const top = ds.components.slice(0, hasFamilies ? 3 : 5);
       for (const comp of top) {
         console.log(
           `    ${chalk.white(comp.name.padEnd(28))} ` +

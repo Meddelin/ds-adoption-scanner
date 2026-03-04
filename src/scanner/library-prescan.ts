@@ -313,10 +313,18 @@ export function parseFileExports(
     return info;
   }
 
+  // Track import bindings (localName → source module) to distinguish
+  // "import X; export { X }" (re-export) from "const X = ...; export { X }" (local def).
+  const importBindings = new Map<string, string>();
+
   for (const node of ast.body) {
-    // ── Import declarations: detect DS imports ─────────────────────────────
+    // ── Import declarations: detect DS imports + track all bindings ────────
     if (node.type === 'ImportDeclaration') {
       const source = node.source.value as string;
+      // Track ALL import bindings for correct re-export classification below
+      for (const spec of node.specifiers) {
+        importBindings.set(spec.local.name, source);
+      }
       const dsName = findDesignSystem(source, config);
       if (dsName) {
         info.hasDSImport = true;
@@ -352,12 +360,22 @@ export function parseFileExports(
         // export function Foo() {} / export const Foo = ... / export class Foo {}
         extractDeclaredNames(node.declaration).forEach(n => info.defined.add(n));
       } else {
-        // export { Foo, Bar } — locally defined aliases (no source)
+        // export { Foo, Bar } — may be locally defined OR imported-then-re-exported.
+        // If the local binding came from an import, treat it as a re-export so that
+        // componentToFile maps to the actual defining file, not this barrel.
         for (const spec of node.specifiers) {
+          const localName = spec.local.name;
           const exportedName = spec.exported.type === 'Identifier'
             ? spec.exported.name
             : (spec.exported as TSESTree.Literal).value as string;
-          info.defined.add(exportedName);
+          const importSource = importBindings.get(localName);
+          if (importSource) {
+            // "import X from './x'; export { X }" — treat as re-export
+            info.reExports.push({ name: exportedName, from: importSource });
+          } else {
+            // "const X = ...; export { X }" — locally defined
+            info.defined.add(exportedName);
+          }
         }
       }
       continue;

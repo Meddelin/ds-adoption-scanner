@@ -129,11 +129,23 @@ describe('parseFileExports — export extraction', () => {
     expect(info.reExports).toContainEqual({ name: '*', from: './widgets' });
   });
 
-  it('extracts renamed export specifier', () => {
+  it('treats imported-then-re-exported name as reExport not defined', () => {
+    // "import { Btn } from './btn'; export { Btn as Button }" — Btn is imported,
+    // so Button is a re-export, NOT a local definition.
     const code = `import { Btn } from './btn'; export { Btn as Button };`;
     const p = write('h.ts', code);
     const info = parseFileExports(code, p, config);
-    expect(info.defined.has('Button')).toBe(true);
+    expect(info.defined.has('Button')).toBe(false);
+    expect(info.reExports).toContainEqual({ name: 'Button', from: './btn' });
+  });
+
+  it('treats locally-defined export specifier (no import) as defined', () => {
+    // "const X = ...; export { X }" — X is locally defined
+    const code = `const MyComp = () => null; export { MyComp };`;
+    const p = write('i.ts', code);
+    const info = parseFileExports(code, p, config);
+    expect(info.defined.has('MyComp')).toBe(true);
+    expect(info.reExports).toHaveLength(0);
   });
 });
 
