@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.5.5 — Fix default-exported components causing family overcounting
+
+### Fix: `export default function Foo(){}` not mapping to `componentToFile`
+
+When a component file used `export default function Foo(){}` and a barrel re-exported it
+as `export { default as Foo } from './Foo'`, only `'default'` was added to `info.defined`.
+This meant:
+1. `componentToFile` had no entry for `'Foo'` → Pass 3 family lookup fell back to the
+   component name as its own family (one family per component).
+2. In `resolveFileExports`, `childExports.get('Foo')` returned `undefined`, falling back
+   to the barrel's own DS import status (usually `false`).
+
+With `export default function Foo(){}` now also adding `'Foo'` to `info.defined`, the
+component name correctly maps to its defining file → family = directory name (correct).
+
+This was the root cause of 81 families being reported instead of 19 for a library whose
+19 feature directories each contained default-exported components.
+
+### Changes
+- `src/scanner/library-prescan.ts` — `ExportDefaultDeclaration` handler now also adds the
+  component's real name (`FunctionDeclaration.id.name`, `ClassDeclaration.id.name`, or
+  plain `Identifier` not in import bindings) to `info.defined` alongside `'default'`
+- `tests/unit/library-prescan.test.ts` — regression test:
+  `resolves barrel re-export of default-exported component`
+
+---
+
 ## v0.5.4 — Fix family overcounting; families-first report
 
 ### Fix: `import X; export { X }` incorrectly treated as local definition

@@ -212,6 +212,32 @@ describe('preScanLibraries — component map building', () => {
     expect(map.get('formatDate')).toBeUndefined();
   });
 
+  it('resolves barrel re-export of default-exported component', async () => {
+    // Pattern: export default function Foo(){} + barrel: export { default as Foo } from './Foo'
+    // Bug: only 'default' was added to info.defined, so componentToFile had no entry for 'Foo'
+    // → familyName fell back to component name → 1 family per component instead of per directory
+    write('src/confirm-modal/ConfirmModal.tsx', `
+      import { Button } from '@beaver/ui';
+      export default function ConfirmModal() { return null; }
+    `);
+    write('src/confirm-modal/index.ts', `
+      export { default as ConfirmModal } from './ConfirmModal';
+    `);
+
+    const config = makeConfig({
+      libraries: [{ package: '@company/ui', backedBy: 'Beaver', path: tmpDir }],
+    });
+
+    const registry = await preScanLibraries(config, new Map(), false);
+    const { componentMap, familyMap } = registry.get('@company/ui')!;
+
+    // Component is still tracked and DS-backed
+    expect(componentMap.get('ConfirmModal')?.isDSBacked).toBe(true);
+    // Family should be directory name, NOT the component name
+    expect(familyMap.has('confirm-modal')).toBe(true);
+    expect(familyMap.has('ConfirmModal')).toBe(false);
+  });
+
   it('handles star re-export (export * from)', async () => {
     write('src/Button.tsx', `
       import { Btn } from '@beaver/ui';

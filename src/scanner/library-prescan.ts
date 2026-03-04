@@ -403,6 +403,23 @@ export function parseFileExports(
     // ── export default ─────────────────────────────────────────────────────
     if (node.type === 'ExportDefaultDeclaration') {
       info.defined.add('default');
+      // Also register the component's actual name so that:
+      //   1. componentToFile maps "MyComponent" → this file (for correct family grouping)
+      //   2. barrel "export { default as MyComponent }" resolves childExports.get('MyComponent')
+      const decl = node.declaration;
+      let exportedName: string | undefined;
+      if (
+        (decl.type === 'FunctionDeclaration' || decl.type === 'ClassDeclaration') &&
+        (decl as TSESTree.FunctionDeclaration | TSESTree.ClassDeclaration).id?.name
+      ) {
+        exportedName = (decl as TSESTree.FunctionDeclaration | TSESTree.ClassDeclaration).id!.name;
+      } else if (decl.type === 'Identifier' && !importBindings.has(decl.name)) {
+        // "const Foo = ...; export default Foo;" — locally defined, not an import
+        exportedName = decl.name;
+      }
+      if (exportedName && /^[A-Z][a-zA-Z0-9]*$/.test(exportedName)) {
+        info.defined.add(exportedName);
+      }
     }
   }
 
