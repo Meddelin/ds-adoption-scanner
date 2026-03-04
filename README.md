@@ -741,7 +741,7 @@ npm run build
 # Разработка с watch
 npm run dev
 
-# Тесты (113 тестов)
+# Тесты (155 тестов)
 npm test
 npm run test:unit          # только unit
 npm run test:integration   # только integration

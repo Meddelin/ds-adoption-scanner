@@ -1275,6 +1275,21 @@ export const App = () => (
 45. `metrics/aggregator.ts` — пробросить `dsCatalog` через `aggregateResults` → `buildRepositoryReport` → `buildByComponent`; propagate family fields в отчёт
 46. `output/table-reporter.ts` — колонка `Families` в DS-таблице; секция `🎨 Design System Catalog`; секция `🗂️ Top Families per DS`
 
+### Phase 8: Local Library Family Grouping (v0.5.3–v0.5.4)
+47. `config/schema.ts` — `componentsDir?: string` в `LibrarySource`: суб-путь внутри корня библиотеки, от которого начинается группировка по семьям (нужен для структур типа `src/components/spirit-ui/{family}/`)
+48. `scanner/ds-prescan.ts` — `GENERIC_DIRS` экспортирован (был `const`), переиспользуется в library-prescan
+49. `scanner/library-prescan.ts`:
+    - `LibraryFamilyEntry { isDSBacked, dsFamilies[] }`, `LibraryRegistry` дополнен `familyMap`
+    - Pass 1 в `buildComponentMap` теперь также строит `componentToFile` (компонент → исходный файл)
+    - Pass 3: группировка в `familyMap` через `getLocalFamilyName()` — первый не-generic сегмент пути от `base`
+    - **v0.5.4 fix**: `parseFileExports` теперь отслеживает `importBindings` (все import-декларации); `export { X }` без `from` → `reExports` если X был импортирован, → `defined` если объявлен локально. Без этого barrel-файлы загрязняли `componentToFile` и давали 81 семью вместо 19.
+50. `scanner/orchestrator.ts` — `libraryPrescan` в отчёте строится из `familyMap` (не `componentMap`); поля переименованы `totalFamilies`/`dsBackedFamilies`
+51. `types.ts` — `ScanReport.libraryPrescan[]`: `totalFamilies`, `dsBackedFamilies` (было `totalComponents`/`dsBackedComponents`)
+52. `output/table-reporter.ts`:
+    - Library prescan: колонка `Families`; DS-таблица: убрать `Unique` когда есть `hasFamilyCoverage`
+    - Category Breakdown: колонка `Families` вместо `Unique` для DS когда семьи настроены
+    - `🗂️ Top Families per DS` перемещена ДО `📋 Top Components per DS (detail)`; при наличии семей компоненты показываются ≤3 штуки
+
 ---
 
 ## ⚠️ Важные edge cases для реализации
