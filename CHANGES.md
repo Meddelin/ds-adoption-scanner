@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.5.6 — Fix: familyMap built from componentToFile, not componentMap
+
+### Fix: Pass 3 now mirrors DS prescan — iterate componentToFile only
+
+`buildComponentMap` Pass 3 was iterating `componentMap` (populated from the full
+`resolveFileExports` chain). Any component resolved transitively but whose source file
+wasn't captured in `componentToFile` would fall back to `familyName = componentName`,
+creating one family per such component.
+
+The DS prescan builds families from `componentToSourceFile` (only `info.defined` entries).
+Local lib Pass 3 now does the same: iterates `componentToFile` and gets DS-backing from
+`componentMap`. No source file → component excluded from familyMap (same as DS prescan).
+
+### Changes
+- `src/scanner/library-prescan.ts` — Pass 3: `for ([name, filePath] of componentToFile)`
+  instead of `for ([name, entry] of componentMap)`
+
+---
+
 ## v0.5.5 — Fix default-exported components causing family overcounting
 
 ### Fix: `export default function Foo(){}` not mapping to `componentToFile`

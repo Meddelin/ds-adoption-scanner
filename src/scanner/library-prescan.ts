@@ -217,16 +217,19 @@ async function buildComponentMap(
     }
   }
 
-  // Pass 3: group components into local-lib families by directory
+  // Pass 3: group components into local-lib families by directory.
+  // Mirrors DS prescan: iterate componentToFile (components with known source files only)
+  // and get DS-backing from componentMap. This prevents phantom families for components
+  // that resolveFileExports resolved transitively but whose source file pattern is unrecognised.
   const base = lib.componentsDir ? path.resolve(libRoot, lib.componentsDir) : libRoot;
   const familyMap = new Map<string, LibraryFamilyEntry>();
 
-  for (const [name, entry] of componentMap) {
-    const filePath = componentToFile.get(name);
-    const familyName = filePath ? getLocalFamilyName(filePath, base, name) : name;
+  for (const [name, filePath] of componentToFile) {
+    const entry = componentMap.get(name);
+    const familyName = getLocalFamilyName(filePath, base, name);
     const fam = familyMap.get(familyName) ?? { isDSBacked: false, dsFamilies: [] };
-    if (entry.isDSBacked) fam.isDSBacked = true;
-    if (entry.dsFamily && !fam.dsFamilies.includes(entry.dsFamily)) {
+    if (entry?.isDSBacked) fam.isDSBacked = true;
+    if (entry?.dsFamily && !fam.dsFamilies.includes(entry.dsFamily)) {
       fam.dsFamilies.push(entry.dsFamily);
     }
     familyMap.set(familyName, fam);
