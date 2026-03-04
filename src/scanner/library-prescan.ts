@@ -74,6 +74,9 @@ export async function preScanLibraries(
         console.log(
           `[ds-scanner] Library "${lib.package}": ${backedFamilies}/${totalFamilies} families backed by "${lib.backedBy}"`
         );
+        // Dump all family names so mismatches can be diagnosed
+        const familyNames = [...familyMap.keys()].sort();
+        console.log(`[ds-scanner] Families (${familyNames.length}): ${familyNames.join(', ')}`);
       }
     } catch (err) {
       console.warn(
