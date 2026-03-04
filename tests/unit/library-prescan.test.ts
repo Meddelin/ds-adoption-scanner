@@ -196,8 +196,8 @@ describe('preScanLibraries — component map building', () => {
 
     // ProTable is backed (imported through barrel)
     expect(map.get('ProTable')?.isDSBacked).toBe(true);
-    // formatDate is not backed
-    expect(map.get('formatDate')?.isDSBacked).toBe(false);
+    // formatDate is a camelCase utility — not tracked (only PascalCase components are)
+    expect(map.get('formatDate')).toBeUndefined();
   });
 
   it('handles star re-export (export * from)', async () => {

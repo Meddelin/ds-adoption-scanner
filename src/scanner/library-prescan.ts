@@ -187,6 +187,8 @@ async function buildComponentMap(
     const fileInfo = allInfo.get(filePath);
     const resolved = resolveFileExports(filePath, allInfo, resolveCache, new Set(), libRoot);
     for (const [name, isDSBacked] of resolved) {
+      // Only track PascalCase names — React components, not hooks/utilities/constants
+      if (!/^[A-Z][a-zA-Z0-9]*$/.test(name)) continue;
       // If the same component is exported from multiple files, mark as backed if ANY file backs it
       const existing = componentMap.get(name);
       if (!existing || isDSBacked) {
