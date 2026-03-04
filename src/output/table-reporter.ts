@@ -77,13 +77,13 @@ export function printReport(report: ScanReport, verbose = false): void {
       ...(hasFamilyCoverage ? [chalk.bold('Families')] : []),
       chalk.bold('Instances'),
       ...(showEffective ? [chalk.bold('+Transitive')] : []),
-      chalk.bold('Unique'),
+      ...(!hasFamilyCoverage ? [chalk.bold('Unique')] : []),
       chalk.bold('Files w/ DS'),
     ];
     const colWidths = (() => {
-      if (showEffective && hasFamilyCoverage) return [20, 11, 13, 18, 12, 13, 10, 14];
+      if (showEffective && hasFamilyCoverage) return [20, 11, 13, 18, 12, 13, 14];
       if (showEffective) return [20, 11, 13, 12, 13, 10, 14];
-      if (hasFamilyCoverage) return [20, 11, 18, 12, 10, 14];
+      if (hasFamilyCoverage) return [20, 11, 18, 12, 14];
       return [20, 12, 12, 10, 14];
     })();
 
@@ -108,7 +108,7 @@ export function printReport(report: ScanReport, verbose = false): void {
         ...(showEffective
           ? [ds.transitiveInstances > 0 ? chalk.dim(`+${ds.transitiveInstances}`) : chalk.dim('—')]
           : []),
-        String(ds.uniqueComponents),
+        ...(!hasFamilyCoverage ? [String(ds.uniqueComponents)] : []),
         formatPct(ds.filePenetration),
       ]);
     }
@@ -120,7 +120,7 @@ export function printReport(report: ScanReport, verbose = false): void {
       ...(hasFamilyCoverage ? [chalk.dim('')] : []),
       chalk.bold(formatNum(summary.designSystemTotal.instances)),
       ...(showEffective ? [chalk.dim('')] : []),
-      chalk.bold(String(summary.designSystemTotal.uniqueComponents)),
+      ...(!hasFamilyCoverage ? [chalk.bold(String(summary.designSystemTotal.uniqueComponents))] : []),
       chalk.bold(formatPct(summary.filePenetration)),
     ]);
 
@@ -168,7 +168,7 @@ export function printReport(report: ScanReport, verbose = false): void {
       head: [
         chalk.bold('Package'),
         chalk.bold('Backed by'),
-        chalk.bold('DS / Total'),
+        chalk.bold('Families'),
         chalk.bold('Coverage'),
       ],
       colWidths: [36, 16, 13, 32],
@@ -177,14 +177,14 @@ export function printReport(report: ScanReport, verbose = false): void {
     });
 
     for (const lib of report.libraryPrescan) {
-      const pct = lib.totalComponents > 0
-        ? (lib.dsBackedComponents / lib.totalComponents) * 100
+      const pct = lib.totalFamilies > 0
+        ? (lib.dsBackedFamilies / lib.totalFamilies) * 100
         : 0;
       const bar = progressBar(pct, 18);
       libTable.push([
         chalk.cyan(lib.package.slice(0, 34)),
         chalk.dim(lib.backedBy),
-        chalk.dim(`${lib.dsBackedComponents} / ${lib.totalComponents}`),
+        chalk.dim(`${lib.dsBackedFamilies} / ${lib.totalFamilies}`),
         `${adoptionColor(pct)}  ${bar}`,
       ]);
     }

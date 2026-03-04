@@ -8,6 +8,7 @@ import picomatch from 'picomatch';
 import type { LibrarySource, ResolvedConfig } from '../config/schema.js';
 import type { DSCatalog } from '../types.js';
 import { findDesignSystem } from './categorizer.js';
+import { GENERIC_DIRS } from './ds-prescan.js';
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 
@@ -16,8 +17,14 @@ export interface LibraryComponentEntry {
   dsFamily?: string; // DS family name when catalog available, e.g. "EmptyState"
 }
 
+export interface LibraryFamilyEntry {
+  isDSBacked: boolean;
+  dsFamilies: string[]; // DS family names covered by this local-lib family (e.g. ["Button"])
+}
+
 export type LibraryRegistry = Map<string, {
-  componentMap: Map<string, LibraryComponentEntry>;
+  componentMap: Map<string, LibraryComponentEntry>; // per-component lookup (used during scan)
+  familyMap: Map<string, LibraryFamilyEntry>;       // directory-level groups for reporting
   backedBy: string;
 }>;
 
@@ -58,14 +65,14 @@ export async function preScanLibraries(
     }
 
     try {
-      const componentMap = await buildComponentMap(sourceDir, lib, config, dsCatalog);
-      registry.set(lib.package, { componentMap, backedBy: lib.backedBy });
+      const { componentMap, familyMap } = await buildComponentMap(sourceDir, lib, config, dsCatalog);
+      registry.set(lib.package, { componentMap, familyMap, backedBy: lib.backedBy });
 
       if (verbose) {
-        const total = componentMap.size;
-        const backed = [...componentMap.values()].filter(e => e.isDSBacked).length;
+        const totalFamilies = familyMap.size;
+        const backedFamilies = [...familyMap.values()].filter(f => f.isDSBacked).length;
         console.log(
-          `[ds-scanner] Library "${lib.package}": ${backed}/${total} components backed by "${lib.backedBy}"`
+          `[ds-scanner] Library "${lib.package}": ${backedFamilies}/${totalFamilies} families backed by "${lib.backedBy}"`
         );
       }
     } catch (err) {
@@ -160,20 +167,26 @@ async function buildComponentMap(
   lib: LibrarySource,
   config: ResolvedConfig,
   dsCatalog: DSCatalog
-): Promise<Map<string, LibraryComponentEntry>> {
+): Promise<{ componentMap: Map<string, LibraryComponentEntry>; familyMap: Map<string, LibraryFamilyEntry> }> {
   const files = discoverLibraryFiles(libRoot, lib);
-  if (files.length === 0) return new Map();
+  if (files.length === 0) return { componentMap: new Map(), familyMap: new Map() };
 
   // Build DS family lookup for this library's backedBy DS
   const dsFamilyLookup = buildDSFamilyLookup(dsCatalog, lib.backedBy);
 
-  // Pass 1: parse all files → ExportInfo
+  // Pass 1: parse all files → ExportInfo; also track which file DEFINES each component
   const allInfo = new Map<string, ExportInfo>();
+  const componentToFile = new Map<string, string>(); // PascalCase name → defining file
   for (const filePath of files) {
     try {
       const code = fs.readFileSync(filePath, 'utf8');
       const info = parseFileExports(code, filePath, config);
       allInfo.set(filePath, info);
+      for (const name of info.defined) {
+        if (/^[A-Z][a-zA-Z0-9]*$/.test(name) && !componentToFile.has(name)) {
+          componentToFile.set(name, filePath);
+        }
+      }
     } catch {
       // Non-parseable file (e.g. JS without types) — skip silently
     }
@@ -204,7 +217,37 @@ async function buildComponentMap(
     }
   }
 
-  return componentMap;
+  // Pass 3: group components into local-lib families by directory
+  const base = lib.componentsDir ? path.resolve(libRoot, lib.componentsDir) : libRoot;
+  const familyMap = new Map<string, LibraryFamilyEntry>();
+
+  for (const [name, entry] of componentMap) {
+    const filePath = componentToFile.get(name);
+    const familyName = filePath ? getLocalFamilyName(filePath, base, name) : name;
+    const fam = familyMap.get(familyName) ?? { isDSBacked: false, dsFamilies: [] };
+    if (entry.isDSBacked) fam.isDSBacked = true;
+    if (entry.dsFamily && !fam.dsFamilies.includes(entry.dsFamily)) {
+      fam.dsFamilies.push(entry.dsFamily);
+    }
+    familyMap.set(familyName, fam);
+  }
+
+  return { componentMap, familyMap };
+}
+
+/**
+ * Resolves a component's local-lib family name based on the directory it lives in,
+ * relative to the given base path. Leading GENERIC_DIRS segments are skipped.
+ * E.g. base='src/components/spirit-ui', file='src/components/spirit-ui/confirm-popup/Foo.tsx'
+ * → family 'confirm-popup'.
+ */
+function getLocalFamilyName(filePath: string, base: string, componentName: string): string {
+  const rel = path.relative(path.resolve(base), path.resolve(path.dirname(filePath)));
+  if (!rel || rel === '.') return componentName;
+  const segments = rel.split(path.sep).filter(Boolean);
+  let i = 0;
+  while (i < segments.length && GENERIC_DIRS.has(segments[i].toLowerCase())) i++;
+  return i < segments.length ? segments[i] : componentName;
 }
 
 /**

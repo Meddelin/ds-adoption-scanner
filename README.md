@@ -226,6 +226,9 @@ export default defineConfig({
   //
   // path — путь к исходникам на диске (монорепо, соседний репо)
   // git  — сканер клонирует сам --depth 1, кэш в historyDir/.library-cache/
+  // componentsDir — суб-путь внутри корня, где начинаются семьи компонентов.
+  //   Например 'src/components/spirit-ui' → следующий сегмент = имя семьи.
+  //   По умолчанию: корень библиотеки (GENERIC_DIRS пропускаются автоматически).
   libraries: [
     {
       package: '@ant-design/pro-components',
@@ -236,6 +239,12 @@ export default defineConfig({
       package: '@company/shared-ui',
       backedBy: 'TUI',
       path: '../shared-ui',  // локальный путь
+    },
+    {
+      package: '@company/spa-ui',
+      backedBy: 'Spirit',
+      path: '../spa-ui',
+      componentsDir: 'src/components/spirit-ui',  // семьи: confirm-popup, empty-state, …
     },
   ],
 

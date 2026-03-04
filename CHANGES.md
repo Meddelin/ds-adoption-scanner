@@ -1,5 +1,61 @@
 # Changelog
 
+## v0.5.3 — Local library family grouping + componentsDir
+
+### Local library components grouped into families
+
+Library pre-scan (`libraries[]`) now groups individual components into directory-level
+families using the same algorithm as DS prescan. A family = all components in the same
+directory. If **any** component in the family is DS-backed → the whole family is DS-backed.
+
+This replaces the previous component-count reporting with a more actionable family-level view.
+For example, `@devplatform/spa-ui` with 34 PascalCase exports grouped into 6 feature families
+now correctly reports `6 families` instead of `34 components`.
+
+### New `componentsDir` config option for libraries
+
+Libraries with deep directory structures (e.g. `src/components/spirit-ui/{family}/`) can now
+specify a `componentsDir` sub-path as the grouping base:
+
+```ts
+libraries: [{
+  package: '@company/spa-ui',
+  backedBy: 'Spirit',
+  path: '/path/to/spa-ui',
+  componentsDir: 'src/components/spirit-ui', // family = next directory after this
+}]
+```
+
+Without `componentsDir`, GENERIC_DIRS (`src`, `components`, etc.) are skipped automatically
+— works for standard `src/{family}/` structures.
+
+### DS table: `Unique` column removed when families configured
+
+When a DS has family coverage configured (`path`/`git`), the `Families` column already serves
+as the uniqueness metric. The `Unique` column (raw component count) has been removed in this
+case to reduce noise. It is preserved when no family coverage is available.
+
+### Breaking: libraryPrescan JSON field names changed
+
+`ScanReport.libraryPrescan[]` fields renamed:
+- `totalComponents` → `totalFamilies`
+- `dsBackedComponents` → `dsBackedFamilies`
+
+### Changes
+- `src/config/schema.ts` — `componentsDir?: string` added to `LibrarySource`
+- `src/scanner/ds-prescan.ts` — `GENERIC_DIRS` exported (was `const`)
+- `src/scanner/library-prescan.ts` — `LibraryFamilyEntry` type; `LibraryRegistry` gets `familyMap`;
+  `buildComponentMap` returns `{ componentMap, familyMap }`; Pass 3 builds family groups;
+  `getLocalFamilyName()` (same algorithm as DS prescan); `componentToFile` tracking in Pass 1
+- `src/scanner/orchestrator.ts` — uses `familyMap` counts for `libraryPrescan` report
+- `src/types.ts` — `libraryPrescan[]` fields renamed
+- `src/output/table-reporter.ts` — library prescan shows families; DS table drops `Unique` when
+  `hasFamilyCoverage`
+
+Тесты: +4 новых теста (familyMap grouping). Итого: **154 теста**.
+
+---
+
 ## v0.5.2 — Family Coverage включает DS-backed local-library компоненты
 
 ### Единый подсчёт Family Coverage

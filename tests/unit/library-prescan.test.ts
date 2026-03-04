@@ -304,3 +304,110 @@ describe('preScanLibraries — component map building', () => {
     expect(entry?.dsFamily).toBeUndefined();
   });
 });
+
+// ─── familyMap grouping tests ─────────────────────────────────────────────────
+
+describe('preScanLibraries — familyMap grouping', () => {
+  it('groups components in the same directory into one family', async () => {
+    write('src/confirm-popup/ConfirmPopup.tsx', `
+      import { Button } from '@beaver/ui';
+      export function ConfirmPopup() { return null; }
+    `);
+    write('src/confirm-popup/ConfirmPopupHeader.tsx', `
+      import { Button } from '@beaver/ui';
+      export function ConfirmPopupHeader() { return null; }
+    `);
+    write('src/empty-state/EmptyState.tsx', `
+      export function EmptyState() { return null; }
+    `);
+
+    const config = makeConfig({
+      libraries: [{ package: '@company/ui', backedBy: 'Beaver', path: tmpDir }],
+    });
+
+    const registry = await preScanLibraries(config, new Map(), false);
+    const { familyMap } = registry.get('@company/ui')!;
+
+    // Two components in confirm-popup → one family
+    expect(familyMap.has('confirm-popup')).toBe(true);
+    expect(familyMap.has('empty-state')).toBe(true);
+    // 3 components → 2 families
+    expect(familyMap.size).toBe(2);
+  });
+
+  it('marks family as DS-backed when any component in it is DS-backed', async () => {
+    // DS-backed component in the family
+    write('src/confirm-popup/ConfirmPopup.tsx', `
+      import { Button } from '@beaver/ui';
+      export function ConfirmPopup() { return null; }
+    `);
+    // Non-DS component in the same family
+    write('src/confirm-popup/ConfirmPopupHeader.tsx', `
+      export function ConfirmPopupHeader() { return null; }
+    `);
+    // Fully custom family
+    write('src/sidebar/Sidebar.tsx', `
+      export function Sidebar() { return null; }
+    `);
+
+    const config = makeConfig({
+      libraries: [{ package: '@company/ui', backedBy: 'Beaver', path: tmpDir }],
+    });
+
+    const registry = await preScanLibraries(config, new Map(), false);
+    const { familyMap } = registry.get('@company/ui')!;
+
+    expect(familyMap.get('confirm-popup')?.isDSBacked).toBe(true);
+    expect(familyMap.get('sidebar')?.isDSBacked).toBe(false);
+  });
+
+  it('uses componentsDir as grouping base for deep library structures', async () => {
+    // Structure: src/components/spirit-ui/{feature}/Comp.tsx
+    // Without componentsDir, GENERIC_DIRS skips 'src' and 'components',
+    // giving family = 'spirit-ui' (wrong). With componentsDir set, family = feature name.
+    write('src/components/spirit-ui/confirm-popup/ConfirmPopup.tsx', `
+      import { Button } from '@beaver/ui';
+      export function ConfirmPopup() { return null; }
+    `);
+    write('src/components/spirit-ui/empty-state/EmptyState.tsx', `
+      export function EmptyState() { return null; }
+    `);
+
+    const config = makeConfig({
+      libraries: [{
+        package: '@company/ui',
+        backedBy: 'Beaver',
+        path: tmpDir,
+        componentsDir: 'src/components/spirit-ui',
+      }],
+    });
+
+    const registry = await preScanLibraries(config, new Map(), false);
+    const { familyMap } = registry.get('@company/ui')!;
+
+    expect(familyMap.has('confirm-popup')).toBe(true);
+    expect(familyMap.has('empty-state')).toBe(true);
+    // Should NOT have 'spirit-ui' as a family name
+    expect(familyMap.has('spirit-ui')).toBe(false);
+    expect(familyMap.size).toBe(2);
+  });
+
+  it('falls back to component name when file is directly in the base dir', async () => {
+    // Component directly in root (or in a GENERIC_DIR at root)
+    write('src/Button.tsx', `
+      import { Btn } from '@beaver/ui';
+      export function Button() { return null; }
+    `);
+
+    const config = makeConfig({
+      libraries: [{ package: '@company/ui', backedBy: 'Beaver', path: tmpDir }],
+    });
+
+    const registry = await preScanLibraries(config, new Map(), false);
+    const { familyMap } = registry.get('@company/ui')!;
+
+    // File is in 'src' (a GENERIC_DIR) → falls back to component name as family
+    expect(familyMap.has('Button')).toBe(true);
+    expect(familyMap.get('Button')?.isDSBacked).toBe(true);
+  });
+});

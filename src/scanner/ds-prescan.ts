@@ -17,7 +17,7 @@ const DEFAULT_DS_EXCLUDE = [
 
 // Directory names considered "generic containers" — if a component file's
 // immediate parent dir is one of these, use the component name as family name.
-const GENERIC_DIRS = new Set(['src', 'components', 'lib', 'ui', 'source', 'index', 'shared']);
+export const GENERIC_DIRS = new Set(['src', 'components', 'lib', 'ui', 'source', 'index', 'shared']);
 
 // ─── Public entry point ───────────────────────────────────────────────────────
 

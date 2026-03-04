@@ -19,6 +19,11 @@ Read the scan JSON report. Key sections:
   - `topFamilies[]` — top families by usage (instances, filesUsedIn, reposUsedIn)
 - `dsPrescan[]` — per-DS catalog summary (only present when path/git is configured):
   - `totalFamilies`, `totalComponents`, `familiesCoveredInScan`, `coveragePct`
+- `libraryPrescan[]` — per-library pre-scan summary (only present when libraries[] have path/git):
+  - `package` — npm package name
+  - `backedBy` — DS name this library wraps
+  - `totalFamilies` — number of directory-level component families in the library
+  - `dsBackedFamilies` — families where at least one component uses the DS
 - `summary.transitiveDS` — breakdown of transitive usage by DS
 - `byRepository[]` — breakdown by repository (both adoptionRate and effectiveAdoptionRate)
 - `byComponent` — usage by component

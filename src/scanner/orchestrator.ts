@@ -106,13 +106,13 @@ export async function runScan(
   if (libraryRegistry.size > 0) {
     report.libraryPrescan = [];
     for (const [pkg, entry] of libraryRegistry) {
-      const total = entry.componentMap.size;
-      const dsBacked = [...entry.componentMap.values()].filter(e => e.isDSBacked).length;
+      const total = entry.familyMap.size;
+      const dsBacked = [...entry.familyMap.values()].filter(f => f.isDSBacked).length;
       report.libraryPrescan.push({
         package: pkg,
         backedBy: entry.backedBy,
-        totalComponents: total,
-        dsBackedComponents: dsBacked,
+        totalFamilies: total,
+        dsBackedFamilies: dsBacked,
       });
     }
   }

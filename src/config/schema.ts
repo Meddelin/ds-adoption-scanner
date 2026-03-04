@@ -52,6 +52,9 @@ export interface LibrarySource {
                       // If neither path nor git: entry is ignored at pre-scan phase
   include?: string[]; // files to scan, default: ['**/*.tsx', '**/*.ts']
   exclude?: string[]; // files to exclude, default: ['**/*.test.*','**/*.spec.*','**/*.stories.*','**/node_modules/**']
+  componentsDir?: string; // sub-path within library root where component families are rooted.
+                          // e.g. 'src/components/spirit-ui' groups by the next directory level.
+                          // Default: library root (GENERIC_DIRS like 'src' are skipped automatically)
 }
 
 export interface DSScannerConfig {

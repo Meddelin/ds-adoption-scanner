@@ -253,8 +253,8 @@ export interface ScanReport {
   libraryPrescan?: {
     package: string;
     backedBy: string;          // DS name
-    totalComponents: number;
-    dsBackedComponents: number;
+    totalFamilies: number;     // directory-level component groups
+    dsBackedFamilies: number;  // families where ANY component uses DS
   }[];
 
   // Results of DS pre-scan (only present when designSystems[] have path/git configured)
