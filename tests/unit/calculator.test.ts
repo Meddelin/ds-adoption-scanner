@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calculateMetrics } from '../../src/metrics/calculator.js';
-import type { CategorizedUsage } from '../../src/types.js';
+import type { CategorizedUsage, DSCatalog } from '../../src/types.js';
 import type { ResolvedConfig } from '../../src/config/schema.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -220,5 +220,108 @@ describe('calculateMetrics — props in topComponents', () => {
     const btn = metrics.designSystemTotal.topComponents[0]!;
     const variantProp = btn.topProps.find(p => p.name === 'variant')!;
     expect(variantProp.count).toBe(3);
+  });
+});
+
+// ── Family coverage ────────────────────────────────────────────────────────────
+
+describe('calculateMetrics — unified family coverage', () => {
+  const catalog: DSCatalog = new Map([
+    ['TUI', [
+      { name: 'Button', components: ['Button', 'ButtonGroup'], files: [] },
+      { name: 'Modal', components: ['Modal', 'ModalHeader'], files: [] },
+      { name: 'EmptyState', components: ['EmptyState', 'EmptyStateError'], files: [] },
+    ]],
+  ]);
+
+  it('counts direct design-system usages toward familyCoverage', () => {
+    const usages: CategorizedUsage[] = [
+      { ...makeUsage('Button', 'design-system', 'TUI'), componentFamily: 'Button' },
+    ];
+    const metrics = calculateMetrics(usages, makeConfig(['TUI']), 1, catalog);
+    const ds = metrics.designSystems[0]!;
+    expect(ds.totalFamilies).toBe(3);
+    expect(ds.familiesUsed).toBe(1);
+    expect(ds.familyCoverage).toBeCloseTo(33.33, 1);
+  });
+
+  it('counts DS-backed local-library usages (with componentFamily) toward familyCoverage', () => {
+    const usages: CategorizedUsage[] = [
+      // Direct DS usage — Button family
+      { ...makeUsage('Button', 'design-system', 'TUI'), componentFamily: 'Button' },
+      // DS-backed local-lib component wrapping Modal — adds Modal family
+      {
+        ...makeUsage('ProjectModal', 'local-library', null),
+        packageName: '@company/ui',
+        transitiveDS: { dsName: 'TUI', coverage: 1.0, source: 'auto-detected' },
+        componentFamily: 'Modal',
+      },
+    ];
+    const metrics = calculateMetrics(usages, makeConfig(['TUI']), 1, catalog);
+    const ds = metrics.designSystems[0]!;
+    expect(ds.totalFamilies).toBe(3);
+    expect(ds.familiesUsed).toBe(2); // Button (direct) + Modal (transitive)
+    expect(ds.familyCoverage).toBeCloseTo(66.67, 1);
+  });
+
+  it('does not count local-library usages without componentFamily', () => {
+    const usages: CategorizedUsage[] = [
+      { ...makeUsage('Button', 'design-system', 'TUI'), componentFamily: 'Button' },
+      // DS-backed local-lib but no componentFamily (dsFamily wasn't resolved)
+      {
+        ...makeUsage('CustomWidget', 'local-library', null),
+        packageName: '@company/ui',
+        transitiveDS: { dsName: 'TUI', coverage: 1.0, source: 'auto-detected' },
+      },
+    ];
+    const metrics = calculateMetrics(usages, makeConfig(['TUI']), 1, catalog);
+    const ds = metrics.designSystems[0]!;
+    expect(ds.familiesUsed).toBe(1); // only Button
+  });
+
+  it('does not count fully custom local components toward familyCoverage', () => {
+    const usages: CategorizedUsage[] = [
+      { ...makeUsage('Button', 'design-system', 'TUI'), componentFamily: 'Button' },
+      makeUsage('CustomCard', 'local'),       // pure custom — no transitiveDS, no family
+      makeUsage('BusinessForm', 'local'),
+    ];
+    const metrics = calculateMetrics(usages, makeConfig(['TUI']), 1, catalog);
+    const ds = metrics.designSystems[0]!;
+    expect(ds.familiesUsed).toBe(1);
+    expect(ds.familyCoverage).toBeCloseTo(33.33, 1);
+  });
+
+  it('deduplicates families used by both direct and transitive usages', () => {
+    const usages: CategorizedUsage[] = [
+      // Direct usage of Button
+      { ...makeUsage('Button', 'design-system', 'TUI'), componentFamily: 'Button' },
+      // Local-lib also wraps Button (same family) — should not double-count
+      {
+        ...makeUsage('ProjectButton', 'local-library', null),
+        packageName: '@company/ui',
+        transitiveDS: { dsName: 'TUI', coverage: 1.0, source: 'auto-detected' },
+        componentFamily: 'Button',
+      },
+    ];
+    const metrics = calculateMetrics(usages, makeConfig(['TUI']), 1, catalog);
+    const ds = metrics.designSystems[0]!;
+    expect(ds.familiesUsed).toBe(1); // Button counted once
+  });
+
+  it('topFamilies includes transitive usages', () => {
+    const usages: CategorizedUsage[] = [
+      { ...makeUsage('Button', 'design-system', 'TUI'), componentFamily: 'Button' },
+      {
+        ...makeUsage('ProjectModal', 'local-library', null),
+        packageName: '@company/ui',
+        transitiveDS: { dsName: 'TUI', coverage: 1.0, source: 'auto-detected' },
+        componentFamily: 'Modal',
+      },
+    ];
+    const metrics = calculateMetrics(usages, makeConfig(['TUI']), 1, catalog);
+    const ds = metrics.designSystems[0]!;
+    const families = ds.topFamilies!.map(f => f.family).sort();
+    expect(families).toContain('Button');
+    expect(families).toContain('Modal');
   });
 });

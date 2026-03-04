@@ -1,5 +1,43 @@
 # Changelog
 
+## v0.5.2 — Family Coverage включает DS-backed local-library компоненты
+
+### Единый подсчёт Family Coverage
+
+Раньше `familyCoverage` учитывал только прямые `design-system` использования. Компоненты
+локальной библиотеки, обёртывающие DS-компоненты (`ProjectButton` → `Button`), не влияли
+на покрытие семей, занижая метрику.
+
+**Теперь**: `familyCoverage` единым образом объединяет прямые DS использования
+и DS-backed local-library использования с разрешённой семьёй.
+
+**Принцип**:
+- `<Button />` (design-system) → семья `Button` ✅ всегда учитывалось
+- `<ProjectButton />` (local-library, backs `Button`) → семья `Button` ✅ теперь учитывается
+- `<CustomForm />` (local, без DS) → не учитывается ✅ корректно
+
+### Как работает разрешение семьи для local-library
+
+При пре-скане библиотеки (`libraries[]`) сканер теперь отслеживает, какой конкретно DS-компонент
+импортирует каждый файл (`Button`, `Modal`, …) и сопоставляет его с семьёй через `DSCatalog`.
+Поле `dsFamily` на `LibraryComponentEntry` заполняется из каталога DS (`preScanDesignSystems`
+должен быть выполнен первым — это уже гарантировано порядком Stage 0 → 0.5).
+
+В `transitive-resolver.ts` Case 0 (registry path): `compEntry.dsFamily` теперь копируется
+в `CategorizedUsage.componentFamily` вместе с `transitiveDS`.
+
+### Изменения
+- `src/scanner/library-prescan.ts` — `ExportInfo.dsImportedNames`; `buildComponentMap` использует
+  импортированные DS-имена для разрешения семьи через `dsFamilyLookup`
+- `src/scanner/transitive-resolver.ts` — Case 0 propagates `compEntry.dsFamily → componentFamily`
+- `src/metrics/calculator.ts` — `calculatePerDSMetrics` включает transitive usages в family set;
+  `buildTopFamilies` принимает оба массива (direct + transitive); удалён лишний параметр `families`
+- `src/types.ts` — комментарий к `familiesUsed` уточнён (direct + DS-backed local-library)
+
+Тесты: +8 новых тестов (6 в `calculator.test.ts`, 2 в `library-prescan.test.ts`). Итого: **150 тестов**.
+
+---
+
 ## v0.5.1 — Fix: глубоко вложенные сабкомпоненты объединяются в родительскую семью
 
 ### Исправление алгоритма группировки семей

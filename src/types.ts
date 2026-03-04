@@ -101,7 +101,7 @@ export interface DesignSystemMetrics {
 
   // Family coverage — only present when DS was pre-scanned with path/git
   totalFamilies?: number;           // Total component families in DS catalog
-  familiesUsed?: number;            // Distinct families used in scanned repos
+  familiesUsed?: number;            // Distinct families used (direct + DS-backed local-library)
   familyCoverage?: number;          // familiesUsed / totalFamilies * 100
   topFamilies?: FamilyStat[];       // Top families by instances, capped at 20
 }

@@ -1,7 +1,6 @@
 import type {
   CategorizedUsage,
   CategoryMetrics,
-  ComponentFamily,
   ComponentStat,
   DSCatalog,
   DesignSystemMetrics,
@@ -165,14 +164,23 @@ function calculatePerDSMetrics(
     const dsFamilies = catalog?.get(ds.name);
     if (dsFamilies) {
       totalFamilies = dsFamilies.length;
-      const usedFamilyNames = new Set(
-        thisDS.filter(u => u.componentFamily).map(u => u.componentFamily!)
+
+      // Usages from DS-backed local-library components that have a resolved family
+      const transitiveWithFamily = allUsages.filter(
+        u => u.transitiveDS?.dsName === ds.name && u.componentFamily
       );
+
+      // Unified family coverage: direct design-system usages + DS-backed local-library usages
+      const usedFamilyNames = new Set([
+        ...thisDS.filter(u => u.componentFamily).map(u => u.componentFamily!),
+        ...transitiveWithFamily.map(u => u.componentFamily!),
+      ]);
       familiesUsed = usedFamilyNames.size;
       familyCoverage = totalFamilies > 0
         ? (familiesUsed / totalFamilies) * 100
         : 0;
-      topFamilies = buildTopFamilies(thisDS, dsFamilies);
+
+      topFamilies = buildTopFamilies(thisDS, transitiveWithFamily);
     }
 
     return {
@@ -198,19 +206,15 @@ function calculatePerDSMetrics(
 
 function buildTopFamilies(
   dsUsages: CategorizedUsage[],
-  families: ComponentFamily[]
+  transitiveUsages: CategorizedUsage[]
 ): FamilyStat[] {
-  const familyComponentsMap = new Map<string, string[]>(
-    families.map(f => [f.name, f.components])
-  );
-
   const familyData = new Map<string, {
     usedComponents: Set<string>;
     instances: number;
     files: Set<string>;
   }>();
 
-  for (const usage of dsUsages) {
+  for (const usage of [...dsUsages, ...transitiveUsages]) {
     if (!usage.componentFamily) continue;
     const fName = usage.componentFamily;
     if (!familyData.has(fName)) {

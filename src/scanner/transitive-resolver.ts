@@ -64,6 +64,7 @@ export async function enrichWithTransitiveDS(
           result.push({
             ...usage,
             transitiveDS: { dsName: libEntry.backedBy, coverage: 1.0, source: 'auto-detected' },
+            ...(compEntry?.dsFamily ? { componentFamily: compEntry.dsFamily } : {}),
           });
         } else {
           // Explicitly not DS-backed — strip any transitiveDS set by declarative rule

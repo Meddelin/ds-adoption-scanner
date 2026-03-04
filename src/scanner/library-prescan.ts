@@ -28,6 +28,7 @@ interface ExportInfo {
   reExports: Array<{ name: string | '*'; from: string }>;   // re-exports from other files
   hasDSImport: boolean;
   dsName: string | null;
+  dsImportedNames: string[];  // specific DS component names imported in this file
 }
 
 // ─── Public entry point ───────────────────────────────────────────────────────
@@ -183,12 +184,19 @@ async function buildComponentMap(
   const componentMap = new Map<string, LibraryComponentEntry>();
 
   for (const filePath of files) {
+    const fileInfo = allInfo.get(filePath);
     const resolved = resolveFileExports(filePath, allInfo, resolveCache, new Set(), libRoot);
     for (const [name, isDSBacked] of resolved) {
       // If the same component is exported from multiple files, mark as backed if ANY file backs it
       const existing = componentMap.get(name);
       if (!existing || isDSBacked) {
-        const dsFamily = dsFamilyLookup.get(name);
+        // Resolve family via DS components imported in this specific file.
+        // Fallback to existing dsFamily in case a barrel re-export processed this entry first.
+        const dsFamily =
+          fileInfo?.dsImportedNames
+            .map(n => dsFamilyLookup.get(n))
+            .find(f => f !== undefined)
+          ?? existing?.dsFamily;
         componentMap.set(name, { isDSBacked, ...(dsFamily ? { dsFamily } : {}) });
       }
     }
@@ -247,6 +255,7 @@ export function parseFileExports(
     reExports: [],
     hasDSImport: false,
     dsName: null,
+    dsImportedNames: [],
   };
 
   let ast: TSESTree.Program;
@@ -267,6 +276,12 @@ export function parseFileExports(
       if (dsName) {
         info.hasDSImport = true;
         info.dsName = dsName;
+        // Collect imported DS component names for family resolution
+        for (const spec of node.specifiers) {
+          if (spec.type === 'ImportSpecifier' && spec.imported.type === 'Identifier') {
+            info.dsImportedNames.push(spec.imported.name);
+          }
+        }
       }
       continue;
     }

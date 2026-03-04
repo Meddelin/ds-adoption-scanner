@@ -258,4 +258,49 @@ describe('preScanLibraries — component map building', () => {
     // @another/library is NOT a DS package, so WrappedComponent should be false
     expect(map.get('WrappedComponent')?.isDSBacked).toBe(false);
   });
+
+  it('sets dsFamily on component entry when DSCatalog maps the DS component to a family', async () => {
+    // ProjectButton wraps Beaver's Button — which belongs to the "Button" family in the catalog
+    write('src/ProjectButton.tsx', `
+      import { Button } from '@beaver/ui';
+      export function ProjectButton() { return null; }
+    `);
+
+    const config = makeConfig({
+      libraries: [{
+        package: '@company/ui',
+        backedBy: 'Beaver',
+        path: tmpDir,
+      }],
+    });
+
+    const dsCatalog = new Map([
+      ['Beaver', [
+        { name: 'Button', components: ['Button', 'ButtonGroup'], files: [] },
+        { name: 'Modal',  components: ['Modal'],                 files: [] },
+      ]],
+    ]);
+
+    const registry = await preScanLibraries(config, dsCatalog, false);
+    const entry = registry.get('@company/ui')!.componentMap.get('ProjectButton');
+    expect(entry?.isDSBacked).toBe(true);
+    expect(entry?.dsFamily).toBe('Button');
+  });
+
+  it('leaves dsFamily undefined when DSCatalog has no family info for DS', async () => {
+    write('src/ProjectModal.tsx', `
+      import { Modal } from '@beaver/ui';
+      export function ProjectModal() { return null; }
+    `);
+
+    const config = makeConfig({
+      libraries: [{ package: '@company/ui', backedBy: 'Beaver', path: tmpDir }],
+    });
+
+    // Empty catalog — no family information
+    const registry = await preScanLibraries(config, new Map(), false);
+    const entry = registry.get('@company/ui')!.componentMap.get('ProjectModal');
+    expect(entry?.isDSBacked).toBe(true);
+    expect(entry?.dsFamily).toBeUndefined();
+  });
 });

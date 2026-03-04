@@ -13,8 +13,9 @@ Read the scan JSON report. Key sections:
 - `summary.designSystems[]` — adoption per DS, with both direct and effective rates.
   If DS was pre-scanned (path/git configured), also contains:
   - `totalFamilies` — number of component families in the DS
-  - `familiesUsed` — how many distinct families were used in scanned repos
-  - `familyCoverage` — `familiesUsed / totalFamilies * 100` (business coverage metric)
+  - `familiesUsed` — how many distinct families were used (direct + DS-backed local-library wrappers)
+  - `familyCoverage` — `familiesUsed / totalFamilies * 100` (business coverage metric; counts both
+    direct DS usages and local-library components that wrap DS components)
   - `topFamilies[]` — top families by usage (instances, filesUsedIn, reposUsedIn)
 - `dsPrescan[]` — per-DS catalog summary (only present when path/git is configured):
   - `totalFamilies`, `totalComponents`, `familiesCoveredInScan`, `coveragePct`
@@ -32,7 +33,10 @@ the codebase uses DS indirectly through wrapper libraries — this is valuable s
 
 If `dsPrescan` is present, `familyCoverage` is the primary business KPI:
 "Teams are using N out of M DS component families."
-Low coverage with high adoption rate means teams rely on a narrow subset of DS components.
+`familyCoverage` is unified — it counts both direct DS component usages AND local-library
+components that wrap DS components (so `ProjectButton` wrapping `Button` counts toward the
+`Button` family). Only fully custom self-written components are excluded.
+Low coverage with high adoption rate means teams rely on a narrow subset of DS families.
 
 ## What to Include in the Report
 

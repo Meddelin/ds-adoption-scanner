@@ -348,15 +348,17 @@ describe('preScanDesignSystems — static fixture', () => {
 
     const emptyState = families!.find(f => f.name === 'EmptyState');
     expect(emptyState).toBeDefined();
-    expect(emptyState!.components.sort()).toEqual(['EmptyState', 'EmptyStateError', 'EmptyStateNotFound']);
+    expect(emptyState!.components.sort()).toEqual([
+      'EmptyState', 'EmptyStateButton', 'EmptyStateButtonIcon', 'EmptyStateError', 'EmptyStateNotFound',
+    ]);
 
     const modal = families!.find(f => f.name === 'Modal');
     expect(modal).toBeDefined();
     expect(modal!.components).toEqual(['Modal']);
 
-    // Total: 3 families, 6 components
+    // Total: 3 families, 8 components (EmptyState has 5 incl. nested sub-folder components)
     expect(families!.length).toBe(3);
     const totalComponents = families!.reduce((s, f) => s + f.components.length, 0);
-    expect(totalComponents).toBe(6);
+    expect(totalComponents).toBe(8);
   });
 });
