@@ -158,6 +158,11 @@ export default defineConfig({
       path: '../tui-design-system/packages/components',  // локальный путь
       // git: 'https://github.com/company/tui-design-system',  // или автоклон
       groupBy: 'directory',  // 'directory' (по умолчанию) | 'none'
+      // Алгоритм directory: первый не-generic сегмент пути от корня DS = семья.
+      // Button/Button.tsx → "Button"
+      // EmptyState/EmptyStateButton/Btn.tsx → "EmptyState"  (вся ветка = одна семья)
+      // EmptyState/src/EmptyStateNoData.tsx → "EmptyState"  (src — generic, пропускается)
+      // src/components/Button/ButtonGroup.tsx → "Button"    (src, components — generic)
     },
     {
       name: 'Beaver',

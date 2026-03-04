@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.5.1 — Fix: глубоко вложенные сабкомпоненты объединяются в родительскую семью
+
+### Исправление алгоритма группировки семей
+
+Ранее `getFamilyName` смотрел только на **ближайшую родительскую директорию**. Если сабкомпонент
+жил в собственной подпапке (`EmptyState/EmptyStateButton/EmptyStateButton.tsx`), он создавал
+отдельную семью `EmptyStateButton` вместо того, чтобы присоединиться к семье `EmptyState`.
+
+**Новый алгоритм**: берём путь от корня DS до файла, пропускаем ведущие GENERIC-директории
+(`src`, `components`, `lib`, …), первый оставшийся сегмент — имя семьи. Работает на любой
+глубине вложенности.
+
+| Структура DS | Раньше | Теперь |
+|---|---|---|
+| `EmptyState/EmptyStateButton/Btn.tsx` | семья `EmptyStateButton` ❌ | семья `EmptyState` ✅ |
+| `EmptyState/src/EmptyStateNoData.tsx` | семья `EmptyStateNoData` ❌ | семья `EmptyState` ✅ |
+| `src/components/Button/ButtonGroup.tsx` | семья `Button` ✅ | семья `Button` ✅ |
+| `Button/Button.tsx` | семья `Button` ✅ | семья `Button` ✅ |
+
+Тесты: +3 новых теста в `ds-prescan.test.ts`. Итого: **142 теста**.
+
+---
+
 ## v0.5.0 — DS Component Family Pre-Scan & Family Coverage Metrics
 
 ### Новая метрика: Family Coverage
