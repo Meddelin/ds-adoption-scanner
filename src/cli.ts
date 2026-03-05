@@ -8,6 +8,7 @@ import { runScan } from './scanner/orchestrator.js';
 import { printReport } from './output/table-reporter.js';
 import { formatJSON, writeJSON } from './output/json-reporter.js';
 import { formatCSV, writeCSV } from './output/csv-reporter.js';
+import { writeHTML } from './output/html-reporter.js';
 import { saveHistory, compareReports, loadReport } from './metrics/history.js';
 import type { ScanReport } from './types.js';
 
@@ -112,7 +113,6 @@ program
           console.log(csv);
         }
       } else if (format === 'html') {
-        const { writeHTML } = await import('./output/html-reporter.js');
         const dest = outputPath ?? `ds-report-${Date.now()}.html`;
         writeHTML(report, dest);
         console.log(chalk.dim(`  HTML report saved: ${dest}`));
