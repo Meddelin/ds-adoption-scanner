@@ -24,21 +24,20 @@ Table               3            5       4       2
 📦 Category Breakdown
  ├ Ant Design          35        26      68.6%
  Local/Custom          16        12      31.4%
+   ├ Reusable (≥2f)     6         4      —
+   └ Unique (1 file)   10         8      —
  (Third-party)         63        23      excluded
  (HTML native)         29         6      excluded
+
+🗂️ Local Component Families
+Family       Components   Instances   Files
+containers        3           12       8
+AlertBar          1            6       6
+PageHeader        1            4       4
 
 🏗️ Repository Breakdown
 Repository       Ant Design   Total DS   Effective   Local
 ant-design-pro     68.6%       68.6%      79.7%      31.4%
-
-♻️  Reuse Opportunities
-312 unique tracked  ·  280 singletons  ·  25 local-reuse  ·  7 cross-repo
-(+ 847 inline/anonymous)
-
-Component          Instances   Files   Repos
-FormField                45      12       3
-DataTable                38       9       2
-PageHeader               22       6       2
 ```
 
 ---
@@ -122,10 +121,18 @@ export default defineConfig({
 ds-scanner analyze
 ```
 
-### 3. Сохранить отчёт
+### 3. Результат
+
+Каждый запуск `analyze` автоматически выводит:
+- Таблицу в терминал
+- `ds-report.json` — полный машиночитаемый отчёт
+- `ds-report.html` — визуальный отчёт (открывается в браузере)
+
+Задать собственное имя файлов:
 
 ```bash
-ds-scanner analyze --format json --output .ds-metrics/report.json
+ds-scanner analyze --output .ds-metrics/report
+# → .ds-metrics/report.json + .ds-metrics/report.html
 ```
 
 ---
@@ -206,8 +213,6 @@ export default defineConfig({
 
   // Настройки вывода
   output: {
-    format: 'table',      // 'table' | 'json' | 'csv'
-    path: undefined,      // сохранить в файл
     verbose: false,       // показывать предупреждения парсинга
   },
 
@@ -270,13 +275,20 @@ export default defineConfig({
 
   // ── Знаменатель adoption ──────────────────────────────────────────────────────
 
-  // Исключает Local/Custom компоненты из знаменателя adoption.
-  // Полезно, когда уникальные продуктовые компоненты — ожидаемая норма,
-  // и нужно измерять только DS vs shared-библиотеки.
-  //
+  // Исключает все Local/Custom компоненты из знаменателя adoption.
   // false (по умолчанию): DS / (DS + local-library + local) × 100
   // true:                 DS / (DS + local-library) × 100
   excludeLocalFromAdoption: false,
+
+  // Исключает только уникальные локальные компоненты (1 файл) из знаменателя.
+  // Переиспользуемые (≥2 файлов) остаются в знаменателе.
+  //
+  // false (по умолчанию): DS / (DS + local-library + localReusable + localUnique) × 100
+  // true:                 DS / (DS + local-library + localReusable) × 100
+  //
+  // Полезно, когда страничные one-off компоненты — ожидаемая норма,
+  // но переиспользуемая кастомная логика по-прежнему должна учитываться.
+  excludeUniqueLocalFromAdoption: false,
 });
 ```
 
@@ -284,10 +296,19 @@ export default defineConfig({
 
 **Прямой adoption** (только явные DS-импорты):
 ```
-adoption_rate = DS / (DS + local_library + local) × 100
+adoption_rate = DS / (DS + local_library + localReusable + localUnique) × 100
 ```
 
-С `excludeLocalFromAdoption: true` — Local/Custom исключаются из знаменателя:
+Local/Custom компоненты делятся на два подтипа:
+- **localReusable** — используются в ≥ 2 файлах (переиспользуемые компоненты)
+- **localUnique** — используются ровно в 1 файле (one-off / страничные)
+
+С `excludeUniqueLocalFromAdoption: true` — уникальные исключаются из знаменателя:
+```
+adoption_rate = DS / (DS + local_library + localReusable) × 100
+```
+
+С `excludeLocalFromAdoption: true` — все Local/Custom исключаются:
 ```
 adoption_rate = DS / (DS + local_library) × 100
 ```
@@ -317,25 +338,28 @@ ds-scanner analyze [options]
 
 Опции:
   -c, --config <path>      Путь к конфигу (по умолчанию: .ds-scanner.config.ts)
-  -f, --format <format>    Формат вывода: table | json | csv  (по умолчанию: table)
-  -o, --output <path>      Сохранить отчёт в файл
+  -o, --output <path>      Базовое имя выходных файлов (без расширения)
   -v, --verbose            Подробный вывод (предупреждения парсинга)
   --min-adoption <number>  CI: exit code 1 если adoption ниже порога
   --compare <path>         Сравнить с предыдущим сканом (JSON-файл)
   --save-history           Сохранить результат в historyDir
 ```
 
+Каждый запуск автоматически создаёт **два файла**:
+- `ds-report.json` — полный машиночитаемый отчёт
+- `ds-report.html` — визуальный отчёт (открыть в браузере)
+
+Таблица всегда выводится в терминал.
+
 **Примеры:**
 
 ```bash
-# Таблица в терминал
+# Скан с выводом в терминал + ds-report.json + ds-report.html
 ds-scanner analyze
 
-# Сохранить JSON-отчёт
-ds-scanner analyze --format json --output .ds-metrics/report.json
-
-# CSV для загрузки в Google Sheets
-ds-scanner analyze --format csv --output report.csv
+# Задать кастомное имя файлов
+ds-scanner analyze --output .ds-metrics/report
+# → .ds-metrics/report.json + .ds-metrics/report.html
 
 # CI: упасть если adoption ниже 60%
 ds-scanner analyze --min-adoption 60
@@ -397,7 +421,7 @@ ds-scanner init
 
 ## Форматы вывода
 
-### `--format table` (по умолчанию)
+### Терминал (всегда)
 
 Читабельный вывод в терминал с цветовой индикацией:
 
@@ -415,6 +439,17 @@ ds-scanner init
 DS Name       Direct%   Effective%   Instances  +Transitive  Unique  Files w/ DS
 Ant Design     68.6%      79.7%          35        +28         26     100.0%
 
+📦 Category Breakdown
+ ├ Ant Design          35        26      68.6%
+ Local/Custom          16        12      31.4%
+   ├ Reusable (≥2f)     6         4      —
+   └ Unique (1 file)   10         8      —
+
+🗂️ Local Component Families
+Family       Components   Instances   Files   Repos
+containers        3           12       8       1
+AlertBar          1            6       6       1
+
 🏗️ Repository Breakdown
 Repository       Ant Design   Total DS   Effective   Local
 ant-design-pro     68.6%       68.6%      79.7%      31.4%
@@ -422,9 +457,7 @@ ant-design-pro     68.6%       68.6%      79.7%      31.4%
 
 Если транзитивных нет — таблицы компактные, лишних колонок нет.
 
-Если среди `local`-компонентов есть переиспользованные (2+ файла), появляется секция `♻️ Reuse Opportunities` с топ-кандидатами на DS-миграцию, отсортированными по числу репозиториев и файлов.
-
-### `--format json`
+### JSON (всегда, `ds-report.json`)
 
 Полный машиночитаемый отчёт. Структура:
 
@@ -446,7 +479,8 @@ ant-design-pro     68.6%       68.6%      79.7%      31.4%
       }
     ],
     "localLibrary": { "instances": 0, ... },
-    "local": { "instances": 693, ... },
+    "localReusable": { "instances": 41, ... },   // используются в ≥ 2 файлах
+    "localUnique":   { "instances": 90, ... },   // используются ровно в 1 файле
     "thirdParty": { "instances": 312, ... }
   },
   "byRepository": [
@@ -466,34 +500,31 @@ ant-design-pro     68.6%       68.6%      79.7%      31.4%
         "resolvedPath": "/path/to/src/components/AlertBar.tsx"
       }
     ],
-    "thirdParty": [...]
-  },
-  "localReuseAnalysis": {
-    "totalTracked": 312,
-    "inlineCount": 847,
-    "singletonCount": 280,
-    "localReuseCount": 25,
-    "crossRepoCount": 7,
-    "topCandidates": [
+    "localTopFamilies": [
       {
-        "componentName": "FormField",
-        "resolvedPath": "/repo/src/components/FormField.tsx",
-        "instances": 45,
-        "filesUsedIn": 12,
-        "reposUsedIn": 3
+        "family": "containers",
+        "components": ["AppLayout", "PageWrapper", "SidebarLayout"],
+        "instances": 12,
+        "filesUsedIn": 8,
+        "reposUsedIn": 1
       }
-    ]
+    ],
+    "thirdParty": [...]
   }
 }
 ```
 
 `byComponent.localMostUsed` содержит `resolvedPath` — абсолютный путь к файлу компонента. Это позволяет AI-агентам читать исходник и анализировать его.
 
-`localReuseAnalysis.topCandidates` — список компонентов, используемых в нескольких файлах или репозиториях. Это главные кандидаты на замену DS-компонентами. `resolvedPath` позволяет AI-агенту сразу открыть исходник.
+`byComponent.localTopFamilies` — топ-20 семей локальных компонентов, сгруппированных по директории (аналогично DS-семьям). Семья = первый не-generic сегмент пути от корня компонента (`src`, `components`, `lib`, `ui` — пропускаются).
 
-### `--format csv`
+### HTML (всегда, `ds-report.html`)
 
-Плоская таблица для загрузки в Google Sheets, Excel или BI-инструменты:
+Самодостаточный HTML-файл (без внешних зависимостей). Содержит все секции: hero-карточки с adoption rate, разбивку по DS, DS Catalog, семьи компонентов, Local Families, разбивку по репозиториям. Можно отправить по почте или открыть офлайн.
+
+### CSV (опционально)
+
+Плоская таблица для загрузки в Google Sheets, Excel или BI-инструменты. Генерируется отдельно через `ds-scanner analyze --output report.csv` (если задано расширение `.csv`).
 
 ```csv
 Repository,Adoption Rate,Files Scanned,MUI Adoption,...
@@ -635,7 +666,8 @@ ds-scanner compare .ds-metrics/scans/2026-02-01T00-00-00.json \
 |-----------|--------|-----------------------|--------------------------|
 | `design-system` | `<Button>` из `@mui/material` | ✅ | ✅ |
 | `local-library` | `<SharedHeader>` из `@shared/components` | ✅ | ✅ |
-| `local` | `<CustomCard>` из `./components/CustomCard` | ✅ *(или ❌ при `excludeLocalFromAdoption`)* | ✅ *(или ❌)* |
+| `local` (reusable) | `<CustomCard>` в ≥ 2 файлах | ✅ *(или ❌ при `excludeLocalFromAdoption`)* | ✅ *(или ❌)* |
+| `local` (unique) | `<PageSpecificWidget>` в 1 файле | ✅ *(или ❌ при `excludeUniqueLocalFromAdoption` / `excludeLocalFromAdoption`)* | ✅ *(или ❌)* |
 | `third-party` / `local-library` + `libraries[]` (git/path) | `<ProTable>` из `@ant-design/pro-components` | ❌ | ✅ (per-component, точно) |
 | `third-party` + `transitiveRule` | `<ProTable>` из `@ant-design/pro-components` | ❌ | ✅ (coverage-based) |
 | `third-party` | `<Field>` из `formik` | ❌ | ❌ |
@@ -741,7 +773,7 @@ npm run build
 # Разработка с watch
 npm run dev
 
-# Тесты (155 тестов)
+# Тесты (157 тестов)
 npm test
 npm run test:unit          # только unit
 npm run test:integration   # только integration
@@ -776,7 +808,8 @@ src/
 └── output/
     ├── json-reporter.ts
     ├── table-reporter.ts      # cli-table3 + chalk
-    └── csv-reporter.ts
+    ├── csv-reporter.ts
+    └── html-reporter.ts       # самодостаточный HTML-отчёт
 
 tests/
 ├── unit/                      # parser, categorizer, calculator, import-resolver,
