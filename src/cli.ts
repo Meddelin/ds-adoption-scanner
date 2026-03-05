@@ -6,8 +6,7 @@ import chalk from 'chalk';
 import { loadConfig, ConfigError } from './config/loader.js';
 import { runScan } from './scanner/orchestrator.js';
 import { printReport } from './output/table-reporter.js';
-import { formatJSON, writeJSON } from './output/json-reporter.js';
-import { formatCSV, writeCSV } from './output/csv-reporter.js';
+import { writeJSON } from './output/json-reporter.js';
 import { writeHTML } from './output/html-reporter.js';
 import { saveHistory, compareReports, loadReport } from './metrics/history.js';
 import type { ScanReport } from './types.js';
@@ -27,8 +26,7 @@ program
   .command('analyze')
   .description('Run a full design system adoption scan')
   .option('-c, --config <path>', 'Path to config file', '.ds-scanner.config.ts')
-  .option('-f, --format <format>', 'Output format: table | json | csv | html')
-  .option('-o, --output <path>', 'Save report to file')
+  .option('-o, --output <path>', 'Base output path (e.g. ./reports/scan → scan.json + scan.html)')
   .option('-v, --verbose', 'Verbose output (show parse warnings)')
   .option('--min-adoption <number>', 'Fail if adoption rate is below this threshold (CI)')
   .option('--compare <path>', 'Compare with a previous scan JSON')
@@ -46,8 +44,7 @@ program
         throw err;
       });
 
-      // Override format/output from CLI flags
-      if (opts.format) config.output.format = opts.format as 'table' | 'json' | 'csv' | 'html';
+      // Override output path / verbose from CLI flags
       if (opts.output) config.output.path = opts.output;
       if (opts.verbose) config.output.verbose = true;
 
@@ -92,39 +89,16 @@ program
         console.log(chalk.dim(`  History saved: ${savedPath}`));
       }
 
-      // Output report
-      const format = config.output.format;
-      const outputPath = config.output.path;
+      // Always: table to terminal + JSON file + HTML file
+      const { jsonPath, htmlPath } = deriveOutputPaths(config.output.path);
 
-      if (format === 'json') {
-        const json = formatJSON(report);
-        if (outputPath) {
-          writeJSON(report, outputPath);
-          console.log(chalk.dim(`  Report saved: ${outputPath}`));
-        } else {
-          console.log(json);
-        }
-      } else if (format === 'csv') {
-        const csv = formatCSV(report);
-        if (outputPath) {
-          writeCSV(report, outputPath);
-          console.log(chalk.dim(`  Report saved: ${outputPath}`));
-        } else {
-          console.log(csv);
-        }
-      } else if (format === 'html') {
-        const dest = outputPath ?? `ds-report-${Date.now()}.html`;
-        writeHTML(report, dest);
-        console.log(chalk.dim(`  HTML report saved: ${dest}`));
-        printReport(report, config.output.verbose);
-      } else {
-        // table
-        printReport(report, config.output.verbose);
-        if (outputPath) {
-          writeJSON(report, outputPath);
-          console.log(chalk.dim(`  JSON report saved: ${outputPath}`));
-        }
-      }
+      printReport(report, config.output.verbose);
+
+      writeJSON(report, jsonPath);
+      console.log(chalk.dim(`  JSON report: ${jsonPath}`));
+
+      writeHTML(report, htmlPath);
+      console.log(chalk.dim(`  HTML report: ${htmlPath}`));
 
       // Check adoption thresholds
       const minAdoption = opts.minAdoption
@@ -274,6 +248,12 @@ function printComparison(report: ScanReport): void {
     console.log(chalk.dim(`  Removed: ${cmp.removedComponents.slice(0, 5).join(', ')}`));
   }
   console.log();
+}
+
+function deriveOutputPaths(base?: string): { jsonPath: string; htmlPath: string } {
+  if (!base) return { jsonPath: 'ds-report.json', htmlPath: 'ds-report.html' };
+  const noExt = base.replace(/\.(json|html|csv)$/i, '');
+  return { jsonPath: noExt + '.json', htmlPath: noExt + '.html' };
 }
 
 program.parse(process.argv);
