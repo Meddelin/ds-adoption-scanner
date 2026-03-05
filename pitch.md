@@ -120,78 +120,87 @@ PageHeader   — 4 instances в 4 файлах
 
 **react-scanner** — простой счётчик: сколько раз использован каждый компонент из пакета. Нет категоризации, нет формулы adoption, нет истории, нет семей, нет понятия shared-библиотек.
 
-### Сравнение на одних данных
+### Сравнение на реальных данных — ant-design-pro
 
-Возьмём реалистичный кейс: компания с тремя репозиториями (~270 файлов суммарно), DS — Ant Design, плюс внутренняя обёртка `@company/pro-ui` построенная поверх antd.
-
-**Состав кодовой базы:**
-
-| Тип | Примеры | Инстанций |
-|-----|---------|-----------|
-| antd-компоненты | Button, Table, Form, Input... | 180 |
-| @company/pro-ui | ProTable, ProForm, ProLayout | 45 |
-| @company/shared-ui | SharedHeader, SharedFooter | 30 |
-| Кастомные (reusable) | AlertBar, PageContainer, SideNav | 40 |
-| Кастомные (уникальные) | DashboardWidget, ReportChart... | 55 |
-| Third-party | formik, react-select, react-dnd | 60 |
-| HTML-нативные | div, span, button... | 180 |
+> Реальный запуск на [ant-design/ant-design-pro](https://github.com/ant-design/ant-design-pro) — 89 файлов, DS: `antd` + `@ant-design/icons`, обёртка `@ant-design/pro-components`.
 
 ---
 
-**Что покажет omlet.dev:**
+**react-scanner** (аналог того, что показывает omlet в своём UI — сырой список компонентов):
 
 ```
-Button        ×45   (3 repos, 22 files)
-Table         ×28   (2 repos, 14 files)
-ProTable      ×23   (3 repos, 12 files)   ← просто компонент, нет пометки
-ProForm       ×22   (2 repos, 11 files)   ← просто компонент, нет пометки
-Form          ×22   (3 repos, 11 files)
-SharedHeader  ×15   (3 repos, 15 files)   ← нет категории
-AlertBar      ×8    (2 repos, 6 files)    ← нет категории
-...
+Запуск: npx react-scanner   (0.4 сек, 149 файлов)
+Фильтр: importedFrom /antd|@ant-design/
+
+Всего инстанций: 80    Уникальных компонентов: 50
+
+Компонент                          Инстанций
+─────────────────────────────────────────────
+Button                                     6
+Menu                                       4
+ProFormText                                4   ← DS-backed? неизвестно
+Card                                       3
+Dropdown                                   3
+PageContainer                              3   ← DS-backed? неизвестно
+ProFormSelect                              3   ← DS-backed? неизвестно
+StepsForm.StepForm                         3   ← DS-backed? неизвестно
+Alert                                      2
+ConfigProvider                             2
+LockOutlined                               2
+... (+40 компонентов)
 ```
 
-Omlet ответит: «вот список, кто что использует». Чтобы получить adoption rate, нужно вручную:
-1. Решить, что считать «DS» — antd? Плюс pro-ui? А ProTable — это DS или нет?
-2. Решить, что включать в знаменатель — shared-ui? AlertBar?
-3. Посчитать вручную → получить число, которое через месяц никто не воспроизведёт тем же методом
+**Что с этим делать?** Список есть. Числа есть. Но:
+- `ProFormText`, `PageContainer`, `StepsForm` — это DS или нет? Нужно вручную открыть npm и смотреть.
+- Какой % от всей кодовой базы — это DS? Нет знаменателя, нет формулы.
+- Кастомные компоненты вообще не видны (react-scanner смотрит только на пакеты из фильтра).
 
 ---
 
-**Что покажет DS Adoption Scanner (те же данные, 3 минуты):**
+**DS Adoption Scanner** (тот же ant-design-pro, реальный запуск):
 
 ```
-📊 Direct DS Adoption:    51.4%   (180 / 350)
-📊 Effective Adoption:    61.1%   (180+45 / 368)   ← pro-ui учтён автоматически
+Запуск: ds-scanner analyze   (2.8 сек, 89 файлов)
+
+📊 Direct DS Adoption:   68.6%  █████████████████████░░░░░░░░░
+📊 Effective Adoption:   74.6%  ██████████████████████░░░░░░░░  (+6.0% via transitive)
 
 📐 Per Design System
-Ant Design   Direct: 51.4%   Effective: 61.1%   Families: 9/15   Instances: 180+45
+DS Name      Direct%   Effective%   Instances   +Transitive   Unique   Files w/ DS
+Ant Design    68.6%      74.6%          35           +12          26      100.0%
 
-🎨 DS Catalog Coverage: 9 из 15 семей
-  Используются: Button, Form, Table, Input, Select, Modal, Layout, Icon, Tag
-  Не используются: DatePicker, Tree, Transfer, Skeleton, Tour, Upload
+📚 Library Pre-Scan: @ant-design/pro-components
+Backed by: Ant Design   Families scanned: 10 / 11 (90.9%)
+  → ProFormText, ProFormSelect, PageContainer, StepsForm — DS-backed ✓
 
 📦 Category Breakdown
- ├ Ant Design (direct)     180        68    51.4%
- ├ Transitive (pro-ui)      45        31   +12.9%
- ├ Shared-lib               30        18    —
- Local/Custom               95        43    —
-   ├ Reusable (≥2 files)    40        18    —
-   └ Unique (1 file)        55        25    —
+ ├ Ant Design (direct)     35        26       68.6%
+ Local/Custom              16        12       31.4%
+   ├ Reusable (≥2 files)    6         5        —
+   └ Unique (1 file)        10        7        —
+ (Third-party)             63        23       excluded
+ (HTML native)             29         6       excluded
 
 🗂️ Local Component Families
-AlertBar       1 компонент   8 инстанций   6 файлов   2 репо
-PageContainer  1 компонент   7 инстанций   5 файлов   3 репо   ← 3 репо пишут одно и то же
-SideNav        1 компонент   6 инстанций   4 файлов   2 репо
+ant-design-pro   5 компонентов   6 инстанций   2 файла
+table-list       2 компонента    2 инстанции   1 файл
+HeaderDropdown   1 компонент     1 инстанция   1 файл
 ```
 
 ---
 
-**Что получает DS-команда сверху:**
-- Число для OKR: «эффективный adoption 61.1%, цель Q3 — 70%»
-- Gap: DatePicker, Tree, Transfer не используются — почему? Нет компонента или не знают?
-- `PageContainer` в 3 репозиториях — три команды написали одно и то же, пока в DS нет аналога
-- Через квартал: те же цифры, тот же метод, автоматически из CI
+**Что стало понятно из второго отчёта, чего нет в первом:**
+
+| Вопрос | react-scanner | DS Adoption Scanner |
+|--------|--------------|---------------------|
+| Adoption rate | ❌ нет | **68.6%** (прямой) |
+| Эффективный adoption с pro-компонентами | ❌ нет | **74.6%** (+6%) |
+| ProFormText — это DS? | ❌ неизвестно | ✅ DS-backed (pro-components) |
+| Сколько кастомных компонентов | ❌ не видит | **16** (6 reusable, 10 unique) |
+| Цель для OKR | ❌ нет | **74.6% → 80%** следующий квартал |
+| Воспроизводимость | ❌ ручной расчёт | ✅ CI-скрипт, тот же результат всегда |
+
+**Вывод:** react-scanner (и omlet по той же логике) дают материал для аналитика. DS Adoption Scanner даёт **готовый ответ** с методологией, которую не нужно каждый раз пересогласовывать.
 
 ---
 
