@@ -525,44 +525,6 @@ function buildLocalFamilies(report: ScanReport): string {
   </div>`;
 }
 
-function buildReuseOpportunities(report: ScanReport): string {
-  const reuse = report.localReuseAnalysis;
-  if (reuse.localReuseCount + reuse.crossRepoCount === 0) return '';
-
-  const hasCrossRepo = reuse.crossRepoCount > 0;
-
-  const summary = [
-    `${num(reuse.totalTracked)} unique tracked`,
-    `${num(reuse.singletonCount)} singletons`,
-    reuse.localReuseCount > 0 ? `<span style="color:var(--warn)">${num(reuse.localReuseCount)} local-reuse</span>` : null,
-    reuse.crossRepoCount > 0 ? `<span style="color:var(--ok)">${num(reuse.crossRepoCount)} cross-repo</span>` : null,
-  ].filter(Boolean).join(' &nbsp;·&nbsp; ');
-
-  const reposHeader = hasCrossRepo ? '<th>Repos</th>' : '';
-  const top = reuse.topCandidates.slice(0, 15);
-  const rows = top.map(g => {
-    const reposCell = hasCrossRepo
-      ? `<td class="num" style="color:${g.reposUsedIn > 1 ? 'var(--ok)' : 'var(--muted)'}">${g.reposUsedIn}</td>`
-      : '';
-    return `
-    <tr>
-      <td>${esc(g.componentName)}</td>
-      <td class="num">${num(g.instances)}</td>
-      <td class="num">${num(g.filesUsedIn)}</td>
-      ${reposCell}
-    </tr>`;
-  }).join('');
-
-  return `
-  <div class="section">
-    <div class="section-title">♻️ Reuse Opportunities</div>
-    <p style="margin-bottom:12px;color:var(--muted);font-size:13px">${summary}</p>
-    <table>
-      <thead><tr><th>Component</th><th>Instances</th><th>Files</th>${reposHeader}</tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-  </div>`;
-}
 
 function buildFooter(report: ScanReport): string {
   const dur = (report.meta.scanDurationMs / 1000).toFixed(1);
@@ -590,7 +552,6 @@ export function formatHTML(report: ScanReport): string {
     buildTopFamilies(report),
     buildTopComponents(report, hasFamilies),
     buildLocalFamilies(report),
-    buildReuseOpportunities(report),
     buildFooter(report),
   ].join('\n');
 
