@@ -27,7 +27,7 @@ program
   .command('analyze')
   .description('Run a full design system adoption scan')
   .option('-c, --config <path>', 'Path to config file', '.ds-scanner.config.ts')
-  .option('-f, --format <format>', 'Output format: table | json | csv | html', 'table')
+  .option('-f, --format <format>', 'Output format: table | json | csv | html')
   .option('-o, --output <path>', 'Save report to file')
   .option('-v, --verbose', 'Verbose output (show parse warnings)')
   .option('--min-adoption <number>', 'Fail if adoption rate is below this threshold (CI)')
