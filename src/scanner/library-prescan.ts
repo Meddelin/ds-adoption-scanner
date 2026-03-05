@@ -220,16 +220,29 @@ async function buildComponentMap(
     }
   }
 
-  // Pass 3: group components into local-lib families by directory.
-  // Mirrors DS prescan: iterate componentToFile (components with known source files only)
-  // and get DS-backing from componentMap. This prevents phantom families for components
-  // that resolveFileExports resolved transitively but whose source file pattern is unrecognised.
+  // Pass 3: build familyMap using two steps.
+  //
+  // Step 1 — directory discovery: iterate ALL parsed files (allInfo) so that
+  //   feature-area directories without PascalCase components (hooks, utils, i18n)
+  //   are still counted as families. Excluded dirs (__tests__, __stories__, dist)
+  //   are already absent from allInfo via discoverLibraryFiles.
+  //
+  // Step 2 — DS-backing enrichment: iterate componentToFile to overlay isDSBacked
+  //   and dsFamily onto the already-discovered family entries.
   const base = lib.componentsDir ? path.resolve(libRoot, lib.componentsDir) : libRoot;
   const familyMap = new Map<string, LibraryFamilyEntry>();
 
+  for (const filePath of allInfo.keys()) {
+    const familyName = getFamilyDirName(filePath, base);
+    if (familyName && !familyMap.has(familyName)) {
+      familyMap.set(familyName, { isDSBacked: false, dsFamilies: [] });
+    }
+  }
+
   for (const [name, filePath] of componentToFile) {
     const entry = componentMap.get(name);
-    const familyName = getLocalFamilyName(filePath, base, name);
+    // getFamilyDirName returns null for root-level files → fall back to component name
+    const familyName = getFamilyDirName(filePath, base) ?? name;
     const fam = familyMap.get(familyName) ?? { isDSBacked: false, dsFamilies: [] };
     if (entry?.isDSBacked) fam.isDSBacked = true;
     if (entry?.dsFamily && !fam.dsFamilies.includes(entry.dsFamily)) {
@@ -242,18 +255,27 @@ async function buildComponentMap(
 }
 
 /**
- * Resolves a component's local-lib family name based on the directory it lives in,
- * relative to the given base path. Leading GENERIC_DIRS segments are skipped.
- * E.g. base='src/components/spirit-ui', file='src/components/spirit-ui/confirm-popup/Foo.tsx'
- * → family 'confirm-popup'.
+ * Returns the family directory name for a file path relative to base.
+ * Skips leading GENERIC_DIRS segments and returns the first non-generic segment.
+ * Returns null when the file is directly in base or all segments are generic
+ * (caller should fall back to component name in that case).
  */
-function getLocalFamilyName(filePath: string, base: string, componentName: string): string {
+function getFamilyDirName(filePath: string, base: string): string | null {
   const rel = path.relative(path.resolve(base), path.resolve(path.dirname(filePath)));
-  if (!rel || rel === '.') return componentName;
+  if (!rel || rel === '.') return null;
   const segments = rel.split(path.sep).filter(Boolean);
   let i = 0;
   while (i < segments.length && GENERIC_DIRS.has(segments[i].toLowerCase())) i++;
-  return i < segments.length ? segments[i] : componentName;
+  return i < segments.length ? segments[i] : null;
+}
+
+/**
+ * Like getFamilyDirName but falls back to componentName instead of null.
+ * Used for per-component DS-backing enrichment where root-level components
+ * still need a family name.
+ */
+function getLocalFamilyName(filePath: string, base: string, componentName: string): string {
+  return getFamilyDirName(filePath, base) ?? componentName;
 }
 
 /**

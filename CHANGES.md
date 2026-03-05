@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.5.7 — Fix: family count includes hook/util/i18n directories
+
+### Fix: directories without PascalCase exports now counted as families
+
+Pass 3 previously only counted directories that had PascalCase component exports
+(`componentToFile`). Directories containing only hooks (`use-prompt-location-change`),
+utility functions (`utils`), or i18n strings (`locale`) were silently excluded.
+
+**Two-step Pass 3:**
+1. **Discovery** — iterate all parsed files (`allInfo.keys()`) to register every
+   feature-area directory as a family, regardless of whether it has component exports.
+   Already-excluded paths (`__tests__`, `__stories__`, `dist`) are absent from `allInfo`.
+2. **Enrichment** — iterate `componentToFile` to overlay `isDSBacked`/`dsFamily` onto
+   the already-discovered family entries.
+
+### Changes
+- `src/scanner/library-prescan.ts` — Pass 3 uses two-step approach; extracted
+  `getFamilyDirName()` (returns `null` for root/all-generic paths); `getLocalFamilyName`
+  now delegates to `getFamilyDirName` with `componentName` fallback
+
+---
+
 ## v0.5.6 — Fix: familyMap built from componentToFile, not componentMap
 
 ### Fix: Pass 3 now mirrors DS prescan — iterate componentToFile only
