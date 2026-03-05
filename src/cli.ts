@@ -97,8 +97,12 @@ program
       writeJSON(report, jsonPath);
       console.log(chalk.dim(`  JSON report: ${jsonPath}`));
 
-      writeHTML(report, htmlPath);
-      console.log(chalk.dim(`  HTML report: ${htmlPath}`));
+      try {
+        writeHTML(report, htmlPath);
+        console.log(chalk.dim(`  HTML report: ${htmlPath}`));
+      } catch (htmlErr) {
+        console.warn(chalk.yellow(`  Warning: could not write HTML report: ${htmlErr instanceof Error ? htmlErr.message : String(htmlErr)}`));
+      }
 
       // Check adoption thresholds
       const minAdoption = opts.minAdoption
