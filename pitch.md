@@ -120,6 +120,79 @@ PageHeader   — 4 instances в 4 файлах
 
 **react-scanner** — простой счётчик: сколько раз использован каждый компонент из пакета. Нет категоризации, нет формулы adoption, нет истории, нет семей, нет понятия shared-библиотек.
 
+### Сравнение на одних данных
+
+Возьмём реалистичный кейс: компания с тремя репозиториями (~270 файлов суммарно), DS — Ant Design, плюс внутренняя обёртка `@company/pro-ui` построенная поверх antd.
+
+**Состав кодовой базы:**
+
+| Тип | Примеры | Инстанций |
+|-----|---------|-----------|
+| antd-компоненты | Button, Table, Form, Input... | 180 |
+| @company/pro-ui | ProTable, ProForm, ProLayout | 45 |
+| @company/shared-ui | SharedHeader, SharedFooter | 30 |
+| Кастомные (reusable) | AlertBar, PageContainer, SideNav | 40 |
+| Кастомные (уникальные) | DashboardWidget, ReportChart... | 55 |
+| Third-party | formik, react-select, react-dnd | 60 |
+| HTML-нативные | div, span, button... | 180 |
+
+---
+
+**Что покажет omlet.dev:**
+
+```
+Button        ×45   (3 repos, 22 files)
+Table         ×28   (2 repos, 14 files)
+ProTable      ×23   (3 repos, 12 files)   ← просто компонент, нет пометки
+ProForm       ×22   (2 repos, 11 files)   ← просто компонент, нет пометки
+Form          ×22   (3 repos, 11 files)
+SharedHeader  ×15   (3 repos, 15 files)   ← нет категории
+AlertBar      ×8    (2 repos, 6 files)    ← нет категории
+...
+```
+
+Omlet ответит: «вот список, кто что использует». Чтобы получить adoption rate, нужно вручную:
+1. Решить, что считать «DS» — antd? Плюс pro-ui? А ProTable — это DS или нет?
+2. Решить, что включать в знаменатель — shared-ui? AlertBar?
+3. Посчитать вручную → получить число, которое через месяц никто не воспроизведёт тем же методом
+
+---
+
+**Что покажет DS Adoption Scanner (те же данные, 3 минуты):**
+
+```
+📊 Direct DS Adoption:    51.4%   (180 / 350)
+📊 Effective Adoption:    61.1%   (180+45 / 368)   ← pro-ui учтён автоматически
+
+📐 Per Design System
+Ant Design   Direct: 51.4%   Effective: 61.1%   Families: 9/15   Instances: 180+45
+
+🎨 DS Catalog Coverage: 9 из 15 семей
+  Используются: Button, Form, Table, Input, Select, Modal, Layout, Icon, Tag
+  Не используются: DatePicker, Tree, Transfer, Skeleton, Tour, Upload
+
+📦 Category Breakdown
+ ├ Ant Design (direct)     180        68    51.4%
+ ├ Transitive (pro-ui)      45        31   +12.9%
+ ├ Shared-lib               30        18    —
+ Local/Custom               95        43    —
+   ├ Reusable (≥2 files)    40        18    —
+   └ Unique (1 file)        55        25    —
+
+🗂️ Local Component Families
+AlertBar       1 компонент   8 инстанций   6 файлов   2 репо
+PageContainer  1 компонент   7 инстанций   5 файлов   3 репо   ← 3 репо пишут одно и то же
+SideNav        1 компонент   6 инстанций   4 файлов   2 репо
+```
+
+---
+
+**Что получает DS-команда сверху:**
+- Число для OKR: «эффективный adoption 61.1%, цель Q3 — 70%»
+- Gap: DatePicker, Tree, Transfer не используются — почему? Нет компонента или не знают?
+- `PageContainer` в 3 репозиториях — три команды написали одно и то же, пока в DS нет аналога
+- Через квартал: те же цифры, тот же метод, автоматически из CI
+
 ---
 
 ## Как внедрить
