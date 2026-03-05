@@ -12,7 +12,7 @@ export interface DesignSystemDef {
 }
 
 export interface OutputConfig {
-  format: 'json' | 'table' | 'csv';
+  format: 'json' | 'table' | 'csv' | 'html';
   path?: string;
   verbose?: boolean;
 }

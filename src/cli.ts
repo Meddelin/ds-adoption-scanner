@@ -26,7 +26,7 @@ program
   .command('analyze')
   .description('Run a full design system adoption scan')
   .option('-c, --config <path>', 'Path to config file', '.ds-scanner.config.ts')
-  .option('-f, --format <format>', 'Output format: table | json | csv', 'table')
+  .option('-f, --format <format>', 'Output format: table | json | csv | html', 'table')
   .option('-o, --output <path>', 'Save report to file')
   .option('-v, --verbose', 'Verbose output (show parse warnings)')
   .option('--min-adoption <number>', 'Fail if adoption rate is below this threshold (CI)')
@@ -46,7 +46,7 @@ program
       });
 
       // Override format/output from CLI flags
-      if (opts.format) config.output.format = opts.format as 'table' | 'json' | 'csv';
+      if (opts.format) config.output.format = opts.format as 'table' | 'json' | 'csv' | 'html';
       if (opts.output) config.output.path = opts.output;
       if (opts.verbose) config.output.verbose = true;
 
@@ -111,6 +111,12 @@ program
         } else {
           console.log(csv);
         }
+      } else if (format === 'html') {
+        const { writeHTML } = await import('./output/html-reporter.js');
+        const dest = outputPath ?? `ds-report-${Date.now()}.html`;
+        writeHTML(report, dest);
+        console.log(chalk.dim(`  HTML report saved: ${dest}`));
+        printReport(report, config.output.verbose);
       } else {
         // table
         printReport(report, config.output.verbose);
