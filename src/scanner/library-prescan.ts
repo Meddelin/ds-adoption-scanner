@@ -222,26 +222,24 @@ async function buildComponentMap(
 
   // Pass 3: build familyMap using two steps.
   //
-  // Step 1 — directory discovery: iterate ALL parsed files (allInfo) so that
-  //   feature-area directories without PascalCase components (hooks, utils, i18n)
-  //   are still counted as families. Excluded dirs (__tests__, __stories__, dist)
-  //   are already absent from allInfo via discoverLibraryFiles.
+  // Step 1 — directory discovery + DS-backing from any file in the family:
+  //   iterate ALL parsed files (allInfo). This covers hook/util/i18n dirs that
+  //   have no PascalCase exports. hasDSImport from any file marks the whole family.
   //
-  // Step 2 — DS-backing enrichment: iterate componentToFile to overlay isDSBacked
-  //   and dsFamily onto the already-discovered family entries.
+  // Step 2 — per-component enrichment: overlay isDSBacked/dsFamily from componentToFile.
   const base = lib.componentsDir ? path.resolve(libRoot, lib.componentsDir) : libRoot;
   const familyMap = new Map<string, LibraryFamilyEntry>();
 
-  for (const filePath of allInfo.keys()) {
+  for (const [filePath, fileInfo] of allInfo) {
     const familyName = getFamilyDirName(filePath, base);
-    if (familyName && !familyMap.has(familyName)) {
-      familyMap.set(familyName, { isDSBacked: false, dsFamilies: [] });
-    }
+    if (!familyName) continue;
+    const fam = familyMap.get(familyName) ?? { isDSBacked: false, dsFamilies: [] };
+    if (fileInfo.hasDSImport) fam.isDSBacked = true;
+    familyMap.set(familyName, fam);
   }
 
   for (const [name, filePath] of componentToFile) {
     const entry = componentMap.get(name);
-    // getFamilyDirName returns null for root-level files → fall back to component name
     const familyName = getFamilyDirName(filePath, base) ?? name;
     const fam = familyMap.get(familyName) ?? { isDSBacked: false, dsFamilies: [] };
     if (entry?.isDSBacked) fam.isDSBacked = true;
@@ -249,6 +247,19 @@ async function buildComponentMap(
       fam.dsFamilies.push(entry.dsFamily);
     }
     familyMap.set(familyName, fam);
+  }
+
+  // Pass 4: propagate family-level DS-backing down to individual component entries.
+  // In a DS-backed family, helper/sub-components typically don't import DS directly
+  // (they import from siblings), but they're still semantically part of the DS-backed
+  // feature area. Without this pass, their usages would not count toward effective adoption.
+  for (const [name, filePath] of componentToFile) {
+    if (componentMap.get(name)?.isDSBacked) continue; // already backed
+    const familyName = getFamilyDirName(filePath, base) ?? name;
+    if (familyMap.get(familyName)?.isDSBacked) {
+      const existing = componentMap.get(name);
+      if (existing) componentMap.set(name, { ...existing, isDSBacked: true });
+    }
   }
 
   return { componentMap, familyMap };

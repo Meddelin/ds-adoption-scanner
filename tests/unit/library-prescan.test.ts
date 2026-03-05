@@ -258,6 +258,36 @@ describe('preScanLibraries — component map building', () => {
     expect(map.get('Button')?.isDSBacked).toBe(true);
   });
 
+  it('propagates DS-backing to sibling components in the same family (Pass 4)', async () => {
+    // ConfirmModal directly imports DS → isDSBacked = true
+    // ConfirmModalHeader imports from sibling, not DS directly → isDSBacked = false before Pass 4
+    // After Pass 4: both should be DS-backed because the family is DS-backed
+    write('src/confirm-modal/ConfirmModal.tsx', `
+      import { Button } from '@beaver/ui';
+      export function ConfirmModal() { return null; }
+    `);
+    write('src/confirm-modal/ConfirmModalHeader.tsx', `
+      import { ConfirmModal } from './ConfirmModal';
+      export function ConfirmModalHeader() { return null; }
+    `);
+    write('src/plain-modal/PlainModal.tsx', `
+      export function PlainModal() { return null; }
+    `);
+
+    const config = makeConfig({
+      libraries: [{ package: '@company/ui', backedBy: 'Beaver', path: tmpDir }],
+    });
+    const registry = await preScanLibraries(config, new Map(), false);
+    const { componentMap } = registry.get('@company/ui')!;
+
+    // Direct DS import
+    expect(componentMap.get('ConfirmModal')?.isDSBacked).toBe(true);
+    // Sibling in same DS-backed family → propagated
+    expect(componentMap.get('ConfirmModalHeader')?.isDSBacked).toBe(true);
+    // Component in non-backed family → NOT propagated
+    expect(componentMap.get('PlainModal')?.isDSBacked).toBe(false);
+  });
+
   it('returns empty registry when no libraries have path/git', async () => {
     const config = makeConfig({ libraries: [] });
     const registry = await preScanLibraries(config, new Map(), false);

@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.5.8 — Fix: effective adoption now reflects family-level DS-backing
+
+### Fix: Pass 4 propagates DS-backing from family to all sibling components
+
+In a DS-backed family, only components whose source file directly imports from a DS
+package were marked `isDSBacked = true`. Sibling/helper components that import from
+each other (e.g., `ConfirmModalHeader` importing `ConfirmModal`) stayed `isDSBacked = false`,
+so their usages never counted toward effective adoption.
+
+**Pass 4** (after familyMap is complete): for every component in a DS-backed family,
+set `isDSBacked = true` in `componentMap`. This means all instances of all components
+in a DS-backed family count as transitive DS coverage (`coverage: 1.0`).
+
+Also, Step 1 of Pass 3 now reads `hasDSImport` from all parsed files (not just those
+with PascalCase exports), so hook/util directories that use DS are correctly marked
+as DS-backed families.
+
+### Changes
+- `src/scanner/library-prescan.ts` — Pass 3 Step 1 uses `for ([filePath, fileInfo] of allInfo)`
+  to set `isDSBacked` from any file's DS import; Pass 4 propagates family backing to components
+- `tests/unit/library-prescan.test.ts` — test: `ConfirmModalHeader` in DS-backed family
+  gets `isDSBacked = true` via propagation; `PlainModal` in non-backed family stays `false`
+
+---
+
 ## v0.5.7 — Fix: family count includes hook/util/i18n directories
 
 ### Fix: directories without PascalCase exports now counted as families
