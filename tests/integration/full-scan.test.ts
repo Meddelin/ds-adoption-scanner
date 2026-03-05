@@ -76,9 +76,9 @@ describe('integration — simple-repo', () => {
     expect(comp).toBeDefined();
   });
 
-  it('local has 1 instance (CustomCard)', () => {
-    expect(report.summary.local.instances).toBe(1);
-    const comp = report.summary.local.topComponents.find(c => c.name === 'CustomCard');
+  it('local has 1 instance (CustomCard) — in localUnique (used in 1 file)', () => {
+    expect(report.summary.localUnique.instances).toBe(1);
+    const comp = report.summary.localUnique.topComponents.find(c => c.name === 'CustomCard');
     expect(comp).toBeDefined();
   });
 
@@ -187,7 +187,8 @@ describe('integration — mixed-categories', () => {
   it('has all 5 categories represented', () => {
     expect(report.summary.designSystemTotal.instances).toBeGreaterThan(0);
     expect(report.summary.localLibrary.instances).toBeGreaterThan(0);
-    expect(report.summary.local.instances).toBeGreaterThan(0);
+    const localInstances = report.summary.localReusable.instances + report.summary.localUnique.instances;
+    expect(localInstances).toBeGreaterThan(0);
     expect(report.summary.thirdParty.instances).toBeGreaterThan(0);
     expect(report.summary.htmlNative.instances).toBeGreaterThan(0);
   });

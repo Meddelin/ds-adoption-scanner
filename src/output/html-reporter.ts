@@ -263,10 +263,13 @@ function buildLibraryPrescan(report: ScanReport): string {
 function buildCategoryBreakdown(report: ScanReport): string {
   const { summary } = report;
   const excludeLocal = report.meta.excludeLocalFromAdoption;
+  const excludeUniqueLocal = report.meta.excludeUniqueLocalFromAdoption;
 
   const dsTotal = summary.designSystemTotal.instances;
   const libTotal = summary.localLibrary.instances;
-  const locTotal = summary.local.instances;
+  const locReusable = summary.localReusable.instances;
+  const locUnique = summary.localUnique.instances;
+  const locTotal = locReusable + locUnique;
   const tpTotal = summary.thirdParty.instances;
   const htmlTotal = summary.htmlNative.instances;
   const allTotal = dsTotal + libTotal + locTotal + tpTotal + htmlTotal;
@@ -280,7 +283,10 @@ function buildCategoryBreakdown(report: ScanReport): string {
     return pct((n / allTotal) * 100);
   }
 
-  const denominator = dsTotal + libTotal + (excludeLocal ? 0 : locTotal);
+  const localInDenominator = excludeLocal ? 0
+    : excludeUniqueLocal ? locReusable
+    : locTotal;
+  const denominator = dsTotal + libTotal + localInDenominator;
   function sharePct(n: number) {
     if (denominator === 0) return '—';
     return pct((n / denominator) * 100);
@@ -301,6 +307,7 @@ function buildCategoryBreakdown(report: ScanReport): string {
   }).join('');
 
   const catHasFamilies = summary.designSystems.some(ds => ds.totalFamilies !== undefined);
+  const localTotalUnique = summary.localReusable.uniqueComponents + summary.localUnique.uniqueComponents;
 
   const dsRows = summary.designSystems.map(ds => {
     const familyCell = ds.totalFamilies !== undefined
@@ -316,6 +323,20 @@ function buildCategoryBreakdown(report: ScanReport): string {
   }).join('');
 
   const familiesHeader = catHasFamilies ? 'Families Used' : 'Unique';
+
+  const localSubRows = locTotal > 0 ? `
+        <tr>
+          <td class="muted" style="padding-left:24px">↳ Reusable (≥2 files)</td>
+          <td class="num muted">${num(locReusable)}</td>
+          <td class="num muted">${summary.localReusable.uniqueComponents}</td>
+          <td class="num muted">${excludeLocal ? 'excluded' : excludeUniqueLocal ? sharePct(locReusable) : '—'}</td>
+        </tr>
+        <tr>
+          <td class="muted" style="padding-left:24px">↳ Unique (1 file)</td>
+          <td class="num muted">${num(locUnique)}</td>
+          <td class="num muted">${summary.localUnique.uniqueComponents}</td>
+          <td class="num muted">${excludeLocal || excludeUniqueLocal ? 'excluded' : '—'}</td>
+        </tr>` : '';
 
   return `
   <div class="section">
@@ -334,9 +355,10 @@ function buildCategoryBreakdown(report: ScanReport): string {
         <tr>
           <td class="muted">Local/Custom</td>
           <td class="num muted">${num(locTotal)}</td>
-          <td class="num muted">${summary.local.uniqueComponents}</td>
+          <td class="num muted">${localTotalUnique}</td>
           <td class="num muted">${excludeLocal ? 'excluded' : sharePct(locTotal)}</td>
         </tr>
+        ${localSubRows}
         <tr>
           <td class="muted">(Third-party)</td>
           <td class="num muted">${num(tpTotal)}</td>
@@ -476,6 +498,33 @@ function buildTopComponents(report: ScanReport, hasFamilies: boolean): string {
   </div>`;
 }
 
+function buildLocalFamilies(report: ScanReport): string {
+  const families = report.byComponent.localTopFamilies;
+  if (!families || families.length === 0) return '';
+
+  const maxInstances = Math.max(...families.map(f => f.instances), 1);
+  const rows = families.slice(0, 15).map(fam => {
+    const famPct = (fam.instances / maxInstances) * 100;
+    return `
+    <tr>
+      <td>${esc(fam.family)}</td>
+      <td class="num">${num(fam.components.length)}</td>
+      <td class="num">${num(fam.instances)}</td>
+      <td class="num">${num(fam.filesUsedIn)}</td>
+      <td><div class="bar-wrap">${bar(famPct, `${num(fam.instances)} instances`)}</div></td>
+    </tr>`;
+  }).join('');
+
+  return `
+  <div class="section">
+    <div class="section-title">🗂️ Local Component Families</div>
+    <table>
+      <thead><tr><th>Family</th><th>Components</th><th>Instances</th><th>Files</th><th>Relative usage</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
 function buildReuseOpportunities(report: ScanReport): string {
   const reuse = report.localReuseAnalysis;
   if (reuse.localReuseCount + reuse.crossRepoCount === 0) return '';
@@ -540,6 +589,7 @@ export function formatHTML(report: ScanReport): string {
     buildRepositoryBreakdown(report),
     buildTopFamilies(report),
     buildTopComponents(report, hasFamilies),
+    buildLocalFamilies(report),
     buildReuseOpportunities(report),
     buildFooter(report),
   ].join('\n');

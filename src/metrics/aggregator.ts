@@ -1,14 +1,17 @@
+import path from 'node:path';
 import type {
   CategorizedUsage,
   CategoryMetrics,
   ComponentStat,
   DSCatalog,
+  LocalFamilyStat,
   LocalReuseReport,
   RepositoryReport,
   ScanReport,
 } from '../types.js';
 import type { ResolvedConfig } from '../config/schema.js';
 import { calculateMetrics, buildCategoryMetrics } from './calculator.js';
+import { GENERIC_DIRS } from '../scanner/ds-prescan.js';
 
 export interface RepoScanData {
   repositoryName: string;
@@ -40,7 +43,7 @@ export function aggregateResults(
   );
 
   // Component-level aggregation
-  const byComponent = buildByComponent(allUsages, config, globalMetrics.designSystems);
+  const byComponent = buildByComponent(allUsages, config, globalMetrics.designSystems, repoData);
 
   // Local reuse analysis
   const localReuseAnalysis = buildLocalReuseAnalysis(repoData);
@@ -55,6 +58,7 @@ export function aggregateResults(
       repositoriesScanned: repoData.length,
       designSystemsConfigured: config.designSystems.map(ds => ds.name),
       excludeLocalFromAdoption: config.excludeLocalFromAdoption,
+      excludeUniqueLocalFromAdoption: config.excludeUniqueLocalFromAdoption,
     },
     summary: {
       adoptionRate: globalMetrics.adoptionRate,
@@ -78,7 +82,8 @@ export function aggregateResults(
       })),
       designSystemTotal: globalMetrics.designSystemTotal,
       localLibrary: globalMetrics.localLibrary,
-      local: globalMetrics.local,
+      localReusable: globalMetrics.localReusable,
+      localUnique: globalMetrics.localUnique,
       thirdParty: globalMetrics.thirdParty,
       htmlNative: globalMetrics.htmlNative,
     },
@@ -116,7 +121,8 @@ function buildRepositoryReport(
     })),
     designSystemTotal: metrics.designSystemTotal,
     localLibrary: metrics.localLibrary,
-    local: metrics.local,
+    localReusable: metrics.localReusable,
+    localUnique: metrics.localUnique,
     thirdParty: metrics.thirdParty,
     htmlNative: metrics.htmlNative,
   };
@@ -125,7 +131,8 @@ function buildRepositoryReport(
 function buildByComponent(
   allUsages: CategorizedUsage[],
   config: ResolvedConfig,
-  dsMetrics?: import('../types.js').DesignSystemMetrics[]
+  dsMetrics?: import('../types.js').DesignSystemMetrics[],
+  repoData?: RepoScanData[]
 ): ScanReport['byComponent'] {
   const dsUsages = allUsages.filter(u => u.category === 'design-system');
   const localUsages = allUsages.filter(u => u.category === 'local' || u.category === 'local-library');
@@ -145,10 +152,75 @@ function buildByComponent(
   // Top local/local-library components (include resolvedPath for AI agents)
   const localMostUsed = buildComponentStats(localUsages).slice(0, 30);
 
+  // Local component families
+  const localTopFamilies = repoData
+    ? buildLocalTopFamilies(allUsages, repoData)
+    : [];
+
   // Third-party components
   const thirdParty = buildComponentStats(thirdPartyUsages).slice(0, 20);
 
-  return { designSystems, localMostUsed, thirdParty };
+  return { designSystems, localMostUsed, localTopFamilies, thirdParty };
+}
+
+function getLocalFamilyName(resolvedPath: string, componentName: string): string {
+  // Check immediate parent dir and one level above (max 2 levels).
+  // Returns first non-GENERIC_DIR segment, or componentName as fallback.
+  // Depth limit avoids climbing to repo root / OS path segments.
+  let dir = path.dirname(resolvedPath);
+  for (let depth = 0; depth < 2; depth++) {
+    const seg = path.basename(dir);
+    if (!seg || seg === '.' || seg === '..') break;
+    if (!GENERIC_DIRS.has(seg.toLowerCase())) return seg;
+    dir = path.dirname(dir);
+  }
+  return componentName;
+}
+
+function buildLocalTopFamilies(
+  allUsages: CategorizedUsage[],
+  repoData: RepoScanData[]
+): LocalFamilyStat[] {
+  const localOnly = allUsages.filter(u => u.category === 'local' && u.resolvedPath);
+
+  // Build filePath → repoName lookup
+  const fileToRepo = new Map<string, string>();
+  for (const repo of repoData) {
+    for (const u of repo.usages) {
+      fileToRepo.set(u.filePath, repo.repositoryName);
+    }
+  }
+
+  const familyMap = new Map<string, {
+    components: Set<string>;
+    instances: number;
+    files: Set<string>;
+    repos: Set<string>;
+  }>();
+
+  for (const u of localOnly) {
+    const familyName = getLocalFamilyName(u.resolvedPath!, u.componentName);
+    if (!familyMap.has(familyName)) {
+      familyMap.set(familyName, { components: new Set(), instances: 0, files: new Set(), repos: new Set() });
+    }
+    const entry = familyMap.get(familyName)!;
+    entry.components.add(u.componentName);
+    entry.instances++;
+    entry.files.add(u.filePath);
+    const repo = fileToRepo.get(u.filePath);
+    if (repo) entry.repos.add(repo);
+  }
+
+  return Array.from(familyMap.entries())
+    .map(([family, d]) => ({
+      family,
+      components: Array.from(d.components).sort(),
+      instances: d.instances,
+      filesUsedIn: d.files.size,
+      reposUsedIn: d.repos.size,
+    }))
+    .sort((a, b) => b.instances - a.instances || a.family.localeCompare(b.family))
+    .slice(0, 20);
 }
 
 export function buildLocalReuseAnalysis(repoData: RepoScanData[]): LocalReuseReport {

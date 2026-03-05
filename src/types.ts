@@ -117,7 +117,8 @@ export interface ScanMetrics {
   designSystems: DesignSystemMetrics[];
   designSystemTotal: CategoryMetrics;
   localLibrary: CategoryMetrics;
-  local: CategoryMetrics;
+  localReusable: CategoryMetrics;  // local components used in >= 2 files
+  localUnique: CategoryMetrics;    // local components used in exactly 1 file
   thirdParty: CategoryMetrics;
   htmlNative: CategoryMetrics;
   filePenetration: number;
@@ -139,6 +140,14 @@ export type DSCatalog = Map<string, ComponentFamily[]>;
 export interface FamilyStat {
   family: string;
   components: string[];  // sub-components used in this family
+  instances: number;
+  filesUsedIn: number;
+  reposUsedIn: number;
+}
+
+export interface LocalFamilyStat {
+  family: string;       // first non-generic directory name in resolvedPath
+  components: string[]; // distinct component names in this family
   instances: number;
   filesUsedIn: number;
   reposUsedIn: number;
@@ -191,7 +200,8 @@ export interface RepositoryReport {
   }[];
   designSystemTotal: CategoryMetrics;
   localLibrary: CategoryMetrics;
-  local: CategoryMetrics;
+  localReusable: CategoryMetrics;
+  localUnique: CategoryMetrics;
   thirdParty: CategoryMetrics;
   htmlNative: CategoryMetrics;
 }
@@ -206,6 +216,7 @@ export interface ScanReport {
     repositoriesScanned: number;
     designSystemsConfigured: string[];
     excludeLocalFromAdoption: boolean;
+    excludeUniqueLocalFromAdoption: boolean;
   };
 
   summary: {
@@ -232,7 +243,8 @@ export interface ScanReport {
     }[];
     designSystemTotal: CategoryMetrics;
     localLibrary: CategoryMetrics;
-    local: CategoryMetrics;
+    localReusable: CategoryMetrics;
+    localUnique: CategoryMetrics;
     thirdParty: CategoryMetrics;
     htmlNative: CategoryMetrics;
   };
@@ -246,6 +258,7 @@ export interface ScanReport {
       topFamilies?: FamilyStat[];
     }[];
     localMostUsed: ComponentStat[];
+    localTopFamilies: LocalFamilyStat[];
     thirdParty: ComponentStat[];
   };
 

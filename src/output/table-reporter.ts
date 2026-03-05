@@ -197,10 +197,15 @@ export function printReport(report: ScanReport, verbose = false): void {
   console.log(chalk.bold('  📦 Category Breakdown'));
   console.log(chalk.dim('  ' + '─'.repeat(65)));
 
+  const localTotal = summary.localReusable.instances + summary.localUnique.instances;
+  const localInDenominator = excludeLocal ? 0
+    : meta.excludeUniqueLocalFromAdoption ? summary.localReusable.instances
+    : localTotal;
+
   const denominator =
     summary.designSystemTotal.instances +
     summary.localLibrary.instances +
-    (excludeLocal ? 0 : summary.local.instances);
+    localInDenominator;
 
   function sharePct(instances: number): string {
     if (denominator === 0) return '0.0%';
@@ -209,6 +214,7 @@ export function printReport(report: ScanReport, verbose = false): void {
 
   // When families are configured, show "Families" column instead of "Unique"
   const catHasFamilies = summary.designSystems.some(ds => ds.totalFamilies !== undefined);
+  const localTotalUnique = summary.localReusable.uniqueComponents + summary.localUnique.uniqueComponents;
 
   const catTable = new Table({
     head: [
@@ -243,10 +249,27 @@ export function printReport(report: ScanReport, verbose = false): void {
 
   catTable.push([
     chalk.dim('Local/Custom'),
-    chalk.dim(formatNum(summary.local.instances)),
-    chalk.dim(String(summary.local.uniqueComponents)),
-    chalk.dim(excludeLocal ? 'excluded' : sharePct(summary.local.instances)),
+    chalk.dim(formatNum(localTotal)),
+    chalk.dim(String(localTotalUnique)),
+    chalk.dim(excludeLocal ? 'excluded' : sharePct(localTotal)),
   ]);
+
+  if (summary.localReusable.instances > 0 || summary.localUnique.instances > 0) {
+    catTable.push([
+      chalk.dim('  ├ Reusable (≥2 files)'),
+      chalk.dim(formatNum(summary.localReusable.instances)),
+      chalk.dim(String(summary.localReusable.uniqueComponents)),
+      chalk.dim(excludeLocal ? 'excluded'
+        : meta.excludeUniqueLocalFromAdoption ? sharePct(summary.localReusable.instances)
+        : chalk.dim('—')),
+    ]);
+    catTable.push([
+      chalk.dim('  └ Unique (1 file)'),
+      chalk.dim(formatNum(summary.localUnique.instances)),
+      chalk.dim(String(summary.localUnique.uniqueComponents)),
+      chalk.dim(excludeLocal || meta.excludeUniqueLocalFromAdoption ? 'excluded' : chalk.dim('—')),
+    ]);
+  }
 
   catTable.push([
     chalk.dim('(Third-party)'),
@@ -351,6 +374,36 @@ export function printReport(report: ScanReport, verbose = false): void {
       }
       console.log();
     }
+  }
+
+  // ── Local Component Families ─────────────────────────────────────────────────
+  if (byComponent.localTopFamilies.length > 0) {
+    console.log(chalk.bold('  🗂️  Local Component Families'));
+    console.log(chalk.dim('  ' + '─'.repeat(65)));
+
+    const localFamTable = new Table({
+      head: [
+        chalk.bold('Family'),
+        chalk.bold('Components'),
+        chalk.bold('Instances'),
+        chalk.bold('Files'),
+      ],
+      colWidths: [28, 13, 12, 8],
+      style: { head: [], border: [], compact: true },
+      chars: { mid: '', 'left-mid': '', 'mid-mid': '', 'right-mid': '' },
+    });
+
+    for (const fam of byComponent.localTopFamilies.slice(0, 10)) {
+      localFamTable.push([
+        chalk.white(fam.family.slice(0, 26)),
+        String(fam.components.length),
+        formatNum(fam.instances),
+        String(fam.filesUsedIn),
+      ]);
+    }
+
+    console.log(localFamTable.toString());
+    console.log();
   }
 
   // ── Local Reuse Opportunities ────────────────────────────────────────────────

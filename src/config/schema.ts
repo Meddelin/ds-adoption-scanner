@@ -76,6 +76,11 @@ export interface DSScannerConfig {
   // not candidates for DS replacement.
   // Formula becomes: DS / (DS + local-library)
   excludeLocalFromAdoption?: boolean;
+  // When true, local components used in only one file (singletons) are excluded from
+  // the adoption denominator. Only reusable local components (filesUsedIn >= 2) remain.
+  // Formula becomes: DS / (DS + local-library + localReusable)
+  // Has no additional effect when excludeLocalFromAdoption is also true.
+  excludeUniqueLocalFromAdoption?: boolean;
 }
 
 export type ResolvedConfig = Required<Omit<DSScannerConfig, 'thresholds' | 'transitiveAdoption'>> & {

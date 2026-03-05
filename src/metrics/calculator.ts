@@ -24,10 +24,18 @@ export function calculateMetrics(
   const thirdPartyUsages = byCategory.get('third-party') ?? [];
   const htmlNativeUsages = byCategory.get('html-native') ?? [];
 
-  // Direct adoption: DS / (DS + local-lib + local)
-  // When excludeLocalFromAdoption: local is excluded from denominator
-  const denominator = dsUsages.length + localLibUsages.length +
-    (config.excludeLocalFromAdoption ? 0 : localUsages.length);
+  // Split local into reusable (filesUsedIn >= 2) and unique (filesUsedIn === 1)
+  const { reusable: localReusableUsages, unique: localUniqueUsages } =
+    splitLocalUsages(localUsages);
+
+  // Direct adoption denominator
+  const localInDenominator = config.excludeLocalFromAdoption
+    ? 0
+    : config.excludeUniqueLocalFromAdoption
+      ? localReusableUsages.length
+      : localUsages.length;
+
+  const denominator = dsUsages.length + localLibUsages.length + localInDenominator;
   const adoptionRate = denominator > 0
     ? (dsUsages.length / denominator) * 100
     : 0;
@@ -60,7 +68,8 @@ export function calculateMetrics(
   // Total DS category metrics
   const designSystemTotal = buildCategoryMetrics(dsUsages);
   const localLibrary = buildCategoryMetrics(localLibUsages);
-  const local = buildCategoryMetrics(localUsages);
+  const localReusable = buildCategoryMetrics(localReusableUsages);
+  const localUnique = buildCategoryMetrics(localUniqueUsages);
   const thirdParty = buildCategoryMetrics(thirdPartyUsages);
   const htmlNative = buildCategoryMetrics(htmlNativeUsages);
 
@@ -81,7 +90,8 @@ export function calculateMetrics(
     designSystems,
     designSystemTotal,
     localLibrary,
-    local,
+    localReusable,
+    localUnique,
     thirdParty,
     htmlNative,
     filePenetration,
@@ -238,6 +248,30 @@ function buildTopFamilies(
     }))
     .sort((a, b) => b.instances - a.instances || a.family.localeCompare(b.family))
     .slice(0, 20);
+}
+
+function splitLocalUsages(localUsages: CategorizedUsage[]): {
+  reusable: CategorizedUsage[];
+  unique: CategorizedUsage[];
+} {
+  // Group by resolvedPath to determine filesUsedIn per component
+  const pathToFiles = new Map<string, Set<string>>();
+  for (const u of localUsages) {
+    if (!u.resolvedPath) continue;
+    if (!pathToFiles.has(u.resolvedPath)) {
+      pathToFiles.set(u.resolvedPath, new Set());
+    }
+    pathToFiles.get(u.resolvedPath)!.add(u.filePath);
+  }
+
+  const reusablePaths = new Set<string>();
+  for (const [rp, files] of pathToFiles) {
+    if (files.size >= 2) reusablePaths.add(rp);
+  }
+
+  const reusable = localUsages.filter(u => u.resolvedPath && reusablePaths.has(u.resolvedPath));
+  const unique   = localUsages.filter(u => !u.resolvedPath || !reusablePaths.has(u.resolvedPath));
+  return { reusable, unique };
 }
 
 export function buildCategoryMetrics(usages: CategorizedUsage[]): CategoryMetrics {
