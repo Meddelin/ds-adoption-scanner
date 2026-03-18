@@ -68,21 +68,17 @@ export function printReport(report: ScanReport, verbose = false): void {
     const showEffective = summary.designSystems.some(
       ds => ds.effectiveAdoptionRate > ds.adoptionRate + 0.05
     );
-    const hasFamilyCoverage = summary.designSystems.some(ds => ds.totalFamilies !== undefined);
 
     const head = [
       chalk.bold('DS Name'),
       chalk.bold('Direct%'),
       ...(showEffective ? [chalk.bold('Effective%')] : []),
-      ...(hasFamilyCoverage ? [chalk.bold('Families')] : []),
       chalk.bold('Direct Inst.'),
       ...(showEffective ? [chalk.bold('Transitive Inst.')] : []),
-      ...(!hasFamilyCoverage ? [chalk.bold('Unique')] : []),
+      chalk.bold('Unique'),
     ];
     const colWidths = (() => {
-      if (showEffective && hasFamilyCoverage) return [20, 11, 13, 18, 14, 16];
       if (showEffective) return [20, 11, 13, 14, 16, 10];
-      if (hasFamilyCoverage) return [20, 11, 18, 14];
       return [20, 12, 14, 10];
     })();
 
@@ -94,20 +90,15 @@ export function printReport(report: ScanReport, verbose = false): void {
     });
 
     for (const ds of summary.designSystems) {
-      const familiesCell = ds.totalFamilies !== undefined
-        ? `${ds.familiesUsed}/${ds.totalFamilies}`
-        : chalk.dim('—');
-
       dsTable.push([
         chalk.cyan(ds.name),
         adoptionColor(ds.adoptionRate),
         ...(showEffective ? [adoptionColor(ds.effectiveAdoptionRate)] : []),
-        ...(hasFamilyCoverage ? [familiesCell] : []),
         formatNum(ds.instances),
         ...(showEffective
           ? [ds.transitiveInstances > 0 ? chalk.dim(`+${ds.transitiveInstances}`) : chalk.dim('—')]
           : []),
-        ...(!hasFamilyCoverage ? [String(ds.uniqueComponents)] : []),
+        String(ds.uniqueComponents),
       ]);
     }
 
@@ -115,14 +106,13 @@ export function printReport(report: ScanReport, verbose = false): void {
       chalk.bold('All DS total'),
       chalk.bold(adoptionColor(summary.adoptionRate)),
       ...(showEffective ? [chalk.bold(adoptionColor(summary.effectiveAdoptionRate))] : []),
-      ...(hasFamilyCoverage ? [chalk.dim('')] : []),
       chalk.bold(formatNum(summary.designSystemTotal.instances)),
       ...(showEffective
         ? [summary.transitiveDS.totalInstances > 0
           ? chalk.dim('+' + formatNum(summary.transitiveDS.totalInstances))
           : chalk.dim('—')]
         : []),
-      ...(!hasFamilyCoverage ? [chalk.bold(String(summary.designSystemTotal.uniqueComponents))] : []),
+      chalk.bold(String(summary.designSystemTotal.uniqueComponents)),
     ]);
 
     console.log(dsTable.toString());
@@ -210,30 +200,25 @@ export function printReport(report: ScanReport, verbose = false): void {
     return formatPct((instances / denominator) * 100);
   }
 
-  // When families are configured, show "Families" column instead of "Unique"
-  const catHasFamilies = summary.designSystems.some(ds => ds.totalFamilies !== undefined);
   const localTotalUnique = summary.localReusable.uniqueComponents + summary.localUnique.uniqueComponents;
 
   const catTable = new Table({
     head: [
       chalk.bold('Category'),
       chalk.bold('Instances'),
-      chalk.bold(catHasFamilies ? 'Families' : 'Unique'),
+      chalk.bold('Unique'),
       chalk.bold('Share (Denom.)'),
     ],
-    colWidths: [25, 12, catHasFamilies ? 14 : 10, 16],
+    colWidths: [25, 12, 10, 16],
     style: { head: [], border: [], compact: true },
     chars: { mid: '', 'left-mid': '', 'mid-mid': '', 'right-mid': '' },
   });
 
   for (const ds of summary.designSystems) {
-    const familyCell = ds.totalFamilies !== undefined
-      ? `${ds.familiesUsed}/${ds.totalFamilies}`
-      : String(ds.uniqueComponents);
     catTable.push([
       `  ├ ${chalk.cyan(ds.name)}`,
       formatNum(ds.instances),
-      familyCell,
+      String(ds.uniqueComponents),
       sharePct(ds.instances),
     ]);
   }

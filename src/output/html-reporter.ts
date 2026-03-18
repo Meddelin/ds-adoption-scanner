@@ -155,12 +155,6 @@ function buildDSCards(report: ScanReport): string {
   );
 
   const cards = summary.designSystems.map(ds => {
-    const familiesRow = ds.totalFamilies !== undefined ? `
-      <div class="ds-card-row">
-        <span class="ds-card-label">Families</span>
-        <span>${ds.familiesUsed}/${ds.totalFamilies}</span>
-      </div>` : '';
-
     const effectiveRow = showEffective ? `
       <div class="ds-card-row">
         <span class="ds-card-label">Effective</span>
@@ -181,7 +175,6 @@ function buildDSCards(report: ScanReport): string {
         ${adoptionBadge(ds.adoptionRate)}
       </div>
       ${effectiveRow}
-      ${familiesRow}
       <div class="ds-card-row">
         <span class="ds-card-label">Direct Instances</span>
         <span>${num(ds.instances)}</span>
@@ -294,23 +287,17 @@ function buildCategoryBreakdown(report: ScanReport): string {
     return `<div class="stacked-seg" style="width:${w}%;background:${s.color}" title="${s.label}: ${num(s.value)} (${showPct(s.value)})">${label}</div>`;
   }).join('');
 
-  const catHasFamilies = summary.designSystems.some(ds => ds.totalFamilies !== undefined);
   const localTotalUnique = summary.localReusable.uniqueComponents + summary.localUnique.uniqueComponents;
 
   const dsRows = summary.designSystems.map(ds => {
-    const familyCell = ds.totalFamilies !== undefined
-      ? `${ds.familiesUsed}/${ds.totalFamilies}`
-      : `${ds.uniqueComponents}`;
     return `
     <tr>
       <td>&nbsp;&nbsp;↳ ${esc(ds.name)}</td>
       <td class="num">${num(ds.instances)}</td>
-      <td class="num">${familyCell}</td>
+      <td class="num">${ds.uniqueComponents}</td>
       <td class="num">${sharePct(ds.instances)}</td>
     </tr>`;
   }).join('');
-
-  const familiesHeader = catHasFamilies ? 'Families Used' : 'Unique';
 
   const localSubRows = locTotal > 0 ? `
         <tr>
@@ -331,7 +318,7 @@ function buildCategoryBreakdown(report: ScanReport): string {
     <div class="section-title">📦 Category Breakdown</div>
     <div class="stacked-wrap">${stackedSegs}</div>
     <table>
-      <thead><tr><th>Category</th><th>Instances</th><th>${familiesHeader}</th><th>Share of denominator</th></tr></thead>
+      <thead><tr><th>Category</th><th>Instances</th><th>Unique</th><th>Share of denominator</th></tr></thead>
       <tbody>
         ${dsRows}
         <tr>

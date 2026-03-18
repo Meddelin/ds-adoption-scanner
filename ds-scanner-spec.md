@@ -1303,3 +1303,4 @@ export const App = () => (
 11. **Транзитивный адопшен использует только DS из конфига** — `transitiveRule.backedBy` должен совпадать с `designSystems[].name`. Если не совпадает — правило игнорируется с предупреждением.
 12. **Авто-детекция только 1 уровень глубины** — не рекурсивно. Если SharedButton.tsx сам импортирует из другой обёртки (не напрямую из DS), авто-детектор не найдёт DS. Рекомендуем declarative rule в таком случае.
 13. **Кеш transitive-resolver** — каждый resolvedPath парсится один раз за скан репозитория. Результат кешируется вне зависимости от того, сколько компонентов на него ссылается.
+> Update v0.5.15: `Per Design System` and `Category Breakdown` no longer display `familiesUsed/totalFamilies`; those sections use `Unique` only.

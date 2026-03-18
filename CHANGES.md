@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.5.15 - Remove DS family ratio from report sections
+
+### Changed
+
+- `Per Design System` no longer shows `familiesUsed/totalFamilies`.
+- `Category Breakdown` now always uses `Unique` for DS rows (no family ratio column values).
+- HTML DS cards no longer render the `Families` row.
+
+---
+
 ## v0.5.14 - Report cleanup for DS families display
 
 ### Changed
