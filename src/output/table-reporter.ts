@@ -119,34 +119,6 @@ export function printReport(report: ScanReport, verbose = false): void {
     console.log();
   }
 
-  // ── DS Pre-Scan (Family Catalog) ─────────────────────────────────────────────
-  if (report.dsPrescan && report.dsPrescan.length > 0) {
-    console.log(chalk.bold('  🎨 Design System Catalog'));
-    console.log(chalk.dim('  ' + '─'.repeat(65)));
-
-    const dsCatalogTable = new Table({
-      head: [
-        chalk.bold('Design System'),
-        chalk.bold('Families'),
-        chalk.bold('Components'),
-      ],
-      colWidths: [34, 14, 14],
-      style: { head: [], border: [], compact: true },
-      chars: { mid: '', 'left-mid': '', 'mid-mid': '', 'right-mid': '' },
-    });
-
-    for (const entry of report.dsPrescan) {
-      dsCatalogTable.push([
-        chalk.cyan(entry.dsName),
-        String(entry.totalFamilies),
-        String(entry.totalComponents),
-      ]);
-    }
-
-    console.log(dsCatalogTable.toString());
-    console.log();
-  }
-
   // ── Library Pre-Scan Results ─────────────────────────────────────────────────
   if (report.libraryPrescan && report.libraryPrescan.length > 0) {
     console.log(chalk.bold('  📚 Library Pre-Scan'));

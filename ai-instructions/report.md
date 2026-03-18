@@ -18,7 +18,8 @@ Read the scan JSON report. Key sections:
     direct DS usages and local-library components that wrap DS components)
   - `topFamilies[]` — top families by usage (instances, filesUsedIn, reposUsedIn)
 - `dsPrescan[]` — per-DS catalog summary (only present when path/git is configured):
-  - `totalFamilies`, `totalComponents`, `familiesCoveredInScan`, `coveragePct`
+  - `dsName`, `totalFamilies`, `totalComponents`
+  - note: DS catalog is available in JSON but not rendered in terminal/HTML report sections
 - `libraryPrescan[]` — per-library pre-scan summary (only present when libraries[] have path/git):
   - `package` — npm package name
   - `backedBy` — DS name this library wraps

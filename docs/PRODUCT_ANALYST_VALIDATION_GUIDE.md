@@ -126,12 +126,15 @@
 - `Transitive Inst.` = `transitive_X`
 
 Важно: `Direct Inst.` **не включает** транзитивные usage.
+Важно: в текущем UI для `Per Design System` не выводится `familiesUsed/totalFamilies`;
+вместо этого показывается `Unique`.
 
 ---
 
 ## 5. Share (Denom.) в Category Breakdown
 
 `Share (Denom.)` для категории — это доля от `denominator`, не от total всех usage.
+В текущем UI в DS-строках `Category Breakdown` также показывается `Unique`, а не `familiesUsed/totalFamilies`.
 
 Проверяемые формулы:
 
@@ -171,7 +174,8 @@
 ### 6.3. `third-party` rules
 
 - при explicit `transitiveRules[].coverage` используется указанное значение (0..1);
-- без explicit coverage сканер пытается определить package-level coverage автоматически;
+- без explicit coverage сканер пытается определить package-level coverage автоматически
+  **только если** `transitiveAdoption.enabled = true`;
 - если определить не удалось, usage не учитывается транзитивно (консервативный режим).
 
 ---
@@ -188,6 +192,9 @@
 
 - direct DS usage с определённой `componentFamily`;
 - транзитивные usage с `componentFamily` и `transitiveDS.dsName = эта DS`.
+
+Примечание: это JSON-метрики (`summary.designSystems[]`). Они валидируются аналитиком по JSON,
+даже если не отображаются в `Per Design System` и `Category Breakdown`.
 
 ---
 
@@ -284,4 +291,3 @@ ds-scanner analyze --config .ds-scanner.config.ts --output .ds-metrics/validatio
      - `adoptionRate`
      - `effectiveAdoptionRate`
      - сумма `Share (Denom.)`
-

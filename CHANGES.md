@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.5.16 - Remove Design System Catalog from rendered reports
+
+### Changed
+
+- Removed `🎨 Design System Catalog` section from terminal table output.
+- Removed `🎨 Design System Catalog` section from HTML output.
+- Kept `dsPrescan` in JSON for analytical use; change affects rendering only.
+
+---
+
 ## v0.5.15 - Remove DS family ratio from report sections
 
 ### Changed

@@ -190,26 +190,6 @@ function buildDSCards(report: ScanReport): string {
   </div>`;
 }
 
-function buildDSCatalog(report: ScanReport): string {
-  if (!report.dsPrescan || report.dsPrescan.length === 0) return '';
-
-  const rows = report.dsPrescan.map(entry => `
-    <tr>
-      <td>${esc(entry.dsName)}</td>
-      <td class="num">${entry.totalFamilies}</td>
-      <td class="num">${entry.totalComponents}</td>
-    </tr>`).join('');
-
-  return `
-  <div class="section">
-    <div class="section-title">🎨 Design System Catalog</div>
-    <table>
-      <thead><tr><th>Design System</th><th>Families</th><th>Components</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-  </div>`;
-}
-
 function buildLibraryPrescan(report: ScanReport): string {
   if (!report.libraryPrescan || report.libraryPrescan.length === 0) return '';
 
@@ -510,7 +490,6 @@ export function formatHTML(report: ScanReport): string {
     buildHeader(report),
     buildHeroCards(report),
     buildDSCards(report),
-    buildDSCatalog(report),
     buildLibraryPrescan(report),
     buildCategoryBreakdown(report),
     buildRepositoryBreakdown(report),

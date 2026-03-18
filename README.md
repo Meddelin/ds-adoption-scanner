@@ -11,10 +11,6 @@ DS Name       Direct%   Effective%   Direct Inst.   Transitive Inst.   Unique
 Ant Design     68.6%      79.7%            35               +28           26
 All DS total   68.6%      79.7%            35               +28           26
 
-🎨 Design System Catalog
-DS          Families   Components
-Ant Design       15           38
-
 🗂️ Top Families per DS — Ant Design
 Family       Components   Instances   Files   Repos
 Button              2           18       8       2
@@ -519,7 +515,7 @@ ant-design-pro     68.6%       68.6%      79.7%      31.4%
 
 ### HTML (всегда, `ds-report.html`)
 
-Самодостаточный HTML-файл (без внешних зависимостей). Содержит все секции: hero-карточки с adoption rate, разбивку по DS, DS Catalog, семьи компонентов, Local Families, разбивку по репозиториям. Можно отправить по почте или открыть офлайн.
+Самодостаточный HTML-файл (без внешних зависимостей). Содержит все секции: hero-карточки с adoption rate, разбивку по DS, семьи компонентов, Local Families, разбивку по репозиториям. Можно отправить по почте или открыть офлайн.
 
 ### CSV (опционально)
 

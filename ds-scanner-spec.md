@@ -1269,7 +1269,7 @@ export const App = () => (
 43. `scanner/orchestrator.ts` — Stage 0 DS prescan (первым); Stage 0.5 library prescan получает DSCatalog; Stage 4.5 family enrichment; передать `dsCatalog` в `aggregateResults`
 44. `metrics/calculator.ts` — опциональный `catalog?: DSCatalog` в `calculateMetrics`/`calculatePerDSMetrics`; `buildTopFamilies(dsUsages, transitiveUsages)`; **единый** расчёт `familyCoverage`: `Set([direct DS families] ∪ [transitive local-lib families]).size / totalFamilies * 100`. Только полностью кастомные компоненты (без `transitiveDS`) исключены из подсчёта.
 45. `metrics/aggregator.ts` — пробросить `dsCatalog` через `aggregateResults` → `buildRepositoryReport` → `buildByComponent`; propagate family fields в отчёт
-46. `output/table-reporter.ts` — колонка `Families` в DS-таблице; секция `🎨 Design System Catalog`; секция `🗂️ Top Families per DS`
+46. `output/table-reporter.ts` - DS table uses `Unique`; terminal/HTML do not render `Design System Catalog`; `Top Families per DS` section remains.
 
 ### Phase 8: Local Library Family Grouping (v0.5.3–v0.5.4)
 47. `config/schema.ts` — `componentsDir?: string` в `LibrarySource`: суб-путь внутри корня библиотеки, от которого начинается группировка по семьям (нужен для структур типа `src/components/spirit-ui/{family}/`)
@@ -1304,3 +1304,5 @@ export const App = () => (
 12. **Авто-детекция только 1 уровень глубины** — не рекурсивно. Если SharedButton.tsx сам импортирует из другой обёртки (не напрямую из DS), авто-детектор не найдёт DS. Рекомендуем declarative rule в таком случае.
 13. **Кеш transitive-resolver** — каждый resolvedPath парсится один раз за скан репозитория. Результат кешируется вне зависимости от того, сколько компонентов на него ссылается.
 > Update v0.5.15: `Per Design System` and `Category Breakdown` no longer display `familiesUsed/totalFamilies`; those sections use `Unique` only.
+
+> Update v0.5.16: `Design System Catalog` section is removed from terminal/HTML renderers (JSON `dsPrescan` remains available).
