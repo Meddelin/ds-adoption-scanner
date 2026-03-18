@@ -5,7 +5,10 @@ import type { ResolvedConfig } from '../../src/config/schema.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function makeConfig(dsNames = ['TUI', 'Beaver']): ResolvedConfig {
+function makeConfig(
+  dsNames = ['TUI', 'Beaver'],
+  overrides: Partial<ResolvedConfig> = {}
+): ResolvedConfig {
   return {
     repositories: [],
     designSystems: dsNames.map(name => ({ name, packages: [`@${name.toLowerCase()}/components`] })),
@@ -17,6 +20,12 @@ function makeConfig(dsNames = ['TUI', 'Beaver']): ResolvedConfig {
     historyDir: '.ds-metrics',
     output: { format: 'table', verbose: false },
     thresholds: {},
+    transitiveRules: [],
+    transitiveAdoption: { enabled: false },
+    libraries: [],
+    excludeLocalFromAdoption: false,
+    excludeUniqueLocalFromAdoption: false,
+    ...overrides,
   };
 }
 
@@ -105,6 +114,71 @@ describe('calculateMetrics — adoption formula', () => {
   });
 });
 
+// ── Denominator-scoped totals ────────────────────────────────────────────────
+
+describe('calculateMetrics — totalComponentInstances', () => {
+  it('excludes third-party and html-native from totalComponentInstances', () => {
+    const usages: CategorizedUsage[] = [
+      makeUsage('Button', 'design-system', 'TUI'),
+      makeUsage('SharedLayout', 'local-library'),
+      makeUsage('CustomCard', 'local'),
+      makeUsage('Select', 'third-party'),
+      makeUsage('div', 'html-native'),
+    ];
+
+    const metrics = calculateMetrics(usages, makeConfig(), 1);
+    expect(metrics.totalComponentInstances).toBe(3); // DS + local-library + local
+  });
+
+  it('respects excludeLocalFromAdoption for totalComponentInstances', () => {
+    const usages: CategorizedUsage[] = [
+      makeUsage('Button', 'design-system', 'TUI'),
+      makeUsage('SharedLayout', 'local-library'),
+      makeUsage('CustomCard', 'local'),
+      makeUsage('PageBlock', 'local'),
+      makeUsage('Select', 'third-party'),
+    ];
+
+    const metrics = calculateMetrics(
+      usages,
+      makeConfig(['TUI'], { excludeLocalFromAdoption: true }),
+      1
+    );
+    expect(metrics.totalComponentInstances).toBe(2); // DS + local-library
+  });
+
+  it('respects excludeUniqueLocalFromAdoption for totalComponentInstances', () => {
+    const reusableA = {
+      ...makeUsage('ReusableBlock', 'local', null, '/repo/src/pages/A.tsx'),
+      resolvedPath: '/repo/src/components/ReusableBlock.tsx',
+    };
+    const reusableB = {
+      ...makeUsage('ReusableBlock', 'local', null, '/repo/src/pages/B.tsx'),
+      resolvedPath: '/repo/src/components/ReusableBlock.tsx',
+    };
+    const unique = {
+      ...makeUsage('UniqueCard', 'local', null, '/repo/src/pages/C.tsx'),
+      resolvedPath: '/repo/src/components/UniqueCard.tsx',
+    };
+
+    const usages: CategorizedUsage[] = [
+      makeUsage('Button', 'design-system', 'TUI'),
+      makeUsage('SharedLayout', 'local-library'),
+      reusableA,
+      reusableB,
+      unique,
+      makeUsage('Select', 'third-party'),
+    ];
+
+    const metrics = calculateMetrics(
+      usages,
+      makeConfig(['TUI'], { excludeUniqueLocalFromAdoption: true }),
+      3
+    );
+    expect(metrics.totalComponentInstances).toBe(4); // DS + local-library + reusable locals only
+  });
+});
+
 // ── Per-DS breakdown ──────────────────────────────────────────────────────────
 
 describe('calculateMetrics — per-DS breakdown', () => {
@@ -182,27 +256,6 @@ describe('calculateMetrics — category metrics', () => {
     const btn = metrics.designSystemTotal.topComponents.find(c => c.name === 'Button')!;
     expect(btn.filesUsedIn).toBe(2);
     expect(btn.instances).toBe(3);
-  });
-});
-
-// ── File penetration ──────────────────────────────────────────────────────────
-
-describe('calculateMetrics — file penetration', () => {
-  it('calculates file penetration correctly', () => {
-    const usages: CategorizedUsage[] = [
-      makeUsage('Button', 'design-system', 'TUI', '/repo/src/A.tsx'),
-      makeUsage('Input', 'local', null, '/repo/src/B.tsx'),
-    ];
-
-    // 1 of 2 files has DS import
-    const metrics = calculateMetrics(usages, makeConfig(), 2);
-    expect(metrics.filePenetration).toBeCloseTo(50, 5);
-  });
-
-  it('returns 0 penetration when no DS usage', () => {
-    const usages: CategorizedUsage[] = [makeUsage('Card', 'local')];
-    const metrics = calculateMetrics(usages, makeConfig(), 3);
-    expect(metrics.filePenetration).toBe(0);
   });
 });
 

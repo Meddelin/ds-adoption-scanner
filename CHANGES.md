@@ -1,5 +1,94 @@
 # Changelog
 
+## v0.5.13 — Product analytics validation guide
+
+### Docs
+
+- Added a full validation playbook for product analysts:
+  - [docs/PRODUCT_ANALYST_VALIDATION_GUIDE.md](C:/Users/crash/beaver-analysis/docs/PRODUCT_ANALYST_VALIDATION_GUIDE.md)
+- Includes:
+  - formal definitions of all core metrics,
+  - direct/effective adoption formulas,
+  - per-DS formulas,
+  - denominator and share invariants,
+  - transitive coverage behavior,
+  - family coverage behavior,
+  - step-by-step manual validation checklist.
+
+---
+
+## v0.5.12 — Per-DS column labels clarified
+
+### Changed
+
+- `Per Design System` table columns renamed for clarity:
+  - `Instances` → `Direct Instances`
+  - `+Transitive` → `Transitive Instances`
+- `Category Breakdown` column renamed:
+  - `Share` → `Share (Denominator)`
+- `All DS total` row now shows total transitive instances in the transitive column.
+- HTML DS cards now show separate rows for direct and transitive instance counts.
+
+---
+
+## v0.5.11 — Total Instances excludes denominator-excluded categories
+
+### Changed
+
+- `summary.totalComponentInstances` now counts only categories included in the **direct adoption denominator**:
+  - included: `design-system`, `local-library`, and local usages allowed by `excludeLocalFromAdoption` / `excludeUniqueLocalFromAdoption`
+  - excluded: `third-party`, `html-native`, and local usages excluded by config
+- `Total Instances` card in HTML now follows the same denominator-scoped rule.
+
+### Tests
+
+- Added unit tests in `tests/unit/calculator.test.ts` for:
+  - exclusion of third-party/html-native
+  - `excludeLocalFromAdoption`
+  - `excludeUniqueLocalFromAdoption`
+
+---
+
+## v0.5.10 — Report cleanup: remove File Penetration and Relative Usage
+
+### Changed
+
+- Removed `filePenetration` from metrics and JSON report contract:
+  - `ScanMetrics.filePenetration`
+  - `DesignSystemMetrics.filePenetration`
+  - `ScanReport.summary.filePenetration`
+  - `ScanReport.summary.designSystems[].filePenetration`
+- Removed "Files w/ DS" from terminal and HTML report sections.
+- Removed "Relative usage" columns from HTML tables:
+  - Top Families per DS
+  - Local Component Families
+
+### Fix
+
+- `Category Breakdown` now uses `localInDenominator` for `Local/Custom` share, so share values do not exceed `100%` when `excludeUniqueLocalFromAdoption=true`.
+
+### Tests
+
+- Removed file-penetration unit tests from `tests/unit/calculator.test.ts` in line with the new schema.
+
+---
+
+## v0.5.9 — DevEx: persistent task bootstrap for Codex
+
+### Added
+
+- `.codex/PROJECT_CONTEXT.md` — persistent architecture summary, critical rules, and done checklist
+- `.codex/TASK_PLAYBOOK.md` — repeatable workflow and change-type testing matrix
+- `.codex/SESSION_MEMORY.md` — rolling memory with baseline checks and follow-up template
+- `scripts/codex-bootstrap.mjs` + `npm run codex:bootstrap` — quick snapshot of git state, codebase stats, and core commands
+
+### Docs
+
+- `AGENTS.md` — new "Codex Persistent Bootstrap" section with startup sequence
+- `README.md` — development section now includes bootstrap command, `.codex/` files, and usage flow
+
+---
+
 ## v0.5.8 — Fix: effective adoption now reflects family-level DS-backing
 
 ### Fix: Pass 4 propagates DS-backing from family to all sibling components

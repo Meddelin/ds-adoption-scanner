@@ -75,16 +75,15 @@ export function printReport(report: ScanReport, verbose = false): void {
       chalk.bold('Direct%'),
       ...(showEffective ? [chalk.bold('Effective%')] : []),
       ...(hasFamilyCoverage ? [chalk.bold('Families')] : []),
-      chalk.bold('Instances'),
-      ...(showEffective ? [chalk.bold('+Transitive')] : []),
+      chalk.bold('Direct Inst.'),
+      ...(showEffective ? [chalk.bold('Transitive Inst.')] : []),
       ...(!hasFamilyCoverage ? [chalk.bold('Unique')] : []),
-      chalk.bold('Files w/ DS'),
     ];
     const colWidths = (() => {
-      if (showEffective && hasFamilyCoverage) return [20, 11, 13, 18, 12, 13, 14];
-      if (showEffective) return [20, 11, 13, 12, 13, 10, 14];
-      if (hasFamilyCoverage) return [20, 11, 18, 12, 14];
-      return [20, 12, 12, 10, 14];
+      if (showEffective && hasFamilyCoverage) return [20, 11, 13, 18, 14, 16];
+      if (showEffective) return [20, 11, 13, 14, 16, 10];
+      if (hasFamilyCoverage) return [20, 11, 18, 14];
+      return [20, 12, 14, 10];
     })();
 
     const dsTable = new Table({
@@ -109,7 +108,6 @@ export function printReport(report: ScanReport, verbose = false): void {
           ? [ds.transitiveInstances > 0 ? chalk.dim(`+${ds.transitiveInstances}`) : chalk.dim('—')]
           : []),
         ...(!hasFamilyCoverage ? [String(ds.uniqueComponents)] : []),
-        formatPct(ds.filePenetration),
       ]);
     }
 
@@ -119,9 +117,12 @@ export function printReport(report: ScanReport, verbose = false): void {
       ...(showEffective ? [chalk.bold(adoptionColor(summary.effectiveAdoptionRate))] : []),
       ...(hasFamilyCoverage ? [chalk.dim('')] : []),
       chalk.bold(formatNum(summary.designSystemTotal.instances)),
-      ...(showEffective ? [chalk.dim('')] : []),
+      ...(showEffective
+        ? [summary.transitiveDS.totalInstances > 0
+          ? chalk.dim('+' + formatNum(summary.transitiveDS.totalInstances))
+          : chalk.dim('—')]
+        : []),
       ...(!hasFamilyCoverage ? [chalk.bold(String(summary.designSystemTotal.uniqueComponents))] : []),
-      chalk.bold(formatPct(summary.filePenetration)),
     ]);
 
     console.log(dsTable.toString());
@@ -221,9 +222,9 @@ export function printReport(report: ScanReport, verbose = false): void {
       chalk.bold('Category'),
       chalk.bold('Instances'),
       chalk.bold(catHasFamilies ? 'Families' : 'Unique'),
-      chalk.bold('Share'),
+      chalk.bold('Share (Denom.)'),
     ],
-    colWidths: [25, 12, catHasFamilies ? 14 : 10, 12],
+    colWidths: [25, 12, catHasFamilies ? 14 : 10, 16],
     style: { head: [], border: [], compact: true },
     chars: { mid: '', 'left-mid': '', 'mid-mid': '', 'right-mid': '' },
   });
@@ -251,7 +252,7 @@ export function printReport(report: ScanReport, verbose = false): void {
     chalk.dim('Local/Custom'),
     chalk.dim(formatNum(localTotal)),
     chalk.dim(String(localTotalUnique)),
-    chalk.dim(excludeLocal ? 'excluded' : sharePct(localTotal)),
+    chalk.dim(excludeLocal ? 'excluded' : sharePct(localInDenominator)),
   ]);
 
   if (summary.localReusable.instances > 0 || summary.localUnique.instances > 0) {

@@ -7,9 +7,9 @@ CLI-инструмент для измерения adoption дизайн-сис�
 📊 Effective Adoption:   79.7%  ████████████████████████░░░░░░  (+11.1% via transitive)
 
 📐 Per Design System
-DS Name       Direct%   Effective%   Families    Instances  +Transitive  Unique  Files w/ DS
-Ant Design     68.6%      79.7%      9/15 60.0%     35        +28         26     100.0%
-All DS total   68.6%      79.7%                     35                    26      77.8%
+DS Name       Direct%   Effective%   Families    Direct Inst.   Transitive Inst.   Unique
+Ant Design     68.6%      79.7%      9/15 60.0%       35               +28            26
+All DS total   68.6%      79.7%                       35               +28            26
 
 🎨 Design System Catalog
 DS          Families   Components   Families Used   Coverage
@@ -436,8 +436,8 @@ ds-scanner init
 📊 Effective Adoption:   79.7%  ████████████████████████░░░░░░  (+11.1% via transitive)
 
 📐 Per Design System
-DS Name       Direct%   Effective%   Instances  +Transitive  Unique  Files w/ DS
-Ant Design     68.6%      79.7%          35        +28         26     100.0%
+DS Name       Direct%   Effective%   Direct Inst.   Transitive Inst.   Unique
+Ant Design     68.6%      79.7%            35              +28           26
 
 📦 Category Breakdown
  ├ Ant Design          35        26      68.6%
@@ -474,8 +474,7 @@ ant-design-pro     68.6%       68.6%      79.7%      31.4%
         "effectiveAdoptionRate": 68.4,   // ← новый
         "instances": 487,
         "transitiveInstances": 312,      // ← новый: через @ant-design/pro-components
-        "uniqueComponents": 32,
-        "filePenetration": 61.2
+        "uniqueComponents": 32
       }
     ],
     "localLibrary": { "instances": 0, ... },
@@ -773,18 +772,28 @@ npm run build
 # Разработка с watch
 npm run dev
 
-# Тесты (157 тестов)
+# Тесты (158 тестов)
 npm test
 npm run test:unit          # только unit
 npm run test:integration   # только integration
 
 # Линтинг
 npm run lint
+
+# Быстрый bootstrap-контекст для AI/разработки
+npm run codex:bootstrap
+npm run codex:bootstrap -- --with-checks
 ```
 
 ### Структура проекта
 
 ```
+.codex/
+├── PROJECT_CONTEXT.md         # Короткий постоянный контекст проекта для старта задач
+├── TASK_PLAYBOOK.md           # Пошаговый playbook + матрица "тип изменения -> тесты"
+└── SESSION_MEMORY.md          # Короткая rolling-память по последним задачам/выводам
+scripts/
+└── codex-bootstrap.mjs        # Быстрый срез состояния репозитория (git + файлы + команды)
 src/
 ├── cli.ts                     # Entry point, commander
 ├── types.ts                   # Все TypeScript-типы
@@ -824,3 +833,18 @@ ai-instructions/
 ├── report.md
 └── transitive-adoption.md
 ```
+
+### Контекст для следующих задач
+
+Чтобы не начинать каждый раз с нуля:
+
+1. Запусти `npm run codex:bootstrap`
+2. Прочитай `.codex/PROJECT_CONTEXT.md`
+3. Следуй `.codex/TASK_PLAYBOOK.md`
+4. После завершения задачи добавь короткую запись в `.codex/SESSION_MEMORY.md`
+
+### Валидация метрик для продуктового аналитика
+
+Подробный гайд по проверке корректности расчётов (термины, формулы, инварианты, чеклист):
+
+- [docs/PRODUCT_ANALYST_VALIDATION_GUIDE.md](C:/Users/crash/beaver-analysis/docs/PRODUCT_ANALYST_VALIDATION_GUIDE.md)

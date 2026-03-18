@@ -534,8 +534,7 @@ interface ScanMetrics {
   htmlNative: CategoryMetrics;
 
   // Дополнительные
-  filePenetration: number;       // % файлов с хотя бы одним DS-импортом
-  totalComponentInstances: number; // Общее кол-во JSX (без HTML)
+  totalComponentInstances: number; // Кол-во инстансов в знаменателе direct adoption
   filesScanned: number;
 }
 
@@ -550,7 +549,6 @@ interface DesignSystemMetrics {
   transitiveWeighted: number;    // Взвешенная сумма транзитивных (coverage)
   uniqueComponents: number;
   topComponents: ComponentStat[];
-  filePenetration: number;       // % файлов с импортом из ЭТОЙ DS
 }
 
 interface CategoryMetrics {
@@ -914,8 +912,7 @@ interface ScanReport {
   summary: {
     adoptionRate: number;           // Прямой (только явные DS-импорты)
     effectiveAdoptionRate: number;  // С учётом транзитивного адопшена
-    totalComponentInstances: number;
-    filePenetration: number;
+    totalComponentInstances: number; // DS + local-library + local(по правилам exclude*)
 
     // Per-DS breakdown
     designSystems: {
@@ -925,7 +922,6 @@ interface ScanReport {
       instances: number;
       transitiveInstances: number;
       uniqueComponents: number;
-      filePenetration: number;
     }[];
 
     // Суммарные категории
@@ -1021,16 +1017,16 @@ interface RepositoryReport {
 
   📐 Per Design System
   ──────────────────────────────────────────────────────────────────
-  DS Name        Direct%   Effective%   Instances   +Transitive   Files
+  DS Name        Direct%   Effective%   Direct Inst.   Transitive Inst.   Unique
   ──────────────────────────────────────────────────────────────────
-  TUI              41.2%      47.8%       5,131         +62        67%
-  Beaver           26.2%      26.3%       3,263         +12        48%
+  TUI              41.2%      47.8%         5,131             +62          32
+  Beaver           26.2%      26.3%         3,263             +12          15
   ──────────────────────────────────────────────────────────────────
-  All DS total     67.4%      74.1%       8,394         +74        73%
+  All DS total     67.4%      74.1%         8,394             +74          47
 
   📦 Full Category Breakdown
   ─────────────────────────────────────────────────
-  Category            Instances    Unique    Share
+  Category            Instances    Unique    Share (Denom.)
   ─────────────────────────────────────────────────
   ├ TUI                 5,131       32      41.2%
   ├ Beaver              3,263       15      26.2%

@@ -136,13 +136,6 @@ function buildHeroCards(report: ScanReport): string {
       <div class="card-sub">${bar(summary.effectiveAdoptionRate)} <span style="color:var(--muted);font-size:11px">+${pct(summary.effectiveAdoptionRate - summary.adoptionRate)} transitive</span></div>
     </div>` : '';
 
-  const filePenCard = `
-    <div class="card">
-      <div class="card-title">File Penetration</div>
-      <div class="card-value ${adoptClass(summary.filePenetration)}">${pct(summary.filePenetration)}</div>
-      <div class="card-sub">${bar(summary.filePenetration)}</div>
-    </div>`;
-
   const totalCard = `
     <div class="card">
       <div class="card-title">Total Instances</div>
@@ -150,7 +143,7 @@ function buildHeroCards(report: ScanReport): string {
       <div class="card-sub" style="color:var(--muted)">DS: ${num(summary.designSystemTotal.instances)}</div>
     </div>`;
 
-  return `<div class="cards">${directCard}${effectiveCard}${filePenCard}${totalCard}</div>`;
+  return `<div class="cards">${directCard}${effectiveCard}${totalCard}</div>`;
 }
 
 function buildDSCards(report: ScanReport): string {
@@ -175,6 +168,12 @@ function buildDSCards(report: ScanReport): string {
         ${adoptionBadge(ds.effectiveAdoptionRate)}
       </div>` : '';
 
+    const transitiveRow = showEffective ? `
+      <div class="ds-card-row">
+        <span class="ds-card-label">Transitive Instances</span>
+        <span>${num(ds.transitiveInstances)}</span>
+      </div>` : '';
+
     return `
     <div class="ds-card">
       <div class="ds-card-name">${esc(ds.name)}</div>
@@ -185,13 +184,10 @@ function buildDSCards(report: ScanReport): string {
       ${effectiveRow}
       ${familiesRow}
       <div class="ds-card-row">
-        <span class="ds-card-label">Instances</span>
-        <span>${num(ds.instances)}${ds.transitiveInstances > 0 ? ` <span style="color:var(--muted);font-size:11px">+${ds.transitiveInstances}</span>` : ''}</span>
+        <span class="ds-card-label">Direct Instances</span>
+        <span>${num(ds.instances)}</span>
       </div>
-      <div class="ds-card-row">
-        <span class="ds-card-label">Files w/ DS</span>
-        <span>${pct(ds.filePenetration)}</span>
-      </div>
+      ${transitiveRow}
     </div>`;
   }).join('');
 
@@ -356,7 +352,7 @@ function buildCategoryBreakdown(report: ScanReport): string {
           <td class="muted">Local/Custom</td>
           <td class="num muted">${num(locTotal)}</td>
           <td class="num muted">${localTotalUnique}</td>
-          <td class="num muted">${excludeLocal ? 'excluded' : sharePct(locTotal)}</td>
+          <td class="num muted">${excludeLocal ? 'excluded' : sharePct(localInDenominator)}</td>
         </tr>
         ${localSubRows}
         <tr>
@@ -423,16 +419,10 @@ function buildTopFamilies(report: ScanReport): string {
   const hasFamilies = byComponent.designSystems.some(ds => ds.topFamilies && ds.topFamilies.length > 0);
   if (!hasFamilies) return '';
 
-  const maxInstances = Math.max(
-    ...byComponent.designSystems.flatMap(ds => (ds.topFamilies ?? []).map(f => f.instances)),
-    1
-  );
-
   const dsSections = byComponent.designSystems.map(ds => {
     if (!ds.topFamilies || ds.topFamilies.length === 0) return '';
     const top = ds.topFamilies.slice(0, 10);
     const rows = top.map(fam => {
-      const famPct = (fam.instances / maxInstances) * 100;
       const subcomps = fam.components.length > 1
         ? `<span style="color:var(--muted);font-size:11px"> [${esc(fam.components.join(', '))}]</span>`
         : '';
@@ -441,7 +431,6 @@ function buildTopFamilies(report: ScanReport): string {
         <td>${esc(fam.family)}${subcomps}</td>
         <td class="num">${num(fam.instances)}</td>
         <td class="num">${num(fam.filesUsedIn)}</td>
-        <td><div class="bar-wrap">${bar(famPct, `${num(fam.instances)} instances`)}</div></td>
       </tr>`;
     }).join('');
 
@@ -449,7 +438,7 @@ function buildTopFamilies(report: ScanReport): string {
     <div style="margin-bottom:20px">
       <div style="font-weight:600;color:var(--ds);margin-bottom:8px">${esc(ds.name)}</div>
       <table>
-        <thead><tr><th>Family</th><th>Instances</th><th>Files</th><th>Relative usage</th></tr></thead>
+        <thead><tr><th>Family</th><th>Instances</th><th>Files</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>`;
@@ -502,16 +491,13 @@ function buildLocalFamilies(report: ScanReport): string {
   const families = report.byComponent.localTopFamilies;
   if (!families || families.length === 0) return '';
 
-  const maxInstances = Math.max(...families.map(f => f.instances), 1);
   const rows = families.slice(0, 15).map(fam => {
-    const famPct = (fam.instances / maxInstances) * 100;
     return `
     <tr>
       <td>${esc(fam.family)}</td>
       <td class="num">${num(fam.components.length)}</td>
       <td class="num">${num(fam.instances)}</td>
       <td class="num">${num(fam.filesUsedIn)}</td>
-      <td><div class="bar-wrap">${bar(famPct, `${num(fam.instances)} instances`)}</div></td>
     </tr>`;
   }).join('');
 
@@ -519,7 +505,7 @@ function buildLocalFamilies(report: ScanReport): string {
   <div class="section">
     <div class="section-title">🗂️ Local Component Families</div>
     <table>
-      <thead><tr><th>Family</th><th>Components</th><th>Instances</th><th>Files</th><th>Relative usage</th></tr></thead>
+      <thead><tr><th>Family</th><th>Components</th><th>Instances</th><th>Files</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
   </div>`;

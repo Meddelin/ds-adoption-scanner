@@ -97,7 +97,6 @@ export interface DesignSystemMetrics {
   transitiveWeighted: number;      // Sum of coverage values for transitive usages
   uniqueComponents: number;
   topComponents: ComponentStat[];
-  filePenetration: number;
 
   // Family coverage — only present when DS was pre-scanned with path/git
   totalFamilies?: number;           // Total component families in DS catalog
@@ -121,7 +120,7 @@ export interface ScanMetrics {
   localUnique: CategoryMetrics;    // local components used in exactly 1 file
   thirdParty: CategoryMetrics;
   htmlNative: CategoryMetrics;
-  filePenetration: number;
+  // Count of instances included in direct adoption denominator (DS + local-library + included local)
   totalComponentInstances: number;
   filesScanned: number;
 }
@@ -228,7 +227,6 @@ export interface ScanReport {
       byDS: { name: string; instances: number; weightedInstances: number }[];
     };
     totalComponentInstances: number;
-    filePenetration: number;
     designSystems: {
       name: string;
       adoptionRate: number;
@@ -236,7 +234,6 @@ export interface ScanReport {
       instances: number;
       transitiveInstances: number;
       uniqueComponents: number;
-      filePenetration: number;
       totalFamilies?: number;
       familiesUsed?: number;
       familyCoverage?: number;

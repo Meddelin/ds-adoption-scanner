@@ -73,11 +73,9 @@ export function calculateMetrics(
   const thirdParty = buildCategoryMetrics(thirdPartyUsages);
   const htmlNative = buildCategoryMetrics(htmlNativeUsages);
 
-  // File penetration: % of files with at least one DS import
-  const filesWithDS = new Set(dsUsages.map(u => u.filePath)).size;
-  const filePenetration = filesScanned > 0 ? (filesWithDS / filesScanned) * 100 : 0;
-
-  const totalComponentInstances = usages.filter(u => u.category !== 'html-native').length;
+  // Denominator-scoped total: counts only categories that participate in direct adoption.
+  // Excluded categories (third-party, html-native, and optionally local subsets) are not included.
+  const totalComponentInstances = denominator;
 
   return {
     adoptionRate,
@@ -94,7 +92,6 @@ export function calculateMetrics(
     localUnique,
     thirdParty,
     htmlNative,
-    filePenetration,
     totalComponentInstances,
     filesScanned,
   };
@@ -156,13 +153,6 @@ function calculatePerDSMetrics(
       ? ((thisDS.length + transitiveWeighted) / effectiveDenominator) * 100
       : 0;
 
-    // File penetration for this DS
-    const filesWithThisDS = new Set(thisDS.map(u => u.filePath));
-    const totalFiles = new Set(allUsages.map(u => u.filePath)).size;
-    const filePenetration = totalFiles > 0
-      ? (filesWithThisDS.size / totalFiles) * 100
-      : 0;
-
     const metrics = buildCategoryMetrics(thisDS);
 
     // Family coverage (only when DS was pre-scanned with path/git)
@@ -203,7 +193,6 @@ function calculatePerDSMetrics(
       transitiveWeighted,
       uniqueComponents: metrics.uniqueComponents,
       topComponents: metrics.topComponents,
-      filePenetration,
       ...(totalFamilies !== undefined && {
         totalFamilies,
         familiesUsed,

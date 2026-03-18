@@ -26,7 +26,8 @@
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
-    "lint": "eslint src --ext .ts && tsc --noEmit"
+    "lint": "eslint src --ext .ts && tsc --noEmit",
+    "codex:bootstrap": "node ./scripts/codex-bootstrap.mjs"
   },
   "dependencies": {
     "@typescript-eslint/typescript-estree": "^8.0.0",

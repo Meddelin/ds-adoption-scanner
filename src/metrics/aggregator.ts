@@ -65,7 +65,6 @@ export function aggregateResults(
       effectiveAdoptionRate: globalMetrics.effectiveAdoptionRate,
       transitiveDS: globalMetrics.transitiveDS,
       totalComponentInstances: globalMetrics.totalComponentInstances,
-      filePenetration: globalMetrics.filePenetration,
       designSystems: globalMetrics.designSystems.map(ds => ({
         name: ds.name,
         adoptionRate: ds.adoptionRate,
@@ -73,7 +72,6 @@ export function aggregateResults(
         instances: ds.instances,
         transitiveInstances: ds.transitiveInstances,
         uniqueComponents: ds.uniqueComponents,
-        filePenetration: ds.filePenetration,
         ...(ds.totalFamilies !== undefined && {
           totalFamilies: ds.totalFamilies,
           familiesUsed: ds.familiesUsed,
