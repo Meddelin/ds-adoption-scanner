@@ -119,24 +119,13 @@ export async function runScan(
 
   // Attach DS pre-scan summary when designSystems[] were pre-scanned
   if (dsCatalog.size > 0) {
-    const allUsages = repoData.flatMap(r => r.usages);
     report.dsPrescan = [];
     for (const [dsName, families] of dsCatalog) {
       const totalComponents = families.reduce((s, f) => s + f.components.length, 0);
-      const usedFamilies = new Set(
-        allUsages
-          .filter(u => u.category === 'design-system' && u.dsName === dsName && u.componentFamily)
-          .map(u => u.componentFamily!)
-      );
-      const coveragePct = families.length > 0
-        ? (usedFamilies.size / families.length) * 100
-        : 0;
       report.dsPrescan.push({
         dsName,
         totalFamilies: families.length,
         totalComponents,
-        familiesCoveredInScan: usedFamilies.size,
-        coveragePct,
       });
     }
   }

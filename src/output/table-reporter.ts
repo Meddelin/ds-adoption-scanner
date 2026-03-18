@@ -95,7 +95,7 @@ export function printReport(report: ScanReport, verbose = false): void {
 
     for (const ds of summary.designSystems) {
       const familiesCell = ds.totalFamilies !== undefined
-        ? `${ds.familiesUsed}/${ds.totalFamilies} (${formatPct(ds.familyCoverage ?? 0)})`
+        ? `${ds.familiesUsed}/${ds.totalFamilies}`
         : chalk.dim('—');
 
       dsTable.push([
@@ -139,20 +139,17 @@ export function printReport(report: ScanReport, verbose = false): void {
         chalk.bold('Design System'),
         chalk.bold('Families'),
         chalk.bold('Components'),
-        chalk.bold('Scan Coverage'),
       ],
-      colWidths: [24, 12, 14, 32],
+      colWidths: [34, 14, 14],
       style: { head: [], border: [], compact: true },
       chars: { mid: '', 'left-mid': '', 'mid-mid': '', 'right-mid': '' },
     });
 
     for (const entry of report.dsPrescan) {
-      const bar = progressBar(entry.coveragePct, 18);
       dsCatalogTable.push([
         chalk.cyan(entry.dsName),
         String(entry.totalFamilies),
         String(entry.totalComponents),
-        `${entry.familiesCoveredInScan}/${entry.totalFamilies} ${adoptionColor(entry.coveragePct)}  ${bar}`,
       ]);
     }
 
@@ -231,7 +228,7 @@ export function printReport(report: ScanReport, verbose = false): void {
 
   for (const ds of summary.designSystems) {
     const familyCell = ds.totalFamilies !== undefined
-      ? `${ds.familiesUsed}/${ds.totalFamilies} (${formatPct(ds.familyCoverage ?? 0)})`
+      ? `${ds.familiesUsed}/${ds.totalFamilies}`
       : String(ds.uniqueComponents);
     catTable.push([
       `  ├ ${chalk.cyan(ds.name)}`,

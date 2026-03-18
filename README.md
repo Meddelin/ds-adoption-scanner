@@ -7,13 +7,13 @@ CLI-инструмент для измерения adoption дизайн-сис�
 📊 Effective Adoption:   79.7%  ████████████████████████░░░░░░  (+11.1% via transitive)
 
 📐 Per Design System
-DS Name       Direct%   Effective%   Families    Direct Inst.   Transitive Inst.   Unique
-Ant Design     68.6%      79.7%      9/15 60.0%       35               +28            26
-All DS total   68.6%      79.7%                       35               +28            26
+DS Name       Direct%   Effective%   Families   Direct Inst.   Transitive Inst.
+Ant Design     68.6%      79.7%       9/15           35               +28
+All DS total   68.6%      79.7%                      35               +28
 
 🎨 Design System Catalog
-DS          Families   Components   Families Used   Coverage
-Ant Design       15           38               9      60.0%
+DS          Families   Components
+Ant Design       15           38
 
 🗂️ Top Families per DS — Ant Design
 Family       Components   Instances   Files   Repos
@@ -22,7 +22,7 @@ Form                5           12       6       1
 Table               3            5       4       2
 
 📦 Category Breakdown
- ├ Ant Design          35        26      68.6%
+ ├ Ant Design          35       9/15     68.6%
  Local/Custom          16        12      31.4%
    ├ Reusable (≥2f)     6         4      —
    └ Unique (1 file)   10         8      —

@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.5.14 - Report cleanup for DS families display
+
+### Changed
+
+- `Per Design System`: families now shown only as `familiesUsed/totalFamilies`.
+- `Category Breakdown`: DS families column now shown only as `familiesUsed/totalFamilies`.
+- Removed family coverage percent/progress display from the HTML DS cards.
+
+---
+
 ## v0.5.13 — Product analytics validation guide
 
 ### Docs

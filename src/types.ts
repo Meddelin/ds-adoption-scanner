@@ -272,8 +272,6 @@ export interface ScanReport {
     dsName: string;
     totalFamilies: number;
     totalComponents: number;
-    familiesCoveredInScan: number;
-    coveragePct: number;
   }[];
 
   localReuseAnalysis: LocalReuseReport;

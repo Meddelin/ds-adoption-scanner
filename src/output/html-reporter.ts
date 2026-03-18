@@ -158,9 +158,8 @@ function buildDSCards(report: ScanReport): string {
     const familiesRow = ds.totalFamilies !== undefined ? `
       <div class="ds-card-row">
         <span class="ds-card-label">Families</span>
-        <span>${ds.familiesUsed}/${ds.totalFamilies} (${pct(ds.familyCoverage ?? 0)})</span>
-      </div>
-      <div style="margin-bottom:6px">${bar(ds.familyCoverage ?? 0)}</div>` : '';
+        <span>${ds.familiesUsed}/${ds.totalFamilies}</span>
+      </div>` : '';
 
     const effectiveRow = showEffective ? `
       <div class="ds-card-row">
@@ -206,20 +205,13 @@ function buildDSCatalog(report: ScanReport): string {
       <td>${esc(entry.dsName)}</td>
       <td class="num">${entry.totalFamilies}</td>
       <td class="num">${entry.totalComponents}</td>
-      <td>
-        <div class="bar-wrap">
-          <span>${entry.familiesCoveredInScan}/${entry.totalFamilies}</span>
-          ${bar(entry.coveragePct)}
-          <span>${pct(entry.coveragePct)}</span>
-        </div>
-      </td>
     </tr>`).join('');
 
   return `
   <div class="section">
     <div class="section-title">🎨 Design System Catalog</div>
     <table>
-      <thead><tr><th>Design System</th><th>Families</th><th>Components</th><th>Scan Coverage</th></tr></thead>
+      <thead><tr><th>Design System</th><th>Families</th><th>Components</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
   </div>`;
@@ -307,7 +299,7 @@ function buildCategoryBreakdown(report: ScanReport): string {
 
   const dsRows = summary.designSystems.map(ds => {
     const familyCell = ds.totalFamilies !== undefined
-      ? `${ds.familiesUsed}/${ds.totalFamilies} (${pct(ds.familyCoverage ?? 0)})`
+      ? `${ds.familiesUsed}/${ds.totalFamilies}`
       : `${ds.uniqueComponents}`;
     return `
     <tr>
