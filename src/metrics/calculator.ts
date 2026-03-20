@@ -24,9 +24,9 @@ export function calculateMetrics(
   const thirdPartyUsages = byCategory.get('third-party') ?? [];
   const htmlNativeUsages = byCategory.get('html-native') ?? [];
 
-  // Split local into reusable (filesUsedIn >= 2) and unique (filesUsedIn === 1)
+  // Split local into reusable (filesUsedIn >= reusableThreshold) and unique
   const { reusable: localReusableUsages, unique: localUniqueUsages } =
-    splitLocalUsages(localUsages);
+    splitLocalUsages(localUsages, config.reusableThreshold);
 
   // Direct adoption denominator
   const localInDenominator = config.excludeLocalFromAdoption
@@ -40,29 +40,21 @@ export function calculateMetrics(
     ? (dsUsages.length / denominator) * 100
     : 0;
 
-  // Transitive analysis
+  // Transitive analysis — only local-library usages with transitiveDS count toward effective adoption
   const transitiveLocalLib = localLibUsages.filter(u => u.transitiveDS);
-  const transitiveThirdParty = thirdPartyUsages.filter(u => u.transitiveDS);
-  const allTransitive = [...transitiveLocalLib, ...transitiveThirdParty];
 
-  const transitiveWeightedTotal = allTransitive.reduce(
-    (sum, u) => sum + (u.transitiveDS!.coverage),
-    0
-  );
-
-  // Effective adoption: (DS + transitive_weighted) / effective_denominator
-  // third-party with transitiveDS is added to denominator (was previously excluded)
-  const effectiveDenominator = denominator + transitiveThirdParty.length;
+  // Effective adoption: (DS + transitiveLocalLib) / (denominator + transitiveLocalLib)
+  const effectiveDenominator = denominator + transitiveLocalLib.length;
   const effectiveAdoptionRate = effectiveDenominator > 0
-    ? ((dsUsages.length + transitiveWeightedTotal) / effectiveDenominator) * 100
+    ? ((dsUsages.length + transitiveLocalLib.length) / effectiveDenominator) * 100
     : 0;
 
   // Transitive breakdown by DS
-  const transitiveByDS = buildTransitiveByDS(allTransitive, config);
+  const transitiveByDS = buildTransitiveByDS(transitiveLocalLib, config);
 
   // Per-DS metrics
   const designSystems = calculatePerDSMetrics(
-    dsUsages, allTransitive, usages, config, denominator, effectiveDenominator, catalog
+    dsUsages, transitiveLocalLib, usages, config, denominator, effectiveDenominator, catalog
   );
 
   // Total DS category metrics
@@ -81,8 +73,8 @@ export function calculateMetrics(
     adoptionRate,
     effectiveAdoptionRate,
     transitiveDS: {
-      totalInstances: allTransitive.length,
-      weightedInstances: transitiveWeightedTotal,
+      totalInstances: transitiveLocalLib.length,
+      weightedInstances: transitiveLocalLib.length,
       byDS: transitiveByDS,
     },
     designSystems,
@@ -112,7 +104,7 @@ function buildTransitiveByDS(
     const entry = map.get(dsName);
     if (entry) {
       entry.instances++;
-      entry.weightedInstances += usage.transitiveDS!.coverage;
+      entry.weightedInstances += 1;
     }
   }
 
@@ -144,13 +136,12 @@ function calculatePerDSMetrics(
     const thisDS = dsUsages.filter(u => u.dsName === ds.name);
     const adoptionRate = denominator > 0 ? (thisDS.length / denominator) * 100 : 0;
 
-    // Transitive usages attributed to this DS
+    // Transitive local-library usages attributed to this DS
     const thisTransitive = allTransitiveUsages.filter(u => u.transitiveDS?.dsName === ds.name);
     const transitiveInstances = thisTransitive.length;
-    const transitiveWeighted = thisTransitive.reduce((s, u) => s + u.transitiveDS!.coverage, 0);
 
     const effectiveAdoptionRate = effectiveDenominator > 0
-      ? ((thisDS.length + transitiveWeighted) / effectiveDenominator) * 100
+      ? ((thisDS.length + transitiveInstances) / effectiveDenominator) * 100
       : 0;
 
     const metrics = buildCategoryMetrics(thisDS);
@@ -190,7 +181,6 @@ function calculatePerDSMetrics(
       effectiveAdoptionRate,
       instances: thisDS.length,
       transitiveInstances,
-      transitiveWeighted,
       uniqueComponents: metrics.uniqueComponents,
       topComponents: metrics.topComponents,
       ...(totalFamilies !== undefined && {
@@ -239,7 +229,7 @@ function buildTopFamilies(
     .slice(0, 20);
 }
 
-function splitLocalUsages(localUsages: CategorizedUsage[]): {
+function splitLocalUsages(localUsages: CategorizedUsage[], reusableThreshold: number): {
   reusable: CategorizedUsage[];
   unique: CategorizedUsage[];
 } {
@@ -255,7 +245,7 @@ function splitLocalUsages(localUsages: CategorizedUsage[]): {
 
   const reusablePaths = new Set<string>();
   for (const [rp, files] of pathToFiles) {
-    if (files.size >= 2) reusablePaths.add(rp);
+    if (files.size >= reusableThreshold) reusablePaths.add(rp);
   }
 
   const reusable = localUsages.filter(u => u.resolvedPath && reusablePaths.has(u.resolvedPath));

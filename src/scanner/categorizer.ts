@@ -102,11 +102,13 @@ function applyTransitiveRule(
 
   for (const rule of config.transitiveRules) {
     if (matchesPackage(pkgName, rule.package)) {
+      // coverage is a threshold: <= 0 means "don't count", anything > 0 is treated as fully backed (1.0)
+      if (rule.coverage !== undefined && rule.coverage <= 0) return categorized;
       return {
         ...categorized,
         transitiveDS: {
           dsName: rule.backedBy,
-          coverage: rule.coverage ?? 1.0,
+          coverage: 1.0,
           source: 'declared',
         },
       };

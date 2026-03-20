@@ -30,9 +30,9 @@ export interface ThresholdConfig {
 export interface TransitiveRule {
   package: string;    // npm package name or pattern (same syntax as designSystems.packages)
   backedBy: string;   // must match one of designSystems[].name
-  coverage?: number;  // override: 0.0–1.0 fraction of components backed by DS.
-                      // If omitted, auto-detected from source files.
-                      // If source files not available, the rule is skipped (not counted).
+  coverage?: number;  // threshold: if > 0 (or omitted), all matching usages are counted as DS-backed (coverage=1.0).
+                      // Set to 0 to disable transitive counting for this package.
+                      // If omitted, auto-detected from source files when transitiveAdoption.enabled=true.
 }
 
 export interface TransitiveAdoptionConfig {
@@ -71,6 +71,9 @@ export interface DSScannerConfig {
   transitiveRules?: TransitiveRule[];
   transitiveAdoption?: TransitiveAdoptionConfig;
   libraries?: LibrarySource[];
+  // Minimum number of files a local component must be used in to be classified as "reusable".
+  // Default: 2
+  reusableThreshold?: number;
   // When true, local/custom components are excluded from the adoption denominator.
   // Useful when local components are intentional product-specific blocks that are
   // not candidates for DS replacement.
@@ -86,6 +89,7 @@ export interface DSScannerConfig {
 export type ResolvedConfig = Required<Omit<DSScannerConfig, 'thresholds' | 'transitiveAdoption'>> & {
   thresholds: ThresholdConfig;
   transitiveAdoption: Required<TransitiveAdoptionConfig>;
+  reusableThreshold: number;
 };
 
 // Helper function for user configs

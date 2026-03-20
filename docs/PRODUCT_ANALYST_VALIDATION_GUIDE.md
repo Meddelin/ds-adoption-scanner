@@ -31,7 +31,7 @@
   - обычно это `local-library`,
   - иногда `third-party`.
 
-`transitiveDS.coverage` — вес usage в эффективном adoption.
+`transitiveDS.coverage` — бинарное значение: всегда 1.0 (если usage DS-backed) или поле отсутствует.
 
 ---
 
@@ -47,7 +47,6 @@
   - `effectiveAdoptionRate`
   - `instances` (direct)
   - `transitiveInstances`
-  - `transitiveWeighted`
 - `summary.designSystemTotal.instances`
 - `summary.localLibrary.instances`
 - `summary.localReusable.instances`
@@ -97,13 +96,14 @@
 Пусть:
 
 - `transitiveLocalLib = count(local-library usages with transitiveDS)`
-- `transitiveThirdParty = count(third-party usages with transitiveDS)`
-- `transitiveWeightedTotal = sum(usage.transitiveDS.coverage)` по всем usage с `transitiveDS`
 
 Тогда:
 
-- `effectiveDenominator = denominator + transitiveThirdParty`
-- `effectiveAdoptionRate = (DS + transitiveWeightedTotal) / effectiveDenominator * 100`
+- `effectiveDenominator = denominator + transitiveLocalLib`
+- `effectiveAdoptionRate = (DS + transitiveLocalLib) / effectiveDenominator * 100`
+
+Замечание: `third-party` usages с `transitiveDS` **не участвуют** в effective adoption.
+Coverage каждого транзитивного usage всегда равен 1.0 (бинарный: backed или нет).
 
 ---
 
@@ -112,13 +112,12 @@
 Для конкретной DS `X`:
 
 - `direct_X = count(usages where category='design-system' and dsName=X)`
-- `transitive_X = count(usages where transitiveDS.dsName=X)`
-- `transitiveWeighted_X = sum(coverage for usages where transitiveDS.dsName=X)`
+- `transitive_X = count(local-library usages where transitiveDS.dsName=X)`
 
 Формулы:
 
 - `adoptionRate_X = direct_X / denominator * 100`
-- `effectiveAdoptionRate_X = (direct_X + transitiveWeighted_X) / effectiveDenominator * 100`
+- `effectiveAdoptionRate_X = (direct_X + transitive_X) / effectiveDenominator * 100`
 
 В таблице:
 
@@ -171,12 +170,14 @@
 - сканер парсит source-файл компонента;
 - если в файле есть импорт из DS-пакета, ставит `coverage = 1.0`.
 
-### 6.3. `third-party` rules
+### 6.3. `transitiveRules[]` (декларативные правила)
 
-- при explicit `transitiveRules[].coverage` используется указанное значение (0..1);
-- без explicit coverage сканер пытается определить package-level coverage автоматически
+- `transitiveRules[].coverage` — пороговое значение: если > 0 (или не задано), все matching usage
+  получают `coverage = 1.0` (DS-backed); если `coverage = 0`, usage не учитывается транзитивно.
+- без explicit coverage сканер пытается определить backing автоматически через package.json
   **только если** `transitiveAdoption.enabled = true`;
 - если определить не удалось, usage не учитывается транзитивно (консервативный режим).
+- `third-party` usages с `transitiveDS` аннотируются, но **не участвуют** в effective adoption.
 
 ---
 
@@ -228,15 +229,15 @@ ds-scanner analyze --config .ds-scanner.config.ts --output .ds-metrics/validatio
 
 ### Шаг 5. Проверить effective adoption
 
-1. Пересчитать `transitiveWeightedTotal`.
-2. Пересчитать `effectiveDenominator`.
-3. Пересчитать `effectiveAdoptionRate`.
+1. Пересчитать `transitiveLocalLib` (count local-library usages with `transitiveDS`).
+2. Пересчитать `effectiveDenominator = denominator + transitiveLocalLib`.
+3. Пересчитать `effectiveAdoptionRate = (DS + transitiveLocalLib) / effectiveDenominator * 100`.
 
 ### Шаг 6. Проверить Per DS
 
 Для каждой DS:
 
-- пересчитать `direct_X`, `transitive_X`, `transitiveWeighted_X`;
+- пересчитать `direct_X`, `transitive_X` (local-library only);
 - пересчитать `adoptionRate_X`, `effectiveAdoptionRate_X`;
 - проверить соответствие полям в `summary.designSystems[]`.
 
@@ -273,7 +274,7 @@ ds-scanner analyze --config .ds-scanner.config.ts --output .ds-metrics/validatio
 - **Direct adoption**: только явные DS-импорты.
 - **Effective adoption**: direct + транзитивный weighted вклад.
 - **Denominator**: база для долей direct adoption.
-- **Coverage**: вес транзитивного usage в effective adoption.
+- **Coverage**: бинарный флаг транзитивного usage (0 = не backed, 1.0 = DS-backed). Всегда 0 или 1.0.
 - **Family coverage**: доля покрытых DS-families.
 
 ---

@@ -211,34 +211,14 @@ export function printReport(report: ScanReport, verbose = false): void {
 
   if (summary.localReusable.instances > 0 || summary.localUnique.instances > 0) {
     catTable.push([
-      chalk.dim('  ├ Reusable (≥2 files)'),
+      chalk.dim(`  ├ Reusable (≥${meta.reusableThreshold} files)`),
       chalk.dim(formatNum(summary.localReusable.instances)),
       chalk.dim(String(summary.localReusable.uniqueComponents)),
       chalk.dim(excludeLocal ? 'excluded'
         : meta.excludeUniqueLocalFromAdoption ? sharePct(summary.localReusable.instances)
         : chalk.dim('—')),
     ]);
-    catTable.push([
-      chalk.dim('  └ Unique (1 file)'),
-      chalk.dim(formatNum(summary.localUnique.instances)),
-      chalk.dim(String(summary.localUnique.uniqueComponents)),
-      chalk.dim(excludeLocal || meta.excludeUniqueLocalFromAdoption ? 'excluded' : chalk.dim('—')),
-    ]);
   }
-
-  catTable.push([
-    chalk.dim('(Third-party)'),
-    chalk.dim(formatNum(summary.thirdParty.instances)),
-    chalk.dim(String(summary.thirdParty.uniqueComponents)),
-    chalk.dim('excluded'),
-  ]);
-
-  catTable.push([
-    chalk.dim('(HTML native)'),
-    chalk.dim(formatNum(summary.htmlNative.instances)),
-    chalk.dim(String(summary.htmlNative.uniqueComponents)),
-    chalk.dim('excluded'),
-  ]);
 
   console.log(catTable.toString());
   console.log();

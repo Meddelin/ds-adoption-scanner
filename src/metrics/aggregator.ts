@@ -59,6 +59,7 @@ export function aggregateResults(
       designSystemsConfigured: config.designSystems.map(ds => ds.name),
       excludeLocalFromAdoption: config.excludeLocalFromAdoption,
       excludeUniqueLocalFromAdoption: config.excludeUniqueLocalFromAdoption,
+      reusableThreshold: config.reusableThreshold,
     },
     summary: {
       adoptionRate: globalMetrics.adoptionRate,

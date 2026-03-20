@@ -257,8 +257,6 @@ function buildCategoryBreakdown(report: ScanReport): string {
     { label: 'Design System', value: dsTotal, color: 'var(--ds)' },
     { label: 'Local Library', value: libTotal, color: 'var(--lib)' },
     { label: 'Local/Custom', value: locTotal, color: 'var(--loc)' },
-    { label: 'Third-party', value: tpTotal, color: '#94a3b8' },
-    { label: 'HTML native', value: htmlTotal, color: '#cbd5e1' },
   ].filter(s => s.value > 0);
 
   const stackedSegs = segments.map(s => {
@@ -279,18 +277,13 @@ function buildCategoryBreakdown(report: ScanReport): string {
     </tr>`;
   }).join('');
 
+  const reusableThreshold = report.meta.reusableThreshold;
   const localSubRows = locTotal > 0 ? `
         <tr>
-          <td class="muted" style="padding-left:24px">↳ Reusable (≥2 files)</td>
+          <td class="muted" style="padding-left:24px">↳ Reusable (≥${reusableThreshold} files)</td>
           <td class="num muted">${num(locReusable)}</td>
           <td class="num muted">${summary.localReusable.uniqueComponents}</td>
           <td class="num muted">${excludeLocal ? 'excluded' : excludeUniqueLocal ? sharePct(locReusable) : '—'}</td>
-        </tr>
-        <tr>
-          <td class="muted" style="padding-left:24px">↳ Unique (1 file)</td>
-          <td class="num muted">${num(locUnique)}</td>
-          <td class="num muted">${summary.localUnique.uniqueComponents}</td>
-          <td class="num muted">${excludeLocal || excludeUniqueLocal ? 'excluded' : '—'}</td>
         </tr>` : '';
 
   return `
@@ -314,18 +307,6 @@ function buildCategoryBreakdown(report: ScanReport): string {
           <td class="num muted">${excludeLocal ? 'excluded' : sharePct(localInDenominator)}</td>
         </tr>
         ${localSubRows}
-        <tr>
-          <td class="muted">(Third-party)</td>
-          <td class="num muted">${num(tpTotal)}</td>
-          <td class="num muted">${summary.thirdParty.uniqueComponents}</td>
-          <td class="num muted">excluded</td>
-        </tr>
-        <tr>
-          <td class="muted">(HTML native)</td>
-          <td class="num muted">${num(htmlTotal)}</td>
-          <td class="num muted">${summary.htmlNative.uniqueComponents}</td>
-          <td class="num muted">excluded</td>
-        </tr>
       </tbody>
     </table>
   </div>`;

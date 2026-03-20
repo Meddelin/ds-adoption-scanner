@@ -93,8 +93,7 @@ export interface DesignSystemMetrics {
   adoptionRate: number;
   effectiveAdoptionRate: number;   // Including transitive usages backed by this DS
   instances: number;
-  transitiveInstances: number;     // Count of local-lib/third-party usages backed by this DS
-  transitiveWeighted: number;      // Sum of coverage values for transitive usages
+  transitiveInstances: number;     // Count of local-library usages backed by this DS
   uniqueComponents: number;
   topComponents: ComponentStat[];
 
@@ -216,6 +215,7 @@ export interface ScanReport {
     designSystemsConfigured: string[];
     excludeLocalFromAdoption: boolean;
     excludeUniqueLocalFromAdoption: boolean;
+    reusableThreshold: number;
   };
 
   summary: {

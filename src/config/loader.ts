@@ -114,6 +114,7 @@ function mergeWithDefaults(userConfig: DSScannerConfig): ResolvedConfig {
     libraries: userConfig.libraries ?? [],
     excludeLocalFromAdoption: userConfig.excludeLocalFromAdoption ?? false,
     excludeUniqueLocalFromAdoption: userConfig.excludeUniqueLocalFromAdoption ?? false,
+    reusableThreshold: userConfig.reusableThreshold ?? DEFAULT_CONFIG.reusableThreshold!,
   };
 }
 
