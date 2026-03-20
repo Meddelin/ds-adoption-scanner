@@ -316,9 +316,9 @@ adoption_rate = DS / (DS + local_library) × 100
 **Эффективный adoption** (с учётом транзитивных local-library):
 ```
 transitive_local_lib  = count(local-library usages с transitiveDS)
-effective_denominator = denominator + transitive_local_lib
+                        (transitive_local_lib ⊂ L — уже входит в denominator)
 
-effective_adoption_rate = (DS + transitive_local_lib) / effective_denominator × 100
+effective_adoption_rate = (DS + transitive_local_lib) / denominator × 100
 ```
 
 HTML-нативные элементы (`div`, `span`, ...) и third-party пакеты **исключены** из знаменателя — они не являются заменой для DS. В эффективный adoption входят только `local-library` usages с `transitiveDS` (пакеты из `localLibraryPatterns`, у которых обнаружен DS-backing).

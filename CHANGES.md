@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.5.18 — Correct effective denominator, default excludeUniqueLocal=true, family DS-backing propagation
+
+### Changed
+
+- **Effective adoption denominator fix**: `effectiveDenominator` теперь равен `denominator` (так же, как у direct adoption).
+  Ранее к знаменателю ошибочно прибавлялся `transitiveLocalLib`, хотя он уже входит в `L ⊂ denominator`.
+  Формула: `effectiveAdoptionRate = (DS + transitiveLocalLib) / denominator × 100`.
+
+- **Default `excludeUniqueLocalFromAdoption: true`**: уникальные local-компоненты (используемые только в 1 файле)
+  по умолчанию исключены из знаменателя. Поведение можно переопределить в конфиге.
+
+- **Family-level DS-backing propagation (library prescan)**:
+  - Добавлено поле `libBase` в `LibraryRegistry` для вычисления family-сегмента по resolvedPath.
+  - Если компонент не найден в `componentMap`, но его `resolvedPath` попадает в DS-backed family
+    (по `familyMap`), он теперь тоже помечается как `transitiveDS`.
+  - Для auto-detect (`transitiveAdoption.enabled`): после основного прохода все local-library usages
+    в той же директории, что и уже аннотированный usage, также получают `transitiveDS` (propagation по семье).
+
+### Docs
+
+- Обновлены формулы в `docs/PRODUCT_ANALYST_VALIDATION_GUIDE.md`.
+- Обновлена формула effective adoption в `README.md`.
+
+---
+
 ## v0.5.17 — Binary coverage, new effective adoption formula, reusableThreshold, render cleanup
 
 ### Changed
@@ -10,9 +35,9 @@
 
 - **Новая формула эффективного adoption**:
   - Убраны `transitiveThirdParty` и `transitiveWeightedTotal` из формулы.
-  - `effectiveDenominator = denominator + transitiveLocalLib` (только local-library с transitiveDS).
-  - `effectiveAdoptionRate = (DS + transitiveLocalLib) / effectiveDenominator × 100`.
+  - `effectiveAdoptionRate = (DS + transitiveLocalLib) / (denominator + transitiveLocalLib) × 100`.
   - Удалено поле `transitiveWeighted` из `DesignSystemMetrics`.
+  - _(Знаменатель исправлен в v0.5.18 — см. выше.)_
 
 - **`reusableThreshold` в конфиге**: порог числа файлов для отнесения компонента к «переиспользуемым».
   По умолчанию `2`. Хранится в `ScanReport.meta.reusableThreshold`.

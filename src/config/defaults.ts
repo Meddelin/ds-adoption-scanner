@@ -31,4 +31,5 @@ export const DEFAULT_CONFIG: Partial<DSScannerConfig> = {
   },
   thresholds: {},
   reusableThreshold: 2,
+  excludeUniqueLocalFromAdoption: true,
 };

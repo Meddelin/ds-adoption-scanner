@@ -99,10 +99,11 @@
 
 Тогда:
 
-- `effectiveDenominator = denominator + transitiveLocalLib`
+- `effectiveDenominator = denominator` (тот же знаменатель, что и у direct adoption!)
 - `effectiveAdoptionRate = (DS + transitiveLocalLib) / effectiveDenominator * 100`
 
-Замечание: `third-party` usages с `transitiveDS` **не участвуют** в effective adoption.
+Замечание: `transitiveLocalLib ⊂ L`, поэтому L уже включён в `denominator` — добавлять его повторно не нужно.
+`third-party` usages с `transitiveDS` **не участвуют** в effective adoption.
 Coverage каждого транзитивного usage всегда равен 1.0 (бинарный: backed или нет).
 
 ---
@@ -117,7 +118,7 @@ Coverage каждого транзитивного usage всегда равен
 Формулы:
 
 - `adoptionRate_X = direct_X / denominator * 100`
-- `effectiveAdoptionRate_X = (direct_X + transitive_X) / effectiveDenominator * 100`
+- `effectiveAdoptionRate_X = (direct_X + transitive_X) / denominator * 100`
 
 В таблице:
 
@@ -230,8 +231,8 @@ ds-scanner analyze --config .ds-scanner.config.ts --output .ds-metrics/validatio
 ### Шаг 5. Проверить effective adoption
 
 1. Пересчитать `transitiveLocalLib` (count local-library usages with `transitiveDS`).
-2. Пересчитать `effectiveDenominator = denominator + transitiveLocalLib`.
-3. Пересчитать `effectiveAdoptionRate = (DS + transitiveLocalLib) / effectiveDenominator * 100`.
+2. `effectiveDenominator = denominator` (тот же, что в шаге 3 — не меняется!).
+3. Пересчитать `effectiveAdoptionRate = (DS + transitiveLocalLib) / denominator * 100`.
 
 ### Шаг 6. Проверить Per DS
 

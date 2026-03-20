@@ -43,8 +43,9 @@ export function calculateMetrics(
   // Transitive analysis — only local-library usages with transitiveDS count toward effective adoption
   const transitiveLocalLib = localLibUsages.filter(u => u.transitiveDS);
 
-  // Effective adoption: (DS + transitiveLocalLib) / (denominator + transitiveLocalLib)
-  const effectiveDenominator = denominator + transitiveLocalLib.length;
+  // Effective adoption: (DS + transitiveLocalLib) / denominator  (same denominator as direct,
+  // since transitiveLocalLib ⊂ L which is already included in denominator)
+  const effectiveDenominator = denominator;
   const effectiveAdoptionRate = effectiveDenominator > 0
     ? ((dsUsages.length + transitiveLocalLib.length) / effectiveDenominator) * 100
     : 0;

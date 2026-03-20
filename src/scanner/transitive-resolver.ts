@@ -4,7 +4,7 @@ import type { CategorizedUsage } from '../types.js';
 import type { ResolvedConfig } from '../config/schema.js';
 import { parseFile } from './parser.js';
 import { findDesignSystem, matchesPackage } from './categorizer.js';
-import type { LibraryRegistry, LibraryComponentEntry } from './library-prescan.js';
+import type { LibraryRegistry, LibraryComponentEntry, LibraryFamilyEntry } from './library-prescan.js';
 
 export interface TransitiveDetection {
   dsName: string;
@@ -59,7 +59,17 @@ export async function enrichWithTransitiveDS(
       const libEntry = findRegistryEntry(libraryRegistry, usage.packageName);
       if (libEntry !== null) {
         const compEntry = libEntry.componentMap.get(usage.componentName);
-        const isDSBacked = compEntry?.isDSBacked ?? false;
+        let isDSBacked = compEntry?.isDSBacked ?? false;
+
+        // Family fallback: component not indexed but resolvedPath available → check familyMap
+        if (!isDSBacked && usage.resolvedPath && libEntry.libBase) {
+          const rel = path.relative(libEntry.libBase, path.dirname(usage.resolvedPath));
+          const familySegment = rel.split(path.sep)[0];
+          if (familySegment && !familySegment.startsWith('..')) {
+            isDSBacked = libEntry.familyMap.get(familySegment)?.isDSBacked ?? false;
+          }
+        }
+
         if (isDSBacked) {
           result.push({
             ...usage,
@@ -127,6 +137,27 @@ export async function enrichWithTransitiveDS(
     }
 
     result.push(usage);
+  }
+
+  // Gap 3B: propagate family DS-backing for auto-detect (Case 1).
+  // If any local-library usage in a directory was auto-detected as DS-backed,
+  // mark all sibling usages in the same directory (same family) as backed too.
+  if (hasAutoScan) {
+    const dirToDSName = new Map<string, string>();
+    for (const u of result) {
+      if (u.category === 'local-library' && u.transitiveDS?.source === 'auto-detected' && u.resolvedPath) {
+        dirToDSName.set(path.dirname(u.resolvedPath), u.transitiveDS.dsName);
+      }
+    }
+    for (let i = 0; i < result.length; i++) {
+      const u = result[i]!;
+      if (u.category === 'local-library' && !u.transitiveDS && u.resolvedPath) {
+        const dsName = dirToDSName.get(path.dirname(u.resolvedPath));
+        if (dsName) {
+          result[i] = { ...u, transitiveDS: { dsName, coverage: 1.0, source: 'auto-detected' } };
+        }
+      }
+    }
   }
 
   return result;
@@ -222,7 +253,7 @@ function findPackageRoot(packageName: string, repoRoot: string): string | null {
 function findRegistryEntry(
   registry: LibraryRegistry,
   packageName: string
-): { componentMap: Map<string, LibraryComponentEntry>; backedBy: string } | null {
+): { componentMap: Map<string, LibraryComponentEntry>; familyMap: Map<string, LibraryFamilyEntry>; backedBy: string; libBase: string } | null {
   // Exact match first
   if (registry.has(packageName)) return registry.get(packageName)!;
   // Pattern match (supports globs like '@company/*')

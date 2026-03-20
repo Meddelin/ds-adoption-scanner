@@ -26,6 +26,7 @@ export type LibraryRegistry = Map<string, {
   componentMap: Map<string, LibraryComponentEntry>; // per-component lookup (used during scan)
   familyMap: Map<string, LibraryFamilyEntry>;       // directory-level groups for reporting
   backedBy: string;
+  libBase: string;                                  // resolved source root used for family path lookups
 }>;
 
 // ─── Internal types ───────────────────────────────────────────────────────────
@@ -65,8 +66,8 @@ export async function preScanLibraries(
     }
 
     try {
-      const { componentMap, familyMap } = await buildComponentMap(sourceDir, lib, config, dsCatalog);
-      registry.set(lib.package, { componentMap, familyMap, backedBy: lib.backedBy });
+      const { componentMap, familyMap, libBase } = await buildComponentMap(sourceDir, lib, config, dsCatalog);
+      registry.set(lib.package, { componentMap, familyMap, backedBy: lib.backedBy, libBase });
 
       if (verbose) {
         const totalFamilies = familyMap.size;
@@ -170,9 +171,12 @@ async function buildComponentMap(
   lib: LibrarySource,
   config: ResolvedConfig,
   dsCatalog: DSCatalog
-): Promise<{ componentMap: Map<string, LibraryComponentEntry>; familyMap: Map<string, LibraryFamilyEntry> }> {
+): Promise<{ componentMap: Map<string, LibraryComponentEntry>; familyMap: Map<string, LibraryFamilyEntry>; libBase: string }> {
   const files = discoverLibraryFiles(libRoot, lib);
-  if (files.length === 0) return { componentMap: new Map(), familyMap: new Map() };
+  if (files.length === 0) {
+    const libBase = lib.componentsDir ? path.resolve(libRoot, lib.componentsDir) : libRoot;
+    return { componentMap: new Map(), familyMap: new Map(), libBase };
+  }
 
   // Build DS family lookup for this library's backedBy DS
   const dsFamilyLookup = buildDSFamilyLookup(dsCatalog, lib.backedBy);
@@ -262,7 +266,7 @@ async function buildComponentMap(
     }
   }
 
-  return { componentMap, familyMap };
+  return { componentMap, familyMap, libBase: base };
 }
 
 /**
