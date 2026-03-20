@@ -129,7 +129,7 @@ export function printReport(report: ScanReport, verbose = false): void {
         chalk.bold('Package'),
         chalk.bold('Backed by'),
         chalk.bold('Families'),
-        chalk.bold('Coverage'),
+        chalk.bold('Beaver Usage'),
       ],
       colWidths: [36, 16, 13, 32],
       style: { head: [], border: [], compact: true },
@@ -172,8 +172,6 @@ export function printReport(report: ScanReport, verbose = false): void {
     return formatPct((instances / denominator) * 100);
   }
 
-  const localTotalUnique = summary.localReusable.uniqueComponents + summary.localUnique.uniqueComponents;
-
   const catTable = new Table({
     head: [
       chalk.bold('Category'),
@@ -202,21 +200,12 @@ export function printReport(report: ScanReport, verbose = false): void {
     chalk.dim(sharePct(summary.localLibrary.instances)),
   ]);
 
-  catTable.push([
-    chalk.dim('Local/Custom'),
-    chalk.dim(formatNum(localTotal)),
-    chalk.dim(String(localTotalUnique)),
-    chalk.dim(excludeLocal ? 'excluded' : sharePct(localInDenominator)),
-  ]);
-
-  if (summary.localReusable.instances > 0 || summary.localUnique.instances > 0) {
+  if (summary.localReusable.instances > 0) {
     catTable.push([
-      chalk.dim(`  ├ Reusable (≥${meta.reusableThreshold} files)`),
+      chalk.dim('Reusable Custom'),
       chalk.dim(formatNum(summary.localReusable.instances)),
       chalk.dim(String(summary.localReusable.uniqueComponents)),
-      chalk.dim(excludeLocal ? 'excluded'
-        : meta.excludeUniqueLocalFromAdoption ? sharePct(summary.localReusable.instances)
-        : chalk.dim('—')),
+      chalk.dim(excludeLocal ? 'excluded' : sharePct(summary.localReusable.instances)),
     ]);
   }
 
@@ -229,12 +218,14 @@ export function printReport(report: ScanReport, verbose = false): void {
     console.log(chalk.dim('  ' + '─'.repeat(65)));
 
     const dsCols = summary.designSystems.map(ds => ds.name);
+    const dsColHeaders = dsCols.length === 1
+      ? [chalk.bold('Direct Adoption')]
+      : dsCols.map(n => chalk.bold(n));
     const repoTable = new Table({
       head: [
         chalk.bold('Repository'),
-        ...dsCols.map(n => chalk.bold(n)),
-        chalk.bold('Total DS'),
-        ...(hasTransitive ? [chalk.bold('Effective')] : []),
+        ...dsColHeaders,
+        ...(hasTransitive ? [chalk.bold('Effective Adoption')] : []),
         chalk.bold('Local'),
       ],
       style: { head: [], border: [], compact: true },
@@ -252,7 +243,6 @@ export function printReport(report: ScanReport, verbose = false): void {
       repoTable.push([
         repo.name.slice(0, 30),
         ...dsRates,
-        adoptionColor(repo.adoptionRate),
         ...(hasTransitive ? [adoptionColor(repo.effectiveAdoptionRate)] : []),
         chalk.dim(formatPct(localShare)),
       ]);

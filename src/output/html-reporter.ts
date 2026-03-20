@@ -215,7 +215,7 @@ function buildLibraryPrescan(report: ScanReport): string {
   <div class="section">
     <div class="section-title">📚 Library Pre-Scan</div>
     <table>
-      <thead><tr><th>Package</th><th>Backed by DS</th><th>DS-backed / Total Families</th><th>Coverage</th></tr></thead>
+      <thead><tr><th>Package</th><th>Backed by DS</th><th>DS-backed / Total Families</th><th>Beaver Usage</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
   </div>`;
@@ -231,19 +231,6 @@ function buildCategoryBreakdown(report: ScanReport): string {
   const locReusable = summary.localReusable.instances;
   const locUnique = summary.localUnique.instances;
   const locTotal = locReusable + locUnique;
-  const tpTotal = summary.thirdParty.instances;
-  const htmlTotal = summary.htmlNative.instances;
-  const allTotal = dsTotal + libTotal + locTotal + tpTotal + htmlTotal;
-
-  function segPct(n: number) {
-    if (allTotal === 0) return 0;
-    return (n / allTotal) * 100;
-  }
-  function showPct(n: number) {
-    if (allTotal === 0) return '0.0%';
-    return pct((n / allTotal) * 100);
-  }
-
   const localInDenominator = excludeLocal ? 0
     : excludeUniqueLocal ? locReusable
     : locTotal;
@@ -252,20 +239,6 @@ function buildCategoryBreakdown(report: ScanReport): string {
     if (denominator === 0) return '—';
     return pct((n / denominator) * 100);
   }
-
-  const segments = [
-    { label: 'Design System', value: dsTotal, color: 'var(--ds)' },
-    { label: 'Local Library', value: libTotal, color: 'var(--lib)' },
-    { label: 'Local/Custom', value: locTotal, color: 'var(--loc)' },
-  ].filter(s => s.value > 0);
-
-  const stackedSegs = segments.map(s => {
-    const w = segPct(s.value).toFixed(1);
-    const label = parseFloat(w) > 8 ? s.label : '';
-    return `<div class="stacked-seg" style="width:${w}%;background:${s.color}" title="${s.label}: ${num(s.value)} (${showPct(s.value)})">${label}</div>`;
-  }).join('');
-
-  const localTotalUnique = summary.localReusable.uniqueComponents + summary.localUnique.uniqueComponents;
 
   const dsRows = summary.designSystems.map(ds => {
     return `
@@ -278,18 +251,17 @@ function buildCategoryBreakdown(report: ScanReport): string {
   }).join('');
 
   const reusableThreshold = report.meta.reusableThreshold;
-  const localSubRows = locTotal > 0 ? `
+  const reusableCustomRow = locReusable > 0 ? `
         <tr>
-          <td class="muted" style="padding-left:24px">↳ Reusable (≥${reusableThreshold} files)</td>
+          <td class="muted">Reusable Custom</td>
           <td class="num muted">${num(locReusable)}</td>
           <td class="num muted">${summary.localReusable.uniqueComponents}</td>
-          <td class="num muted">${excludeLocal ? 'excluded' : excludeUniqueLocal ? sharePct(locReusable) : '—'}</td>
+          <td class="num muted">${excludeLocal ? 'excluded' : excludeUniqueLocal ? sharePct(locReusable) : sharePct(locReusable)}</td>
         </tr>` : '';
 
   return `
   <div class="section">
     <div class="section-title">📦 Category Breakdown</div>
-    <div class="stacked-wrap">${stackedSegs}</div>
     <table>
       <thead><tr><th>Category</th><th>Instances</th><th>Unique</th><th>Share of denominator</th></tr></thead>
       <tbody>
@@ -300,13 +272,7 @@ function buildCategoryBreakdown(report: ScanReport): string {
           <td class="num muted">${summary.localLibrary.uniqueComponents}</td>
           <td class="num muted">${sharePct(libTotal)}</td>
         </tr>
-        <tr>
-          <td class="muted">Local/Custom</td>
-          <td class="num muted">${num(locTotal)}</td>
-          <td class="num muted">${localTotalUnique}</td>
-          <td class="num muted">${excludeLocal ? 'excluded' : sharePct(localInDenominator)}</td>
-        </tr>
-        ${localSubRows}
+        ${reusableCustomRow}
       </tbody>
     </table>
   </div>`;
@@ -319,8 +285,10 @@ function buildRepositoryBreakdown(report: ScanReport): string {
   const hasTransitive = summary.effectiveAdoptionRate > summary.adoptionRate + 0.05;
   const dsCols = summary.designSystems.map(ds => ds.name);
 
-  const dsHeaders = dsCols.map(n => `<th>${esc(n)}</th>`).join('');
-  const effectiveHeader = hasTransitive ? '<th>Effective</th>' : '';
+  const dsHeaders = dsCols.length === 1
+    ? '<th>Direct Adoption</th>'
+    : dsCols.map(n => `<th>${esc(n)}</th>`).join('');
+  const effectiveHeader = hasTransitive ? '<th>Effective Adoption</th>' : '';
 
   const rows = byRepository.map(repo => {
     const dsCells = dsCols.map(dsName => {
@@ -338,7 +306,6 @@ function buildRepositoryBreakdown(report: ScanReport): string {
     <tr>
       <td>${esc(repo.name)}</td>
       ${dsCells}
-      <td class="num">${adoptionBadge(repo.adoptionRate)}</td>
       ${effectiveCell}
       <td class="num">${num(repo.filesScanned)}</td>
     </tr>`;
@@ -348,7 +315,7 @@ function buildRepositoryBreakdown(report: ScanReport): string {
   <div class="section">
     <div class="section-title">🏗️ Repository Breakdown</div>
     <table>
-      <thead><tr><th>Repository</th>${dsHeaders}<th>Total DS</th>${effectiveHeader}<th>Files</th></tr></thead>
+      <thead><tr><th>Repository</th>${dsHeaders}${effectiveHeader}<th>Files</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
   </div>`;
