@@ -1,5 +1,34 @@
 # Changelog
 
+## v0.5.17 — Binary coverage, new effective adoption formula, reusableThreshold, render cleanup
+
+### Changed
+
+- **Coverage binary**: `transitiveRules[].coverage` теперь пороговое значение (не дробный вес).
+  Любое значение > 0 (или отсутствие поля) → `coverage = 1.0`; значение `<= 0` — usage не аннотируется.
+  Дробные значения (0.8) больше не проходят в расчёт.
+
+- **Новая формула эффективного adoption**:
+  - Убраны `transitiveThirdParty` и `transitiveWeightedTotal` из формулы.
+  - `effectiveDenominator = denominator + transitiveLocalLib` (только local-library с transitiveDS).
+  - `effectiveAdoptionRate = (DS + transitiveLocalLib) / effectiveDenominator × 100`.
+  - Удалено поле `transitiveWeighted` из `DesignSystemMetrics`.
+
+- **`reusableThreshold` в конфиге**: порог числа файлов для отнесения компонента к «переиспользуемым».
+  По умолчанию `2`. Хранится в `ScanReport.meta.reusableThreshold`.
+  Метка `≥2 files` в отчётах теперь отражает реальное значение из конфига.
+
+- **Упрощение рендера Category Breakdown**:
+  - Убраны строки `(Third-party)` и `(HTML native)` из таблицы и HTML-отчёта.
+  - Убрана строка `└ Unique (1 file)` — остаётся только `├ Reusable (≥N files)`.
+  - Убраны сегменты third-party и html-native из stacked bar в HTML-отчёте.
+
+### Docs
+
+- Обновлены формулы в `docs/PRODUCT_ANALYST_VALIDATION_GUIDE.md` — новая логика effective adoption и бинарный coverage.
+
+---
+
 ## v0.5.16 - Remove Design System Catalog from rendered reports
 
 ### Changed

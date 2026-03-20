@@ -48,11 +48,16 @@ The scanner runs a 5-stage pipeline:
    5. Non-relative import → `third-party`
    6. Otherwise → `local`
 
-5. **Metrics** (`metrics/calculator.ts`, `metrics/aggregator.ts`) — Adoption formula:
+5. **Metrics** (`metrics/calculator.ts`, `metrics/aggregator.ts`) — Adoption formulas:
    ```
-   adoption_rate = total_DS / (total_DS + local_library + local) × 100
+   adoption_rate        = DS / (DS + local_library + local) × 100
+
+   transitive_local_lib = count(local-library usages with transitiveDS)
+   effective_denom      = denominator + transitive_local_lib
+   effective_rate       = (DS + transitive_local_lib) / effective_denom × 100
    ```
-   HTML native and third-party are **excluded** from the denominator.
+   HTML native and third-party are **excluded** from both denominators.
+   A local component is **reusable** if used in `≥ reusableThreshold` files (config, default 2).
 
 ## Key Data Types
 
@@ -60,7 +65,7 @@ Core types live in `src/types.ts`. The canonical output format is `ScanReport` (
 
 ## Configuration
 
-Users configure via `.ds-scanner.config.ts` using `defineConfig()`. Key fields: `repositories[]`, `designSystems[]` (name + packages), `localLibraryPatterns[]`, `include/exclude` globs, `output`, `thresholds`, `historyDir`.
+Users configure via `.ds-scanner.config.ts` using `defineConfig()`. Key fields: `repositories[]`, `designSystems[]` (name + packages), `localLibraryPatterns[]`, `include/exclude` globs, `output`, `thresholds`, `historyDir`, `reusableThreshold` (default 2), `excludeLocalFromAdoption`, `excludeUniqueLocalFromAdoption`, `transitiveRules[]`, `libraries[]`.
 
 ## CLI Commands & Exit Codes
 

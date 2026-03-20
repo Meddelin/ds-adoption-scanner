@@ -19,11 +19,9 @@ Table               3            5       4       2
 
 📦 Category Breakdown
  ├ Ant Design          35        26      68.6%
+ Local Library          0         0       0.0%
  Local/Custom          16        12      31.4%
    ├ Reusable (≥2f)     6         4      —
-   └ Unique (1 file)   10         8      —
- (Third-party)         63        23      excluded
- (HTML native)         29         6      excluded
 
 🗂️ Local Component Families
 Family       Components   Instances   Files
@@ -253,12 +251,13 @@ export default defineConfig({
 
   // Используй если исходники недоступны.
   // Без coverage — сканер проверит package.json в node_modules автоматически.
-  // coverage — ручной override (0.0–1.0), применяется ко всем компонентам пакета.
+  // coverage — пороговое значение: > 0 (или не задано) = все matching usages
+  //            считаются DS-backed (coverage=1.0); 0 = не считать.
   transitiveRules: [
     {
       package: '@company/legacy-ui',
       backedBy: 'TUI',
-      coverage: 0.8,  // ручной override
+      // coverage: 0,  // отключить транзитивный вклад для пакета
     },
   ],
 
@@ -277,7 +276,7 @@ export default defineConfig({
   excludeLocalFromAdoption: false,
 
   // Исключает только уникальные локальные компоненты (1 файл) из знаменателя.
-  // Переиспользуемые (≥2 файлов) остаются в знаменателе.
+  // Переиспользуемые (≥ reusableThreshold файлов) остаются в знаменателе.
   //
   // false (по умолчанию): DS / (DS + local-library + localReusable + localUnique) × 100
   // true:                 DS / (DS + local-library + localReusable) × 100
@@ -285,6 +284,11 @@ export default defineConfig({
   // Полезно, когда страничные one-off компоненты — ожидаемая норма,
   // но переиспользуемая кастомная логика по-прежнему должна учитываться.
   excludeUniqueLocalFromAdoption: false,
+
+  // Минимальное число файлов, в которых используется компонент, чтобы считаться
+  // «переиспользуемым» (reusable). По умолчанию: 2.
+  // Влияет на разбивку local/custom → reusable / unique и на метку в отчёте.
+  reusableThreshold: 2,
 });
 ```
 
@@ -309,15 +313,15 @@ adoption_rate = DS / (DS + local_library + localReusable) × 100
 adoption_rate = DS / (DS + local_library) × 100
 ```
 
-**Эффективный adoption** (с учётом транзитивных):
+**Эффективный adoption** (с учётом транзитивных local-library):
 ```
-transitive_weighted   = Σ coverage_i  для all usages с transitiveDS
-effective_denominator = DS + local_library + local + third_party_с_transitiveDS
+transitive_local_lib  = count(local-library usages с transitiveDS)
+effective_denominator = denominator + transitive_local_lib
 
-effective_adoption_rate = (DS + transitive_weighted) / effective_denominator × 100
+effective_adoption_rate = (DS + transitive_local_lib) / effective_denominator × 100
 ```
 
-HTML-нативные элементы (`div`, `span`, ...) и third-party пакеты **исключены** из знаменателя прямого adoption — они не являются заменой для DS. Third-party с объявленным `transitiveRules` входит в знаменатель эффективного adoption.
+HTML-нативные элементы (`div`, `span`, ...) и third-party пакеты **исключены** из знаменателя — они не являются заменой для DS. В эффективный adoption входят только `local-library` usages с `transitiveDS` (пакеты из `localLibraryPatterns`, у которых обнаружен DS-backing).
 
 Оба показателя есть в отчёте: `adoptionRate` (прямой, формула не изменилась) и `effectiveAdoptionRate` (новый).
 
