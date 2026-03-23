@@ -98,6 +98,14 @@ td.muted{color:var(--muted)}
 /* Details/summary for repo rows */
 details>summary{cursor:pointer;list-style:none}
 details>summary::-webkit-details-marker{display:none}
+/* Formula box */
+.formula-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:24px}
+.formula-row{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 10px;margin-bottom:10px;font-size:13px}
+.formula-row:last-child{margin-bottom:0}
+.formula-label{font-weight:700;color:var(--head);min-width:160px}
+.formula-sym{font-family:'Courier New',monospace;color:var(--muted)}
+.formula-eq{font-family:'Courier New',monospace;color:var(--text);font-weight:600}
+.formula-result{font-weight:700;font-size:15px}
 /* Footer */
 .footer{margin-top:32px;padding-top:16px;border-top:1px solid var(--border);color:var(--muted);font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
 `.trim();
@@ -231,6 +239,7 @@ function buildCategoryBreakdown(report: ScanReport): string {
   const locReusable = summary.localReusable.instances;
   const locUnique = summary.localUnique.instances;
   const locTotal = locReusable + locUnique;
+  const transitiveCount = summary.transitiveDS.totalInstances;
   const localInDenominator = excludeLocal ? 0
     : excludeUniqueLocal ? locReusable
     : locTotal;
@@ -272,6 +281,19 @@ function buildCategoryBreakdown(report: ScanReport): string {
           <td class="num muted">${summary.localLibrary.uniqueComponents}</td>
           <td class="num muted">${sharePct(libTotal)}</td>
         </tr>
+        ${transitiveCount > 0 ? `
+        <tr>
+          <td class="muted" style="padding-left:24px">↳ Transitive (DS-backed)</td>
+          <td class="num muted">${num(transitiveCount)}</td>
+          <td class="num muted">—</td>
+          <td class="num muted">${sharePct(transitiveCount)}</td>
+        </tr>
+        <tr>
+          <td class="muted" style="padding-left:24px">↳ Custom</td>
+          <td class="num muted">${num(libTotal - transitiveCount)}</td>
+          <td class="num muted">—</td>
+          <td class="num muted">${sharePct(libTotal - transitiveCount)}</td>
+        </tr>` : ''}
         ${reusableCustomRow}
       </tbody>
     </table>
@@ -428,6 +450,51 @@ function buildFooter(report: ScanReport): string {
   </div>`;
 }
 
+function buildFormulas(report: ScanReport): string {
+  const { summary, meta } = report;
+  const excludeLocal = meta.excludeLocalFromAdoption;
+  const excludeUniqueLocal = meta.excludeUniqueLocalFromAdoption;
+
+  const ds = summary.designSystemTotal.instances;
+  const lib = summary.localLibrary.instances;
+  const locReusable = summary.localReusable.instances;
+  const locTotal = locReusable + summary.localUnique.instances;
+  const localInDenom = excludeLocal ? 0 : excludeUniqueLocal ? locReusable : locTotal;
+  const denom = ds + lib + localInDenom;
+  const transitive = summary.transitiveDS.totalInstances;
+
+  const denomParts = [`${num(ds)}`, `${num(lib)}`];
+  if (localInDenom > 0) denomParts.push(`${num(localInDenom)}`);
+  const denomStr = denomParts.join(' + ');
+
+  const directRow = `
+    <div class="formula-row">
+      <span class="formula-label">Direct Adoption</span>
+      <span class="formula-sym">DS / (DS + Lib + Local)</span>
+      <span style="color:var(--muted)">=</span>
+      <span class="formula-eq">${num(ds)} / (${denomStr}) = ${num(ds)} / ${num(denom)}</span>
+      <span style="color:var(--muted)">=</span>
+      <span class="formula-result" style="color:${adoptionColor(summary.adoptionRate)}">${pct(summary.adoptionRate)}</span>
+    </div>`;
+
+  const hasEffective = summary.effectiveAdoptionRate > summary.adoptionRate + 0.05;
+  const effectiveRow = hasEffective ? `
+    <div class="formula-row">
+      <span class="formula-label">Effective Adoption</span>
+      <span class="formula-sym">(DS + Transitive) / (DS + Lib + Local)</span>
+      <span style="color:var(--muted)">=</span>
+      <span class="formula-eq">(${num(ds)} + ${num(transitive)}) / ${num(denom)} = ${num(ds + transitive)} / ${num(denom)}</span>
+      <span style="color:var(--muted)">=</span>
+      <span class="formula-result" style="color:${adoptionColor(summary.effectiveAdoptionRate)}">${pct(summary.effectiveAdoptionRate)}</span>
+    </div>` : '';
+
+  return `
+  <div class="formula-box">
+    ${directRow}
+    ${effectiveRow}
+  </div>`;
+}
+
 // ─── Main renderer ────────────────────────────────────────────────────────────
 
 export function formatHTML(report: ScanReport): string {
@@ -437,6 +504,7 @@ export function formatHTML(report: ScanReport): string {
   const body = [
     buildHeader(report),
     buildHeroCards(report),
+    buildFormulas(report),
     buildDSCards(report),
     buildLibraryPrescan(report),
     buildCategoryBreakdown(report),
