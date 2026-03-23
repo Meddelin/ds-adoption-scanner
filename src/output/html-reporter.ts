@@ -343,15 +343,56 @@ function buildRepositoryBreakdown(report: ScanReport): string {
   </div>`;
 }
 
+/** Derive families from component names when no catalog pre-scan is available.
+ *  Groups by longest exact-name prefix match; falls back to first CamelCase word. */
+function deriveFamilies(
+  components: { name: string; instances: number; filesUsedIn: number }[]
+): { family: string; components: string[]; instances: number; filesUsedIn: number }[] {
+  const names = new Set(components.map(c => c.name));
+  const familyMap = new Map<string, { components: string[]; instances: number; filesUsedIn: number }>();
+
+  for (const comp of components) {
+    // Find longest component name that is a proper prefix of this one
+    let familyName = '';
+    for (const candidate of names) {
+      if (candidate !== comp.name && comp.name.startsWith(candidate) && candidate.length > familyName.length) {
+        familyName = candidate;
+      }
+    }
+    // Fallback: first CamelCase word (e.g. "ButtonGroup" → "Button", "UserOutlined" → "User")
+    if (!familyName) {
+      const dotIdx = comp.name.indexOf('.');
+      if (dotIdx > 0) {
+        familyName = comp.name.slice(0, dotIdx);
+      } else {
+        const match = comp.name.match(/^([A-Z][a-z]+)/);
+        familyName = match ? match[1] : comp.name;
+      }
+    }
+
+    const entry = familyMap.get(familyName) ?? { components: [], instances: 0, filesUsedIn: 0 };
+    entry.components.push(comp.name);
+    entry.instances += comp.instances;
+    entry.filesUsedIn = Math.max(entry.filesUsedIn, comp.filesUsedIn);
+    familyMap.set(familyName, entry);
+  }
+
+  return [...familyMap.entries()]
+    .map(([family, d]) => ({ family, ...d }))
+    .sort((a, b) => b.instances - a.instances);
+}
+
 function buildTopFamilies(report: ScanReport): string {
   const { byComponent } = report;
-  const hasFamilies = byComponent.designSystems.some(ds => ds.topFamilies && ds.topFamilies.length > 0);
-  if (!hasFamilies) return '';
+  if (byComponent.designSystems.every(ds => ds.components.length === 0)) return '';
 
   const dsSections = byComponent.designSystems.map(ds => {
-    if (!ds.topFamilies || ds.topFamilies.length === 0) return '';
-    const top = ds.topFamilies.slice(0, 10);
-    const rows = top.map(fam => {
+    const families = ds.topFamilies && ds.topFamilies.length > 0
+      ? ds.topFamilies.slice(0, 10)
+      : deriveFamilies(ds.components).slice(0, 10);
+
+    if (families.length === 0) return '';
+    const rows = families.map(fam => {
       const subcomps = fam.components.length > 1
         ? `<span style="color:var(--muted);font-size:11px"> [${esc(fam.components.join(', '))}]</span>`
         : '';
@@ -499,7 +540,8 @@ function buildFormulas(report: ScanReport): string {
 
 export function formatHTML(report: ScanReport): string {
   const { byComponent } = report;
-  const hasFamilies = byComponent.designSystems.some(ds => ds.topFamilies && ds.topFamilies.length > 0);
+  // hasFamilies = true whenever we have any components (derived families always available)
+  const hasFamilies = byComponent.designSystems.some(ds => ds.components.length > 0);
 
   const body = [
     buildHeader(report),
