@@ -69,6 +69,7 @@ export async function enrichWithTransitiveDS(
       if (libEntry !== null) {
         const compEntry = libEntry.componentMap.get(usage.componentName);
         let isDSBacked = compEntry?.isDSBacked ?? false;
+        const componentKnown = compEntry !== undefined; // explicitly indexed during prescan
 
         // Family fallback: component not indexed but resolvedPath available → check familyMap
         if (!isDSBacked && usage.resolvedPath && libEntry.libBase) {
@@ -85,12 +86,18 @@ export async function enrichWithTransitiveDS(
             transitiveDS: { dsName: libEntry.backedBy, coverage: 1.0, source: 'auto-detected' },
             ...(compEntry?.dsFamily ? { componentFamily: compEntry.dsFamily } : {}),
           });
-        } else {
-          // Explicitly not DS-backed — strip any transitiveDS set by declarative rule
+          continue;
+        }
+
+        if (componentKnown) {
+          // Component is explicitly indexed as NOT DS-backed → strip any declarative annotation
           const { transitiveDS: _removed, ...rest } = usage;
           result.push(rest as CategorizedUsage);
+          continue;
         }
-        continue;
+
+        // Component is unknown (not indexed by prescan) → fall through to Case 1 auto-detect
+        // rather than assuming it's not DS-backed
       }
     }
 

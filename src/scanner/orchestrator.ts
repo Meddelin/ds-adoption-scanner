@@ -106,14 +106,16 @@ export async function runScan(
   if (libraryRegistry.size > 0) {
     const allUsages = repoData.flatMap(r => r.usages);
 
-    // Count transitive usages per library package (local-library usages that got transitiveDS)
+    // Count transitive usages per library package (any category that got transitiveDS annotation)
     const transitivePerPkg = new Map<string, number>();
     for (const u of allUsages) {
-      if (u.category !== 'local-library' || !u.transitiveDS) continue;
+      if (!u.transitiveDS) continue;
       const src = u.importEntry?.source ?? '';
+      if (!src) continue;
       const pkgName = src.startsWith('@')
         ? src.split('/').slice(0, 2).join('/')
         : (src.split('/')[0] ?? src);
+      if (!pkgName) continue;
       transitivePerPkg.set(pkgName, (transitivePerPkg.get(pkgName) ?? 0) + 1);
     }
 
