@@ -92,12 +92,21 @@ function pathToFileUrl(filePath: string): string {
 }
 
 function mergeWithDefaults(userConfig: DSScannerConfig): ResolvedConfig {
+  // Auto-include libraries[].package in localLibraryPatterns so their usages are always
+  // categorized as 'local-library' (required for transitive detection and adoption formula).
+  const libraryPackages = (userConfig.libraries ?? []).map(l => l.package).filter(Boolean);
+  const basePatterns = userConfig.localLibraryPatterns ?? DEFAULT_CONFIG.localLibraryPatterns!;
+  const localLibraryPatterns = [
+    ...basePatterns,
+    ...libraryPackages.filter(pkg => !basePatterns.some(p => p === pkg || p === `${pkg}/*` || p === `${pkg}*`)),
+  ];
+
   return {
     repositories: userConfig.repositories,
     designSystems: userConfig.designSystems,
     include: userConfig.include ?? DEFAULT_CONFIG.include!,
     exclude: userConfig.exclude ?? DEFAULT_CONFIG.exclude!,
-    localLibraryPatterns: userConfig.localLibraryPatterns ?? DEFAULT_CONFIG.localLibraryPatterns!,
+    localLibraryPatterns,
     trackedThirdParty: userConfig.trackedThirdParty ?? DEFAULT_CONFIG.trackedThirdParty!,
     tsconfig: userConfig.tsconfig ?? DEFAULT_CONFIG.tsconfig!,
     historyDir: userConfig.historyDir ?? DEFAULT_CONFIG.historyDir!,
