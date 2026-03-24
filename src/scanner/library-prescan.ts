@@ -7,7 +7,7 @@ import { fdir } from 'fdir';
 import picomatch from 'picomatch';
 import type { LibrarySource, ResolvedConfig } from '../config/schema.js';
 import type { DSCatalog } from '../types.js';
-import { findDesignSystem } from './categorizer.js';
+import { findDesignSystem, matchesPackage } from './categorizer.js';
 import { GENERIC_DIRS } from './ds-prescan.js';
 
 // ─── Public types ─────────────────────────────────────────────────────────────
@@ -37,6 +37,7 @@ interface ExportInfo {
   hasDSImport: boolean;
   dsName: string | null;
   dsImportedNames: string[];  // specific DS component names imported in this file
+  externalPackageImports: Map<string, string[]>; // pkgName → imported PascalCase names (for cross-lib propagation)
 }
 
 // ─── Public entry point ───────────────────────────────────────────────────────
@@ -57,6 +58,15 @@ export async function preScanLibraries(
   const toScan = config.libraries.filter(lib => lib.path || lib.git);
   if (toScan.length === 0) return registry;
 
+  // Saved allInfo + componentToFile per library package name — used for cross-library propagation
+  const savedLibData = new Map<string, {
+    allInfo: Map<string, ExportInfo>;
+    componentToFile: Map<string, string>;
+    libRoot: string;
+    lib: LibrarySource;
+  }>();
+
+  // Phase 1: initial per-library scan (direct DS imports + relative re-exports only)
   for (const lib of toScan) {
     const sourceDir = await resolveLibrarySource(lib, config.historyDir, verbose);
     if (!sourceDir) continue;
@@ -66,8 +76,10 @@ export async function preScanLibraries(
     }
 
     try {
-      const { componentMap, familyMap, libBase } = await buildComponentMap(sourceDir, lib, config, dsCatalog);
+      const { componentMap, familyMap, libBase, allInfo, componentToFile } =
+        await buildComponentMap(sourceDir, lib, config, dsCatalog);
       registry.set(lib.package, { componentMap, familyMap, backedBy: lib.backedBy, libBase });
+      savedLibData.set(lib.package, { allInfo, componentToFile, libRoot: libBase, lib });
 
       if (verbose) {
         const totalFamilies = familyMap.size;
@@ -75,7 +87,6 @@ export async function preScanLibraries(
         console.log(
           `[ds-scanner] Library "${lib.package}": ${backedFamilies}/${totalFamilies} families backed by "${lib.backedBy}"`
         );
-        // Dump all family names so mismatches can be diagnosed
         const familyNames = [...familyMap.keys()].sort();
         console.log(`[ds-scanner] Families (${familyNames.length}): ${familyNames.join(', ')}`);
       }
@@ -86,6 +97,64 @@ export async function preScanLibraries(
         }`
       );
     }
+  }
+
+  // Phase 2: cross-library propagation — handles N-level chains (DS→libA→libB→libC).
+  // Each iteration propagates backing one more level. Repeats until stable (max 10).
+  let changed = true;
+  let iterations = 0;
+  while (changed && iterations < 10) {
+    changed = false;
+
+    for (const [pkgName, entry] of registry) {
+      const libData = savedLibData.get(pkgName);
+      if (!libData) continue;
+
+      // Step A: file-level propagation — if a file imports a DS-backed component from another
+      // library in the registry, mark hasDSImport=true so its locally-defined components are backed
+      for (const [, fileInfo] of libData.allInfo) {
+        if (fileInfo.hasDSImport) continue;
+        for (const [extPkg, importedNames] of fileInfo.externalPackageImports) {
+          const extEntry = findLibEntry(registry, extPkg);
+          if (!extEntry) continue;
+          if (importedNames.some(n => extEntry.componentMap.get(n)?.isDSBacked)) {
+            fileInfo.hasDSImport = true;
+            changed = true;
+            break;
+          }
+        }
+      }
+
+      // Step B: re-run Pass 2 with the registry to pick up cross-library re-exports
+      // (e.g. `export { Button } from '@company/lib-a'` where Button is DS-backed in lib-a)
+      const newResolveCache = new Map<string, Map<string, boolean>>();
+      for (const filePath of libData.allInfo.keys()) {
+        const resolved = resolveFileExports(
+          filePath, libData.allInfo, newResolveCache, new Set(), libData.libRoot, registry
+        );
+        for (const [name, isDSBacked] of resolved) {
+          if (!isDSBacked || !/^[A-Z][a-zA-Z0-9]*$/.test(name)) continue;
+          const existing = entry.componentMap.get(name);
+          if (!existing?.isDSBacked) {
+            entry.componentMap.set(name, { ...existing ?? {}, isDSBacked: true });
+            changed = true;
+          }
+        }
+      }
+
+      // Step C: rebuild familyMap so reporting reflects the updated componentMap
+      if (changed) {
+        entry.familyMap = buildFamilyMapFromInfo(
+          entry.componentMap, libData.allInfo, libData.componentToFile, libData.libRoot
+        );
+      }
+    }
+
+    iterations++;
+  }
+
+  if (verbose && iterations > 1) {
+    console.log(`[ds-scanner] Cross-library propagation converged in ${iterations} iteration(s)`);
   }
 
   return registry;
@@ -171,11 +240,17 @@ async function buildComponentMap(
   lib: LibrarySource,
   config: ResolvedConfig,
   dsCatalog: DSCatalog
-): Promise<{ componentMap: Map<string, LibraryComponentEntry>; familyMap: Map<string, LibraryFamilyEntry>; libBase: string }> {
+): Promise<{
+  componentMap: Map<string, LibraryComponentEntry>;
+  familyMap: Map<string, LibraryFamilyEntry>;
+  libBase: string;
+  allInfo: Map<string, ExportInfo>;
+  componentToFile: Map<string, string>;
+}> {
   const files = discoverLibraryFiles(libRoot, lib);
   if (files.length === 0) {
     const libBase = lib.componentsDir ? path.resolve(libRoot, lib.componentsDir) : libRoot;
-    return { componentMap: new Map(), familyMap: new Map(), libBase };
+    return { componentMap: new Map(), familyMap: new Map(), libBase, allInfo: new Map(), componentToFile: new Map() };
   }
 
   // Build DS family lookup for this library's backedBy DS
@@ -224,16 +299,26 @@ async function buildComponentMap(
     }
   }
 
-  // Pass 3: build familyMap using two steps.
-  //
-  // Step 1 — directory discovery + DS-backing from any file in the family:
-  //   iterate ALL parsed files (allInfo). This covers hook/util/i18n dirs that
-  //   have no PascalCase exports. hasDSImport from any file marks the whole family.
-  //
-  // Step 2 — per-component enrichment: overlay isDSBacked/dsFamily from componentToFile.
   const base = lib.componentsDir ? path.resolve(libRoot, lib.componentsDir) : libRoot;
+  const familyMap = buildFamilyMapFromInfo(componentMap, allInfo, componentToFile, base);
+
+  return { componentMap, familyMap, libBase: base, allInfo, componentToFile };
+}
+
+/**
+ * Runs Passes 3+4: builds familyMap from allInfo + componentMap, then propagates
+ * family-level DS-backing down to individual componentMap entries.
+ * Called during initial build and again after cross-library propagation.
+ */
+function buildFamilyMapFromInfo(
+  componentMap: Map<string, LibraryComponentEntry>,
+  allInfo: Map<string, ExportInfo>,
+  componentToFile: Map<string, string>,
+  base: string
+): Map<string, LibraryFamilyEntry> {
   const familyMap = new Map<string, LibraryFamilyEntry>();
 
+  // Pass 3 step 1: directory discovery + DS-backing from any file in the family
   for (const [filePath, fileInfo] of allInfo) {
     const familyName = getFamilyDirName(filePath, base);
     if (!familyName) continue;
@@ -242,6 +327,7 @@ async function buildComponentMap(
     familyMap.set(familyName, fam);
   }
 
+  // Pass 3 step 2: per-component enrichment
   for (const [name, filePath] of componentToFile) {
     const entry = componentMap.get(name);
     const familyName = getFamilyDirName(filePath, base) ?? name;
@@ -253,12 +339,9 @@ async function buildComponentMap(
     familyMap.set(familyName, fam);
   }
 
-  // Pass 4: propagate family-level DS-backing down to individual component entries.
-  // In a DS-backed family, helper/sub-components typically don't import DS directly
-  // (they import from siblings), but they're still semantically part of the DS-backed
-  // feature area. Without this pass, their usages would not count toward effective adoption.
+  // Pass 4: propagate family-level DS-backing down to individual component entries
   for (const [name, filePath] of componentToFile) {
-    if (componentMap.get(name)?.isDSBacked) continue; // already backed
+    if (componentMap.get(name)?.isDSBacked) continue;
     const familyName = getFamilyDirName(filePath, base) ?? name;
     if (familyMap.get(familyName)?.isDSBacked) {
       const existing = componentMap.get(name);
@@ -266,7 +349,19 @@ async function buildComponentMap(
     }
   }
 
-  return { componentMap, familyMap, libBase: base };
+  return familyMap;
+}
+
+/** Registry lookup with glob-pattern fallback. */
+function findLibEntry(
+  registry: LibraryRegistry,
+  pkgName: string
+): { componentMap: Map<string, LibraryComponentEntry>; familyMap: Map<string, LibraryFamilyEntry>; backedBy: string; libBase: string } | null {
+  if (registry.has(pkgName)) return registry.get(pkgName)!;
+  for (const [pattern, entry] of registry) {
+    if (matchesPackage(pkgName, pattern)) return entry;
+  }
+  return null;
 }
 
 /**
@@ -344,6 +439,7 @@ export function parseFileExports(
     hasDSImport: false,
     dsName: null,
     dsImportedNames: [],
+    externalPackageImports: new Map(),
   };
 
   let ast: TSESTree.Program;
@@ -377,6 +473,21 @@ export function parseFileExports(
           if (spec.type === 'ImportSpecifier' && spec.imported.type === 'Identifier') {
             info.dsImportedNames.push(spec.imported.name);
           }
+        }
+      } else if (!source.startsWith('.') && !source.startsWith('/')) {
+        // Non-relative, non-DS import — track for cross-library propagation
+        const pkgName = source.startsWith('@')
+          ? source.split('/').slice(0, 2).join('/')
+          : (source.split('/')[0] ?? source);
+        const names: string[] = [];
+        for (const spec of node.specifiers) {
+          if (spec.type === 'ImportSpecifier' && spec.imported.type === 'Identifier') {
+            names.push(spec.imported.name);
+          }
+        }
+        if (names.length > 0) {
+          const existing = info.externalPackageImports.get(pkgName) ?? [];
+          info.externalPackageImports.set(pkgName, [...existing, ...names]);
         }
       }
       continue;
@@ -503,7 +614,8 @@ function resolveFileExports(
   allInfo: Map<string, ExportInfo>,
   cache: Map<string, Map<string, boolean>>,
   visited: Set<string>,
-  libRoot: string
+  libRoot: string,
+  registry?: LibraryRegistry
 ): Map<string, boolean> {
   if (cache.has(filePath)) return cache.get(filePath)!;
 
@@ -527,21 +639,35 @@ function resolveFileExports(
   // Re-exports: resolve each 'from' path
   for (const reExport of info.reExports) {
     const resolvedPath = resolveRelativePath(reExport.from, filePath, libRoot, allInfo);
-    if (!resolvedPath) continue;
+    if (resolvedPath) {
+      const childExports = resolveFileExports(resolvedPath, allInfo, cache, visited, libRoot, registry);
 
-    const childExports = resolveFileExports(resolvedPath, allInfo, cache, visited, libRoot);
-
-    if (reExport.name === '*') {
-      // Merge all child exports
-      for (const [name, backed] of childExports) {
-        if (!result.has(name) || backed) {
-          result.set(name, backed);
+      if (reExport.name === '*') {
+        for (const [name, backed] of childExports) {
+          if (!result.has(name) || backed) result.set(name, backed);
         }
+      } else {
+        const backed = childExports.get(reExport.name) ?? info.hasDSImport;
+        if (!result.has(reExport.name) || backed) result.set(reExport.name, backed);
       }
-    } else {
-      const backed = childExports.get(reExport.name) ?? info.hasDSImport;
-      if (!result.has(reExport.name) || backed) {
-        result.set(reExport.name, backed);
+    } else if (registry && !reExport.from.startsWith('.') && !reExport.from.startsWith('/')) {
+      // External package re-export (e.g. `export { Button } from '@company/lib-a'`)
+      // — look up in the registry if available
+      const extPkgName = reExport.from.startsWith('@')
+        ? reExport.from.split('/').slice(0, 2).join('/')
+        : (reExport.from.split('/')[0] ?? reExport.from);
+      const extEntry = findLibEntry(registry, extPkgName);
+      if (!extEntry) continue;
+
+      if (reExport.name === '*') {
+        for (const [name, compEntry] of extEntry.componentMap) {
+          if (!result.has(name) || compEntry.isDSBacked) result.set(name, compEntry.isDSBacked);
+        }
+      } else {
+        const compEntry = extEntry.componentMap.get(reExport.name);
+        if (compEntry !== undefined && (!result.has(reExport.name) || compEntry.isDSBacked)) {
+          result.set(reExport.name, compEntry.isDSBacked);
+        }
       }
     }
   }
