@@ -50,13 +50,22 @@ export async function enrichWithTransitiveDS(
   const result: CategorizedUsage[] = [];
 
   for (const usage of usages) {
-    // Case 0: pre-scanned library registry — per-component, takes priority
+    // Case 0: pre-scanned library registry — per-component, takes priority.
+    // packageName can be null for local-library usages that resolve via path aliases (isNodeModule=false).
+    // In that case, fall back to extracting the package name from importEntry.source.
     if (
       hasRegistry &&
-      (usage.category === 'third-party' || usage.category === 'local-library') &&
-      usage.packageName
+      (usage.category === 'third-party' || usage.category === 'local-library')
     ) {
-      const libEntry = findRegistryEntry(libraryRegistry, usage.packageName);
+      const lookupName = usage.packageName
+        ?? (usage.importEntry?.source
+          ? extractPackageFromSource(usage.importEntry.source)
+          : null);
+      if (!lookupName) {
+        result.push(usage);
+        continue;
+      }
+      const libEntry = findRegistryEntry(libraryRegistry, lookupName);
       if (libEntry !== null) {
         const compEntry = libEntry.componentMap.get(usage.componentName);
         let isDSBacked = compEntry?.isDSBacked ?? false;
@@ -261,4 +270,18 @@ function findRegistryEntry(
     if (matchesPackage(packageName, pattern)) return entry;
   }
   return null;
+}
+
+/** Extract bare package name from an import source, stripping subpaths.
+ *  '@scope/pkg/sub/path' → '@scope/pkg'
+ *  'pkg/sub/path' → 'pkg'
+ *  './relative' → null (not a package) */
+function extractPackageFromSource(source: string): string | null {
+  if (source.startsWith('.') || source.startsWith('/')) return null;
+  if (source.startsWith('@')) {
+    const parts = source.split('/');
+    if (parts.length < 2) return null;
+    return parts.slice(0, 2).join('/');
+  }
+  return source.split('/')[0] ?? null;
 }
