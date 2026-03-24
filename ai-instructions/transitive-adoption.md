@@ -91,7 +91,16 @@ transitiveAdoption: { enabled: true },
 If a library has 100 components and you use only 3 that are DS-backed,
 `coverage: 0.3` gives +0.3 per usage instead of +1.0. With `libraries[]`,
 those 3 components get coverage 1.0 and the rest get 0 — no guesswork.
-Inter-library chains are excluded: only direct DS package imports count.
+
+**Multi-level chains (DS → LibA → LibB)**: the scanner resolves chains automatically.
+If LibA wraps DS and LibB re-exports from LibA, listing both in `libraries[]` is enough —
+the scanner propagates DS-backing across N levels in the prescan phase.
+`libraryPrescan[].chain` in the JSON report shows detected chains, e.g. `["BeaverUI", "LibA", "LibB"]`.
+
+**Important**: `libraries[].package` is automatically added to `localLibraryPatterns`
+by the config loader. This means you do NOT need to manually add them to `localLibraryPatterns` —
+doing so is redundant. It also ensures subpath imports like
+`import { X } from '@company/ui/button'` are always matched.
 
 ### Step 4: Project the impact
 

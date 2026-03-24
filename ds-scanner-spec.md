@@ -415,6 +415,7 @@ interface CategorizedUsage extends JSXUsageRecord {
     dsName: string;                          // DS из config.designSystems[].name
     coverage: number;                        // 0.0–1.0
     source: 'declared' | 'auto-detected';   // declared = из transitiveRules
+    libraryPackage?: string;                 // ключ libraries[] (pkg name), подтвердивший DS-backing
   };
 }
 ```
@@ -485,17 +486,18 @@ ds_adoption["Beaver"] = Beaver_instances / (total_DS + local_library + local) ×
 **Транзитивная формула (effectiveAdoptionRate)**:
 
 ```
-transitive_weighted = Σ transitiveDS.coverage  для всех usages с transitiveDS
-transitive_third_party_count = count(third-party usages с transitiveDS)
+transitive_local_lib = count(local-library usages with transitiveDS)   ⊂ local_library
 
-effective_denominator = total_DS + local_library + local + transitive_third_party_count
-effective_adoption_rate = (total_DS + transitive_weighted) / effective_denominator × 100
+effective_denominator = total_DS + local_library + local   ← то же, что у direct!
+effective_adoption_rate = (total_DS + transitive_local_lib) / effective_denominator × 100
 ```
 
 Логика знаменателя:
-- `local-library` с transitiveDS уже входит в знаменатель (как local_library) → не дублируем
-- `third-party` с transitiveDS ранее был excluded → добавляем в знаменатель (это был DS-выбор)
-- `third-party` без transitiveDS → по-прежнему excluded
+- `transitive_local_lib ⊂ local_library` — уже входит в знаменатель, не дублируем.
+- `third-party` — исключён из обоих знаменателей (не является UI-выбором командой).
+- Знаменатель у direct и effective **одинаковый** — разница только в числителе.
+- `excludeUniqueLocalFromAdoption: true` (default) — unique local (используемые в 1 файле)
+  исключаются из знаменателя, т.к. это инлайн-компоненты, а не реальные кандидаты для DS.
 
 ```
 Per-DS effective adoption:

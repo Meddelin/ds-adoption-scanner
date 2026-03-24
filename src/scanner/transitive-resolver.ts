@@ -71,7 +71,7 @@ export async function enrichWithTransitiveDS(
         let isDSBacked = compEntry?.isDSBacked ?? false;
         const componentKnown = compEntry !== undefined; // explicitly indexed during prescan
 
-        // Family fallback: component not indexed but resolvedPath available → check familyMap
+        // Family fallback A: component not indexed but resolvedPath available → check familyMap by path
         if (!isDSBacked && usage.resolvedPath && libEntry.libBase) {
           const rel = path.relative(libEntry.libBase, path.dirname(usage.resolvedPath));
           const familySegment = rel.split(path.sep)[0];
@@ -80,10 +80,27 @@ export async function enrichWithTransitiveDS(
           }
         }
 
+        // Family fallback B: path-based fallback failed → derive family from component name prefix
+        // Converts kebab-case family keys to CamelCase and checks if componentName starts with that prefix.
+        // E.g. familyMap key "empty-state" → prefix "EmptyState" matches "EmptyStateNoData".
+        if (!isDSBacked && libEntry.familyMap.size > 0) {
+          for (const [familyKey, familyEntry] of libEntry.familyMap) {
+            if (!familyEntry.isDSBacked) continue;
+            const camelPrefix = familyKey
+              .split(/[-_]/)
+              .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+              .join('');
+            if (usage.componentName.startsWith(camelPrefix)) {
+              isDSBacked = true;
+              break;
+            }
+          }
+        }
+
         if (isDSBacked) {
           result.push({
             ...usage,
-            transitiveDS: { dsName: libEntry.backedBy, coverage: 1.0, source: 'auto-detected' },
+            transitiveDS: { dsName: libEntry.backedBy, coverage: 1.0, source: 'auto-detected', libraryPackage: lookupName },
             ...(compEntry?.dsFamily ? { componentFamily: compEntry.dsFamily } : {}),
           });
           continue;

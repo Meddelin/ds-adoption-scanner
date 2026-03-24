@@ -25,6 +25,8 @@ Read the scan JSON report. Key sections:
   - `backedBy` — DS name this library wraps
   - `totalFamilies` — number of directory-level component families in the library
   - `dsBackedFamilies` — families where at least one component uses the DS
+  - `transitiveUsages` — count of `local-library` usages attributed to this library in the scan
+  - `chain?` — full dependency chain when multi-level, e.g. `["BeaverUI", "@t-spirit/spa-beaver-ui", "@company/ui"]`
 - `summary.transitiveDS` — breakdown of transitive usage by DS
 - `byRepository[]` — breakdown by repository (both adoptionRate and effectiveAdoptionRate)
 - `byComponent` — usage by component

@@ -109,14 +109,19 @@ export async function runScan(
     // Count transitive usages per library package — only local-library usages to match the
     // adoption formula (transitiveLocalLib). Third-party usages with transitiveDS exist but
     // do not contribute to effective adoption rate.
+    // Prefer transitiveDS.libraryPackage (set during registry lookup in Case 0) for accurate
+    // attribution; fall back to extracting package name from importEntry.source.
     const transitivePerPkg = new Map<string, number>();
     for (const u of allUsages) {
       if (u.category !== 'local-library' || !u.transitiveDS) continue;
-      const src = u.importEntry?.source ?? '';
-      if (!src) continue;
-      const pkgName = src.startsWith('@')
-        ? src.split('/').slice(0, 2).join('/')
-        : (src.split('/')[0] ?? src);
+      const pkgName = u.transitiveDS.libraryPackage
+        ?? (() => {
+          const src = u.importEntry?.source ?? '';
+          if (!src) return null;
+          return src.startsWith('@')
+            ? src.split('/').slice(0, 2).join('/')
+            : (src.split('/')[0] ?? null);
+        })();
       if (!pkgName) continue;
       transitivePerPkg.set(pkgName, (transitivePerPkg.get(pkgName) ?? 0) + 1);
     }

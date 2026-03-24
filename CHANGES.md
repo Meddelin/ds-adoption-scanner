@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.5.19 — Transitive counting fix, component-name family fallback, libraryPackage attribution
+
+### Changed
+
+- **`libraryPackage` field in `transitiveDS`**: при детектировании через реестр библиотек (Case 0)
+  в аннотацию `transitiveDS` теперь записывается `libraryPackage` — ключ библиотеки из `libraries[]`.
+  Это позволяет оркестратору точно атрибутировать usages к нужной библиотеке вместо парсинга import source.
+
+- **Counting fix in orchestrator**: `transitivePerPkg` теперь использует `u.transitiveDS.libraryPackage`
+  как первичный ключ при подсчёте usages по библиотеке. Ранее парсинг `importEntry.source` давал
+  `".."` для relative-path импортов (path alias → `isNodeModule=false`), что ломало агрегацию.
+  Результат: колонка `Transitive Usages` в таблице Transitive Dependency Chains теперь совпадает
+  с `Transitive Instances` в Category Breakdown.
+
+- **Family fallback B (component-name prefix matching)**: когда path-based family fallback не работает
+  (libBase из git-кеша vs resolvedPath из node_modules — разные деревья директорий),
+  теперь применяется fallback по имени компонента.
+  Ключ family map (kebab-case, e.g. `"empty-state"`) конвертируется в CamelCase-префикс (`"EmptyState"`)
+  и проверяется через `componentName.startsWith(prefix)`. Благодаря этому `EmptyStateNoData`,
+  `EmptyStateError` и т.д. правильно определяются как DS-backed.
+
+- **Тип `CategorizedUsage.transitiveDS`**: добавлено опциональное поле `libraryPackage?: string`.
+
+---
+
 ## v0.5.18 — Correct effective denominator, default excludeUniqueLocal=true, family DS-backing propagation
 
 ### Changed

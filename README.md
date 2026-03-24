@@ -18,10 +18,11 @@ Form                5           12       6       1
 Table               3            5       4       2
 
 📦 Category Breakdown
- ├ Ant Design          35        26      68.6%
- Local Library          0         0       0.0%
- Local/Custom          16        12      31.4%
-   ├ Reusable (≥2f)     6         4      —
+ ├ Ant Design             35        26      68.6%
+ Local Library             8         5       —
+   ↳ Transitive (DS-backed) 8        5       —
+   ↳ Custom                 0        0       —
+ Reusable Custom            6         4      —
 
 🗂️ Local Component Families
 Family       Components   Instances   Files
@@ -30,8 +31,8 @@ AlertBar          1            6       6
 PageHeader        1            4       4
 
 🏗️ Repository Breakdown
-Repository       Ant Design   Total DS   Effective   Local
-ant-design-pro     68.6%       68.6%      79.7%      31.4%
+Repository       Direct Adoption   Effective Adoption   Local
+ant-design-pro         68.6%              79.7%         31.4%
 ```
 
 ---

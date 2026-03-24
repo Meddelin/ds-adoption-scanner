@@ -61,6 +61,7 @@ export interface CategorizedUsage extends JSXUsageRecord {
     dsName: string;
     coverage: number;                         // 0.0–1.0
     source: 'declared' | 'auto-detected';
+    libraryPackage?: string;                  // registry key (libraries[].package) that confirmed DS backing
   };
 
   // Set for design-system usages when DSCatalog is available (DS has path/git configured).
