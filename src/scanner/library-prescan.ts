@@ -27,6 +27,7 @@ export type LibraryRegistry = Map<string, {
   familyMap: Map<string, LibraryFamilyEntry>;       // directory-level groups for reporting
   backedBy: string;
   libBase: string;                                  // resolved source root used for family path lookups
+  viaPackage?: string;                              // intermediate library that provided DS-backing (for chain display)
 }>;
 
 // ─── Internal types ───────────────────────────────────────────────────────────
@@ -38,6 +39,7 @@ interface ExportInfo {
   dsName: string | null;
   dsImportedNames: string[];  // specific DS component names imported in this file
   externalPackageImports: Map<string, string[]>; // pkgName → imported PascalCase names (for cross-lib propagation)
+  externalPackageReExports: Set<string>;         // pkgNames used in export*/re-export (for hasDSImport propagation)
 }
 
 // ─── Public entry point ───────────────────────────────────────────────────────
@@ -110,16 +112,32 @@ export async function preScanLibraries(
       const libData = savedLibData.get(pkgName);
       if (!libData) continue;
 
-      // Step A: file-level propagation — if a file imports a DS-backed component from another
-      // library in the registry, mark hasDSImport=true so its locally-defined components are backed
+      // Step A: file-level propagation — if a file imports or re-exports DS-backed components
+      // from another library in the registry, mark hasDSImport=true so locally-defined components are backed
+      const registryEntry = registry.get(pkgName)!;
       for (const [, fileInfo] of libData.allInfo) {
         if (fileInfo.hasDSImport) continue;
+        // Check named imports
         for (const [extPkg, importedNames] of fileInfo.externalPackageImports) {
           const extEntry = findLibEntry(registry, extPkg);
           if (!extEntry) continue;
           if (importedNames.some(n => extEntry.componentMap.get(n)?.isDSBacked)) {
             fileInfo.hasDSImport = true;
             changed = true;
+            if (!registryEntry.viaPackage) registryEntry.viaPackage = extPkg;
+            break;
+          }
+        }
+        if (fileInfo.hasDSImport) continue;
+        // Check export*/re-export sources (fixes: export * from '@pkg' not counted before)
+        for (const extPkg of fileInfo.externalPackageReExports) {
+          const extEntry = findLibEntry(registry, extPkg);
+          if (!extEntry) continue;
+          // If the external package has ANY DS-backed component, this file is considered DS-adjacent
+          if ([...extEntry.componentMap.values()].some(e => e.isDSBacked)) {
+            fileInfo.hasDSImport = true;
+            changed = true;
+            if (!registryEntry.viaPackage) registryEntry.viaPackage = extPkg;
             break;
           }
         }
@@ -440,6 +458,7 @@ export function parseFileExports(
     dsName: null,
     dsImportedNames: [],
     externalPackageImports: new Map(),
+    externalPackageReExports: new Set(),
   };
 
   let ast: TSESTree.Program;
@@ -498,6 +517,13 @@ export function parseFileExports(
       if (node.source) {
         // Re-export from another module
         const from = node.source.value as string;
+        // Track external package re-exports for hasDSImport propagation
+        if (!from.startsWith('.') && !from.startsWith('/')) {
+          const pkgName = from.startsWith('@')
+            ? from.split('/').slice(0, 2).join('/')
+            : (from.split('/')[0] ?? from);
+          info.externalPackageReExports.add(pkgName);
+        }
         if (node.specifiers.length === 0) {
           // export * from './path' — handled by ExportAllDeclaration, but
           // some parsers emit it here; treat as star
@@ -538,6 +564,13 @@ export function parseFileExports(
     // ── export * from './path' ─────────────────────────────────────────────
     if (node.type === 'ExportAllDeclaration') {
       const from = node.source.value as string;
+      // Track external package star re-exports for hasDSImport propagation
+      if (!from.startsWith('.') && !from.startsWith('/')) {
+        const pkgName = from.startsWith('@')
+          ? from.split('/').slice(0, 2).join('/')
+          : (from.split('/')[0] ?? from);
+        info.externalPackageReExports.add(pkgName);
+      }
       if (node.exported) {
         // export * as Namespace from './path'
         const nsName = node.exported.type === 'Identifier'

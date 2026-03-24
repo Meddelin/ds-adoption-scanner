@@ -482,6 +482,41 @@ function buildLocalFamilies(report: ScanReport): string {
 }
 
 
+function buildTransitiveChains(report: ScanReport): string {
+  const libs = report.libraryPrescan;
+  if (!libs || libs.length === 0) return '';
+
+  // Show all libraries, rendering the chain (or direct DS→pkg for 2-step ones)
+  const rows = libs.map(lib => {
+    const chain = lib.chain ?? [lib.backedBy, lib.package];
+    const chainStr = chain.map((seg, i) => {
+      const isLast = i === chain.length - 1;
+      return `<span style="font-weight:${isLast ? '600' : '400'};color:${isLast ? 'var(--text)' : 'var(--muted)'}">${esc(seg)}</span>`;
+    }).join('<span style="color:var(--muted);margin:0 4px">→</span>');
+
+    const depth = chain.length - 1; // hops from DS to final lib
+    const depthBadge = depth > 1
+      ? `<span style="font-size:11px;background:var(--warn);color:#fff;padding:1px 6px;border-radius:10px;margin-left:6px">${depth} hops</span>`
+      : '';
+
+    return `
+    <tr>
+      <td><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">${chainStr}${depthBadge}</div></td>
+      <td class="num">${lib.dsBackedFamilies} / ${lib.totalFamilies}</td>
+      <td class="num">${lib.transitiveUsages > 0 ? num(lib.transitiveUsages) : '<span style="color:var(--muted)">—</span>'}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+  <div class="section">
+    <div class="section-title">🔗 Transitive Dependency Chains</div>
+    <table>
+      <thead><tr><th>Chain (DS → Library)</th><th>DS-backed Families</th><th>Transitive Usages</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
 function buildFooter(report: ScanReport): string {
   const dur = (report.meta.scanDurationMs / 1000).toFixed(1);
   return `
@@ -554,6 +589,7 @@ export function formatHTML(report: ScanReport): string {
     buildTopFamilies(report),
     buildTopComponents(report, hasFamilies),
     buildLocalFamilies(report),
+    buildTransitiveChains(report),
     buildFooter(report),
   ].join('\n');
 

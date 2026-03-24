@@ -265,6 +265,8 @@ export interface ScanReport {
     backedBy: string;          // DS name
     totalFamilies: number;     // directory-level component groups
     dsBackedFamilies: number;  // families where ANY component uses DS
+    transitiveUsages: number;  // count of local-library usages with transitiveDS from this package
+    chain?: string[];          // full dependency chain: [dsName, ...intermediateLibs, package]
   }[];
 
   // Results of DS pre-scan (only present when designSystems[] have path/git configured)

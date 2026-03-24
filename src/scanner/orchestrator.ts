@@ -104,15 +104,42 @@ export async function runScan(
 
   // Attach library pre-scan summary when libraries[] were configured
   if (libraryRegistry.size > 0) {
+    const allUsages = repoData.flatMap(r => r.usages);
+
+    // Count transitive usages per library package (local-library usages that got transitiveDS)
+    const transitivePerPkg = new Map<string, number>();
+    for (const u of allUsages) {
+      if (u.category !== 'local-library' || !u.transitiveDS) continue;
+      const src = u.importEntry?.source ?? '';
+      const pkgName = src.startsWith('@')
+        ? src.split('/').slice(0, 2).join('/')
+        : (src.split('/')[0] ?? src);
+      transitivePerPkg.set(pkgName, (transitivePerPkg.get(pkgName) ?? 0) + 1);
+    }
+
     report.libraryPrescan = [];
     for (const [pkg, entry] of libraryRegistry) {
       const total = entry.familyMap.size;
       const dsBacked = [...entry.familyMap.values()].filter(f => f.isDSBacked).length;
+
+      // Build the full chain: [dsName, ...intermediate libs, this package]
+      const chain: string[] = [entry.backedBy];
+      const visited = new Set<string>();
+      let cursor: string | undefined = entry.viaPackage;
+      while (cursor && !visited.has(cursor)) {
+        visited.add(cursor);
+        chain.push(cursor);
+        cursor = libraryRegistry.get(cursor)?.viaPackage;
+      }
+      chain.push(pkg);
+
       report.libraryPrescan.push({
         package: pkg,
         backedBy: entry.backedBy,
         totalFamilies: total,
         dsBackedFamilies: dsBacked,
+        transitiveUsages: transitivePerPkg.get(pkg) ?? 0,
+        ...(chain.length > 2 ? { chain } : {}), // only include when there are intermediates
       });
     }
   }
