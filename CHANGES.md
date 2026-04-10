@@ -1,5 +1,54 @@
 # Changelog
 
+## v2.1.0 — React Router, Resolver Filters, Effective Adoption Everywhere, Bar Removal
+
+### Added
+
+- **React Router Resolver**: New `react-router-resolver.ts` detects routes from React Router v6
+  `createBrowserRouter` / `createHashRouter` / `<Routes>` config in `App.tsx` / `router.ts`
+  and similar entry points.
+
+- **Route Source Tracking**: `RouteMatch.source` field now propagates from resolver through
+  `RouteAttribution.sourceByRouteId` → `RouteMetrics.resolver`. Each route now knows which
+  resolver (react-router, nextjs-pages, nextjs-app, path-pattern, fallback-directory) found it.
+
+- **Resolver Filter in HTML Report**: "Router" pill group (React Router / Next.js / Other)
+  appears dynamically in the Routes tab only when those resolvers are present in scan data.
+  Resolver tag (colored badge) shown inline with each route row.
+
+- **Effective Adoption in All Tables**: `effectiveAdoptionProxy.percentage` now appears in:
+  - Routes tab table (new "Effective" column)
+  - Per-repo route tables in Repos tab
+  - Heatmap cells (shows `eff X%` in DS blue when effective differs from direct by ≥ 0.5pp)
+
+- **Transitive Barrel Re-export Following**: `transitive-resolver.ts` now parses
+  `ExportNamedDeclaration` / `ExportAllDeclaration` in barrel files (index.ts) and recursively
+  checks re-exported source files for DS imports. Fixes the common `src/ui-kit/index.ts` pattern.
+
+### Changed
+
+- **No More Bar Visualizations**: Removed all stacked-bar and sparkline widgets from HTML report.
+  Numbers only — adoption percentages displayed as colored text without bar charts.
+  Removed CSS classes: `.bbar`, `.bleg`, `.bbar .seg`, `.bar-wrap`, `.bar`, `.bval`, `.rbar-area`.
+
+- **Repos Overview Table**: Removed "Buckets" column with mini stacked bar.
+
+- **Invariant Fix — `no-double-counting`**: The invariant now correctly compares
+  `adoption + shadow` (i.e. the metric denominator) vs `denominator.instances`.
+  Previously it included `neither`, which always caused a false failure when any
+  usage was classified to the `neither` bucket.
+
+### Fixed
+
+- **Classifier second-pass override**: Local-library usages already classified to `adoption`
+  via transitive detection (source `transitive-declared` or `transitive-auto`) are now skipped
+  in the second classifier pass, preventing shadow signals from overwriting their bucket.
+
+- **Test `calculator-v2.test.ts`**: Updated expected route metric from 50% → 100% to match
+  the corrected denominator (neither excluded; adoption=1, shadow=0, denominator=1).
+
+---
+
 ## v2.0.0 — Deterministic Analytical Model (Breaking)
 
 ### Added

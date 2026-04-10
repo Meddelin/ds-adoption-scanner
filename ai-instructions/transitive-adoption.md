@@ -24,12 +24,13 @@ and don't credit the DS in adoption metrics.
 
 ## Context
 
-Read the scan JSON report. Key fields:
-- `summary.adoptionRate` — current direct-only rate
-- `summary.effectiveAdoptionRate` — rate with transitive (if already configured)
-- `byComponent.thirdParty[]` — third-party packages used (check if any wrap the DS)
-- `byComponent.localMostUsed[]` — local-library components (check `resolvedPath` for DS imports)
-- `summary.designSystems[].packages` — what packages are configured as the DS
+Read the scan JSON report (V2 schema). Key fields:
+- `summary.directAdoption.percentage` — current direct-only rate
+- `summary.effectiveAdoptionProxy.percentage` — rate with transitive (if already configured)
+- `byComponent.adoption[]` — DS components in use (includes transitive when configured)
+- `byComponent.neither[]` — local-library components classified as utility (check `resolvedPath` for DS imports)
+- `localComponentProfiles[]` — all local component profiles with `analyticalBucket` and `resolvedPath`
+- `byDesignSystem[].packages` — what packages are configured as the DS
 
 ## What To Do
 
@@ -47,12 +48,16 @@ Look at `byComponent.thirdParty`. For each package:
 
 ### Step 2: Identify local-library transitive candidates
 
-Look at `byComponent.localMostUsed` items with `category: "local-library"`.
-For each one with a `resolvedPath`:
+Look at `localComponentProfiles[]` items with `analyticalBucket: "neither"` or `"shadow"`
+that have a `resolvedPath`.
+For each one:
 1. Read the source file at `resolvedPath`
 2. Check the imports at the top of the file — do they import from DS packages?
-3. If the component renders DS components internally → it's DS-backed
-4. With `transitiveAdoption.enabled: true` the scanner detects this automatically.
+3. If it's a barrel file (index.ts), check the files it re-exports — the scanner follows
+   these automatically when `transitiveAdoption.enabled: true`.
+4. If the component renders DS components internally → it's DS-backed
+5. With `transitiveAdoption.enabled: true` the scanner detects this automatically,
+   including barrel re-export chains (e.g. `src/ui-kit/index.ts` → `./Button.tsx` → `antd`).
 
 ### Step 3: Suggest configuration changes
 
@@ -102,18 +107,24 @@ by the config loader. This means you do NOT need to manually add them to `localL
 doing so is redundant. It also ensures subpath imports like
 `import { X } from '@company/ui/button'` are always matched.
 
+For local paths that you manage yourself (e.g. `src/ui-kit/**`), you DO need to add them
+to `localLibraryPatterns` manually — the scanner will then auto-detect DS backing via
+`transitiveAdoption.enabled: true`, including barrel file re-export chains.
+
 ### Step 4: Project the impact
 
 After suggesting the rules, calculate the expected change:
 
 ```
-current direct adoption:    adoptionRate (from report)
+current direct adoption:    summary.directAdoption.percentage (from report)
 transitive_instances:       sum of instances for all matched packages
 estimated_weighted:         transitive_instances × avg_coverage
 
 new_effective_adoption ≈ (DS + estimated_weighted) /
-                          (DS + local-lib + local + third-party-with-rule) × 100
+                          (adoption_instances + shadow_instances) × 100
 ```
+
+Note: the denominator is `adoption + shadow` only — neither is excluded.
 
 ## Response Format
 
@@ -143,7 +154,7 @@ Suggested config (Option B — coverage-based fallback):
   transitiveAdoption: { enabled: true }
 
 Projected impact:
-  Current direct adoption: 68.6%
-  With transitive config:  79.7%  (+11.1 percentage points)
-  Gap explained by:        28 ProComponents usages now credited to Ant Design
+  Current directAdoption.percentage:         68.6%
+  With transitive config effectiveProxy:     79.7%  (+11.1 percentage points)
+  Gap explained by:                          28 ProComponents usages now credited to Ant Design
 ```

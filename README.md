@@ -5,9 +5,9 @@ CLI-инструмент для измерения adoption дизайн-сис�
 > **v2.0 Update**: Новая deterministic analytical модель с route-level метриками и shadow usage detection. См. [Deterministic Model](#deterministic-analytical-model-v2).
 
 ```
-📊 Direct DS Adoption:         68.6%  █████████████████████░░░░░░░░░  (exact)
-📊 Effective Adoption Proxy:   79.7%  ████████████████████████░░░░░░  (+11.1% via transitive, proxy)
-📊 Shadow Usage Proxy:         15.2%  █████░░░░░░░░░░░░░░░░░░░░░░░░░  (parallel UI layer)
+📊 Direct DS Adoption:         68.6%  (exact)
+📊 Effective Adoption Proxy:   79.7%  (+11.1% via transitive, proxy)
+📊 Shadow Usage Proxy:         15.2%  (parallel UI layer)
 
 📐 Per Design System
 DS Name       Direct%   Effective%   Direct Inst.   Transitive Inst.   Unique
@@ -65,9 +65,12 @@ ant-design-pro         68.6%              79.7%         31.4%
 ### Route-Level Аналитика
 
 Сканер теперь поддерживает route-level агрегацию:
-- Next.js pages/ и app/ директории
+- **React Router v6** — обнаружение `createBrowserRouter` / `createHashRouter` / `<Routes>` конфигов
+- **Next.js** — pages/ и app/ директории
 - Fallback directory-based resolution
-- Confidence markers для всех маппингов
+- Confidence markers (high / medium / low) для всех маппингов
+- Resolver badge в HTML-отчёте (React Router / Next.js / Path / Directory)
+- Фильтрация по резолверу в Routes-вкладке
 
 ### Shadow Usage Detection (Deterministic)
 
@@ -270,6 +273,7 @@ export default defineConfig({
     '@shared/components/*',
     '**/shared/ui/**',
     '**/common/components/**',
+    'src/ui-kit/**',        // local DS wrapper kit (barrel re-exports auto-followed)
   ],
 
   // Путь к tsconfig относительно каждого репозитория (для резолва path aliases)
