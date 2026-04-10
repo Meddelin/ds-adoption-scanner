@@ -5,42 +5,33 @@ import type { RouteResolver } from './types.js';
 import type { RouteMatch } from '../domain/types.js';
 import { NEXTJS_PAGES_PATTERNS, NEXTJS_APP_PATTERNS } from '../domain/constants.js';
 import { existsSync } from 'fs';
-import { join } from 'path';
+import { join, relative } from 'path';
 
 /**
- * Next.js route resolver — supports both pages/ and app/ directories.
+ * Next.js route resolver - supports both pages/ and app/ directories.
  */
 export class NextJsResolver implements RouteResolver {
   readonly name = 'nextjs';
   readonly priority = 100;
 
-  private hasPagesDir: boolean = false;
-  private hasAppDir: boolean = false;
-  private repoPath: string = '';
+  private pagesRoot: string | null = null;
+  private appRoot: string | null = null;
 
   async detect(repoPath: string): Promise<boolean> {
-    this.repoPath = repoPath;
-
-    // Check for pages directory
-    const pagesPath = join(repoPath, 'pages');
-    this.hasPagesDir = existsSync(pagesPath);
-
-    // Check for app directory
-    const appPath = join(repoPath, 'app');
-    this.hasAppDir = existsSync(appPath);
-
-    return this.hasPagesDir || this.hasAppDir;
+    this.pagesRoot = this.findFirstExistingDir(repoPath, ['pages', join('src', 'pages')]);
+    this.appRoot = this.findFirstExistingDir(repoPath, ['app', join('src', 'app')]);
+    return this.pagesRoot !== null || this.appRoot !== null;
   }
 
   async resolve(filePath: string): Promise<RouteMatch | null> {
     // Try pages directory first
-    if (this.hasPagesDir) {
+    if (this.pagesRoot) {
       const pagesMatch = this.resolvePagesRoute(filePath);
       if (pagesMatch) return pagesMatch;
     }
 
     // Try app directory
-    if (this.hasAppDir) {
+    if (this.appRoot) {
       const appMatch = this.resolveAppRoute(filePath);
       if (appMatch) return appMatch;
     }
@@ -52,33 +43,25 @@ export class NextJsResolver implements RouteResolver {
    * Resolve route for pages directory structure.
    */
   private resolvePagesRoute(filePath: string): RouteMatch | null {
+    if (!this.pagesRoot) {
+      return null;
+    }
+
     if (!NEXTJS_PAGES_PATTERNS.pageFiles.test(filePath)) {
       return null;
     }
 
     // Extract path relative to pages directory
-    const pagesIndex = filePath.indexOf(`${this.repoPath}pages`);
-    if (pagesIndex === -1) return null;
-
-    const relativePath = filePath.slice(pagesIndex + this.repoPath.length + 6); // +6 for 'pages/'
+    const relativePath = this.relativeToRoot(filePath, this.pagesRoot);
+    if (!relativePath) {
+      return null;
+    }
 
     // Remove file extension
     const withoutExt = relativePath.replace(/\.(tsx|jsx|ts|js)$/, '');
-
-    // Handle index files
-    if (withoutExt === 'index') {
-      return {
-        routeId: '/',
-        routeKey: 'pages/index',
-        filePath,
-        confidence: 'high',
-        source: 'nextjs-pages',
-        pattern: '/',
-      };
-    }
-
-    // Convert file path to route path
-    let routePath = '/' + withoutExt.replace(/\\/g, '/');
+    const normalized = withoutExt.replace(/\\/g, '/').replace(/\/index$/, '');
+    const routePathBase = normalized === '' || normalized === 'index' ? '/' : `/${normalized}`;
+    let routePath = routePathBase;
 
     // Handle dynamic segments
     const dynamicSegments: string[] = [];
@@ -105,27 +88,33 @@ export class NextJsResolver implements RouteResolver {
    * Resolve route for app directory structure.
    */
   private resolveAppRoute(filePath: string): RouteMatch | null {
+    if (!this.appRoot) {
+      return null;
+    }
+
     if (!NEXTJS_APP_PATTERNS.pageFiles.test(filePath)) {
       return null;
     }
 
-    // Extract path relative to app directory
-    const appIndex = filePath.indexOf(`${this.repoPath}app`);
-    if (appIndex === -1) return null;
+    const relativePath = this.relativeToRoot(filePath, this.appRoot);
+    if (!relativePath) {
+      return null;
+    }
 
     // Get directory containing page.tsx
-    const pageDir = filePath.slice(appIndex + this.repoPath.length + 4); // +4 for 'app/'
-    const dirWithoutPage = pageDir.replace(/\/page\.(tsx|jsx|ts|js)$/, '');
+    const dirWithoutPage = relativePath
+      .replace(/\\/g, '/')
+      .replace(/\/page\.(tsx|jsx|ts|js)$/, '');
 
     // Remove route groups (parentheses)
-    const withoutGroups = dirWithoutPage.replace(NEXTJS_APP_PATTERNS.routeGroup, '');
+    const withoutGroups = dirWithoutPage.replace(/\([^)]+\)/g, '');
 
     // Clean up path
-    let routePath = '/' + withoutGroups.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/\/$/, '');
-
-    if (routePath === '') {
-      routePath = '/';
-    }
+    const normalizedPath = withoutGroups
+      .replace(/\\/g, '/')
+      .replace(/\/+/g, '/')
+      .replace(/^\/|\/$/g, '');
+    let routePath = normalizedPath ? `/${normalizedPath}` : '/';
 
     // Handle dynamic segments
     const dynamicSegments: string[] = [];
@@ -146,5 +135,23 @@ export class NextJsResolver implements RouteResolver {
       source: 'nextjs-app',
       pattern: dynamicSegments.length > 0 ? `[${dynamicSegments.join(', ')}]` : undefined,
     };
+  }
+
+  private findFirstExistingDir(repoPath: string, candidates: string[]): string | null {
+    for (const candidate of candidates) {
+      const dir = join(repoPath, candidate);
+      if (existsSync(dir)) {
+        return dir;
+      }
+    }
+    return null;
+  }
+
+  private relativeToRoot(filePath: string, root: string): string | null {
+    const rel = relative(root, filePath);
+    if (!rel || rel.startsWith('..')) {
+      return null;
+    }
+    return rel.replace(/^[/\\]+/, '');
   }
 }

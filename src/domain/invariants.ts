@@ -15,9 +15,7 @@ import type {
  * Check that all usages have exactly one analytical bucket assigned.
  */
 export function checkBucketExclusivity(usages: ClassifiedUsage[]): InvariantCheck {
-  const unclassified = usages.filter(
-    u => !u.analyticalBucket || u.analyticalBucket === 'unclassified'
-  );
+  const unclassified = usages.filter(u => !u.analyticalBucket);
 
   const invalid = usages.filter(
     u => u.analyticalBucket && !['adoption', 'shadow', 'neither'].includes(u.analyticalBucket)
@@ -217,13 +215,13 @@ export function checkReportInvariants(report: ScanReportV2): InvariantReport {
 
   // Check no double counting in summary
   const { adoption, shadow, neither } = report.summary.bucketBreakdown;
-  const totalInstances = adoption.instances + shadow.instances + neither.instances;
+  const denominatorInstances = report.summary.directAdoption.denominator.instances;
   checks.push(
     checkNoDoubleCounting(
       adoption.instances,
       shadow.instances,
       neither.instances,
-      totalInstances
+      denominatorInstances
     )
   );
 
@@ -255,7 +253,7 @@ export function validateClassifiedUsage(usage: ClassifiedUsage): InvariantCheck[
 
   // Shadow usages should have signals
   if (usage.analyticalBucket === 'shadow') {
-    const hasSignals = usage.shadowSignals && usage.shadowSignals.length > 0;
+    const hasSignals = Array.isArray(usage.shadowSignals) && usage.shadowSignals.length > 0;
     checks.push({
       name: 'usage-shadow-has-signals',
       passed: hasSignals,

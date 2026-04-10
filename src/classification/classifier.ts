@@ -66,12 +66,12 @@ export class AnalyticalClassifier {
     const firstPass = usages.map(u => this.classifyByStructure(u));
 
     // Build local component profiles for shadow/neither classification
-    const profiles = this.buildLocalProfiles(firstPass);
+    const { profiles, profileByKey } = this.buildLocalProfiles(firstPass);
 
     // Second pass: apply shadow/neither classification to local components
     const classified = firstPass.map(usage => {
       if (usage.category === 'local' || usage.category === 'local-library') {
-        return this.applyLocalClassification(usage, profiles);
+        return this.applyLocalClassification(usage, profileByKey);
       }
       return usage;
     });
@@ -155,31 +155,45 @@ export class AnalyticalClassifier {
   /**
    * Build profiles for local components.
    */
-  private buildLocalProfiles(usages: ClassifiedUsage[]): LocalComponentProfile[] {
-    // Group by resolved path
-    const byPath = new Map<string, CategorizedUsage[]>();
+  private buildLocalProfiles(usages: ClassifiedUsage[]): {
+    profiles: LocalComponentProfile[];
+    profileByKey: Map<string, LocalComponentProfile>;
+  } {
+    // Group by stable local component key:
+    // resolvedPath + exported/imported symbol. This prevents conflating multiple exports
+    // from the same module file (common in barrel/index modules).
+    const byKey = new Map<string, ClassifiedUsage[]>();
 
     for (const usage of usages) {
       if (usage.category !== 'local' && usage.category !== 'local-library') {
         continue;
       }
 
-      const path = usage.resolvedPath;
-      if (!path) continue;
+      const key = this.getLocalProfileKey(usage);
+      if (!key) continue;
 
-      const existing = byPath.get(path);
+      const existing = byKey.get(key);
       if (existing) {
         existing.push(usage);
       } else {
-        byPath.set(path, [usage]);
+        byKey.set(key, [usage]);
       }
     }
 
     // Build profiles
     const profiles: LocalComponentProfile[] = [];
+    const profileByKey = new Map<string, LocalComponentProfile>();
 
-    for (const [resolvedPath, componentUsages] of byPath) {
-      const componentName = componentUsages[0].componentName;
+    for (const [profileKey, componentUsages] of byKey) {
+      const sample = componentUsages[0];
+      const resolvedPath = sample.resolvedPath;
+      if (!resolvedPath) {
+        continue;
+      }
+
+      const importedName = sample.importEntry?.importedName;
+      const componentName =
+        importedName && importedName !== 'default' ? importedName : sample.componentName;
 
       // Detect shadow signals
       const signals = detectShadowSignals(
@@ -224,8 +238,8 @@ export class AnalyticalClassifier {
       profiles.push({
         componentName,
         resolvedPath,
-        structuralCategory: componentUsages[0].category as 'local' | 'local-library',
-        usages: componentUsages as ClassifiedUsage[],
+        structuralCategory: sample.category as 'local' | 'local-library',
+        usages: componentUsages,
         fileCount: fileSet.size,
         routeCount: routeSet.size,
         signals,
@@ -235,9 +249,11 @@ export class AnalyticalClassifier {
         analyticalBucket: bucket,
         primarySignal: primarySignal,
       });
+
+      profileByKey.set(profileKey, profiles[profiles.length - 1]);
     }
 
-    return profiles;
+    return { profiles, profileByKey };
   }
 
   /**
@@ -245,10 +261,10 @@ export class AnalyticalClassifier {
    */
   private applyLocalClassification(
     usage: ClassifiedUsage,
-    profiles: LocalComponentProfile[]
+    profileByKey: Map<string, LocalComponentProfile>
   ): ClassifiedUsage {
-    const path = usage.resolvedPath;
-    if (!path) {
+    const key = this.getLocalProfileKey(usage);
+    if (!key) {
       // Inline component -> neither
       return {
         ...usage,
@@ -258,9 +274,9 @@ export class AnalyticalClassifier {
       };
     }
 
-    const profile = profiles.find(p => p.resolvedPath === path);
+    const profile = profileByKey.get(key);
     if (!profile) {
-      // Should not happen
+      // Keep deterministic fallback for unresolved profile keys.
       return {
         ...usage,
         analyticalBucket: 'neither',
@@ -281,6 +297,21 @@ export class AnalyticalClassifier {
       classificationConfidence: profile.analyticalBucket === 'shadow' ? 'medium' : 'high',
       shadowSignals: profile.signals,
     };
+  }
+
+  private getLocalProfileKey(
+    usage: Pick<CategorizedUsage, 'resolvedPath' | 'importEntry' | 'componentName'>
+  ): string | null {
+    if (!usage.resolvedPath) {
+      return null;
+    }
+
+    const identity =
+      usage.importEntry?.importedName && usage.importEntry.importedName !== '*'
+        ? usage.importEntry.importedName
+        : usage.componentName;
+
+    return `${usage.resolvedPath}::${identity}`;
   }
 
   /**

@@ -14,7 +14,7 @@ import type {
 import type { ResolvedConfig } from '../config/schema.js';
 import { FORMULAS, DENOMINATOR_EXPLANATION } from '../domain/constants.js';
 
-// ─── Types for Calculation ────────────────────────────────────────────────────
+// --- Types for Calculation ---
 
 interface CalculationContext {
   config: ResolvedConfig;
@@ -23,7 +23,7 @@ interface CalculationContext {
   routeMapping?: Map<string, string>; // filePath -> routeId
 }
 
-// ─── Main Metric Calculation ──────────────────────────────────────────────────
+// --- Main Metric Calculation ---
 
 /**
  * Calculate V2 metrics from classified usages.
@@ -45,16 +45,18 @@ export function calculateMetricsV2(
   const bucketCounts = calculateBucketCounts(usages, profiles);
 
   // Direct adoption: only direct DS usages
-  const directDSInstances = usages.filter(
-    u => u.analyticalBucket === 'adoption' && u.classificationSource === 'direct-ds'
-  ).length;
+  const directUsages = usages.filter(
+    u =>
+      isIncludedInDenominator(u) &&
+      u.analyticalBucket === 'adoption' &&
+      u.classificationSource === 'direct-ds'
+  );
+  const directDSInstances = directUsages.length;
 
   const directAdoption: MetricWithDetails = {
     percentage: denominator.instances > 0 ? (directDSInstances / denominator.instances) * 100 : 0,
     instances: directDSInstances,
-    components: countUniqueComponents(
-      usages.filter(u => u.analyticalBucket === 'adoption' && u.classificationSource === 'direct-ds')
-    ),
+    components: countUniqueComponents(directUsages),
     isProxy: false,
     formula: FORMULAS.directAdoption,
     denominator: {
@@ -67,6 +69,7 @@ export function calculateMetricsV2(
   // Effective adoption proxy: DS + weighted transitive
   const transitiveUsages = usages.filter(
     u =>
+      isIncludedInDenominator(u) &&
       u.analyticalBucket === 'adoption' &&
       (u.classificationSource === 'transitive-declared' ||
         u.classificationSource === 'transitive-auto' ||
@@ -82,16 +85,14 @@ export function calculateMetricsV2(
   const effectiveAdoptionProxy: MetricWithDetails = {
     percentage: denominator.instances > 0 ? (effectiveInstances / denominator.instances) * 100 : 0,
     instances: effectiveInstances,
-    components:
-      directAdoption.components +
-      countUniqueComponents(
-        usages.filter(
-          u =>
-            u.analyticalBucket === 'adoption' &&
-            u.classificationSource !== 'direct-ds' &&
-            u.classificationSource !== 'unclassified'
-        )
-      ),
+    components: countUniqueComponents(
+      usages.filter(
+        u =>
+          isIncludedInDenominator(u) &&
+          u.analyticalBucket === 'adoption' &&
+          u.classificationSource !== 'unclassified'
+      )
+    ),
     isProxy: true,
     formula: FORMULAS.effectiveAdoptionProxy,
     denominator: {
@@ -132,7 +133,7 @@ export function calculateMetricsV2(
   };
 }
 
-// ─── Denominator Calculation ──────────────────────────────────────────────────
+// --- Denominator Calculation ---
 
 /**
  * Calculate denominator: Adoption + Shadow + Neither
@@ -142,10 +143,7 @@ function calculateDenominator(usages: ClassifiedUsage[]): {
   instances: number;
   components: number;
 } {
-  // Filter out HTML native and unclassified
-  const relevantUsages = usages.filter(
-    u => u.analyticalBucket === 'adoption' || u.analyticalBucket === 'shadow' || u.analyticalBucket === 'neither'
-  );
+  const relevantUsages = usages.filter(isIncludedInDenominator);
 
   const instances = relevantUsages.length;
   const components = countUniqueComponents(relevantUsages);
@@ -153,7 +151,7 @@ function calculateDenominator(usages: ClassifiedUsage[]): {
   return { instances, components };
 }
 
-// ─── Bucket Counts ────────────────────────────────────────────────────────────
+// --- Bucket Counts ---
 
 interface BucketCounts {
   adoption: { instances: number; components: number };
@@ -168,13 +166,15 @@ function calculateBucketCounts(
   usages: ClassifiedUsage[],
   profiles: LocalComponentProfile[]
 ): BucketCounts {
+  const relevantUsages = usages.filter(isIncludedInDenominator);
+
   const byBucket = {
     adoption: [] as ClassifiedUsage[],
     shadow: [] as ClassifiedUsage[],
     neither: [] as ClassifiedUsage[],
   };
 
-  for (const usage of usages) {
+  for (const usage of relevantUsages) {
     if (usage.analyticalBucket in byBucket) {
       byBucket[usage.analyticalBucket].push(usage);
     }
@@ -196,7 +196,7 @@ function calculateBucketCounts(
   };
 }
 
-// ─── Bucket Stats ─────────────────────────────────────────────────────────────
+// --- Bucket Stats ---
 
 /**
  * Calculate detailed stats for a bucket.
@@ -207,14 +207,15 @@ function calculateBucketStats(
   bucket: 'adoption' | 'shadow' | 'neither',
   totalInstances: number
 ): BucketStats {
-  const bucketUsages = usages.filter(u => u.analyticalBucket === bucket);
+  const bucketUsages = usages.filter(
+    u => isIncludedInDenominator(u) && u.analyticalBucket === bucket
+  );
   const instances = bucketUsages.length;
 
   // Get unique components
   const componentSet = new Set<string>();
   for (const usage of bucketUsages) {
-    const key = usage.resolvedPath ?? `${usage.filePath}:${usage.componentName}`;
-    componentSet.add(key);
+    componentSet.add(getComponentIdentityKey(usage));
   }
   const components = componentSet.size;
 
@@ -238,7 +239,7 @@ function calculateBucketStats(
   };
 }
 
-// ─── Utility Functions ────────────────────────────────────────────────────────
+// --- Utility Functions ---
 
 /**
  * Count unique components from usages.
@@ -246,13 +247,25 @@ function calculateBucketStats(
 function countUniqueComponents(usages: ClassifiedUsage[]): number {
   const unique = new Set<string>();
   for (const usage of usages) {
-    const key = usage.resolvedPath ?? `${usage.filePath}:${usage.componentName}`;
-    unique.add(key);
+    unique.add(getComponentIdentityKey(usage));
   }
   return unique.size;
 }
 
-// ─── Per-DS Metrics ───────────────────────────────────────────────────────────
+function getComponentIdentityKey(usage: ClassifiedUsage): string {
+  if (!usage.resolvedPath) {
+    return `${usage.filePath}:${usage.componentName}`;
+  }
+
+  const symbol =
+    usage.importEntry?.importedName && usage.importEntry.importedName !== '*'
+      ? usage.importEntry.importedName
+      : usage.componentName;
+
+  return `${usage.resolvedPath}::${symbol}`;
+}
+
+// --- Per-DS Metrics ---
 
 /**
  * Calculate per-DS metrics for V2.
@@ -261,15 +274,25 @@ export function calculatePerDSMetricsV2(
   usages: ClassifiedUsage[],
   config: ResolvedConfig
 ): DesignSystemMetricsV2[] {
+  const denominatorUsages = usages.filter(isIncludedInDenominator);
+  const denominatorInstances = denominatorUsages.length;
+  const denominatorComponents = countUniqueComponents(denominatorUsages);
+
   return config.designSystems.map(ds => {
     // Direct DS usages
     const directUsages = usages.filter(
-      u => u.dsName === ds.name && u.classificationSource === 'direct-ds'
+      u =>
+        isIncludedInDenominator(u) &&
+        u.dsName === ds.name &&
+        u.classificationSource === 'direct-ds'
     );
 
     // Transitive usages for this DS
     const transitiveUsages = usages.filter(
-      u => u.transitiveDS?.dsName === ds.name && u.analyticalBucket === 'adoption'
+      u =>
+        isIncludedInDenominator(u) &&
+        u.transitiveDS?.dsName === ds.name &&
+        u.analyticalBucket === 'adoption'
     );
 
     const weightedTransitive = transitiveUsages.reduce(
@@ -277,36 +300,33 @@ export function calculatePerDSMetricsV2(
       0
     );
 
-    // Calculate percentages relative to total classified
-    const denominator = usages.filter(
-      u => u.analyticalBucket === 'adoption' || u.analyticalBucket === 'shadow' || u.analyticalBucket === 'neither'
-    ).length;
-
     const directInstances = directUsages.length;
     const effectiveInstances = directInstances + weightedTransitive;
 
     const directAdoption: MetricWithDetails = {
-      percentage: denominator > 0 ? (directInstances / denominator) * 100 : 0,
+      percentage:
+        denominatorInstances > 0 ? (directInstances / denominatorInstances) * 100 : 0,
       instances: directInstances,
       components: countUniqueComponents(directUsages),
       isProxy: false,
-      formula: `Direct ${ds.name} / Denominator × 100`,
+      formula: `Direct ${ds.name} / Denominator x 100`,
       denominator: {
-        instances: denominator,
-        components: countUniqueComponents(usages),
+        instances: denominatorInstances,
+        components: denominatorComponents,
         explanation: DENOMINATOR_EXPLANATION,
       },
     };
 
     const effectiveAdoptionProxy: MetricWithDetails = {
-      percentage: denominator > 0 ? (effectiveInstances / denominator) * 100 : 0,
+      percentage:
+        denominatorInstances > 0 ? (effectiveInstances / denominatorInstances) * 100 : 0,
       instances: effectiveInstances,
       components: countUniqueComponents([...directUsages, ...transitiveUsages]),
       isProxy: true,
-      formula: `(Direct ${ds.name} + Weighted Transitive) / Denominator × 100`,
+      formula: `(Direct ${ds.name} + Weighted Transitive) / Denominator x 100`,
       denominator: {
-        instances: denominator,
-        components: countUniqueComponents(usages),
+        instances: denominatorInstances,
+        components: denominatorComponents,
         explanation: DENOMINATOR_EXPLANATION,
       },
     };
@@ -347,7 +367,7 @@ export function calculatePerDSMetricsV2(
   });
 }
 
-// ─── Route-Level Metrics ──────────────────────────────────────────────────────
+// --- Route-Level Metrics ---
 
 /**
  * Calculate route-level metrics.
@@ -375,14 +395,13 @@ export function calculateRouteMetrics(
   const routeMetrics: RouteMetrics[] = [];
 
   for (const [routeId, routeUsages] of byRoute) {
-    const denominator = routeUsages.filter(
-      u => u.analyticalBucket === 'adoption' || u.analyticalBucket === 'shadow' || u.analyticalBucket === 'neither'
-    ).length;
+    const countedUsages = routeUsages.filter(isIncludedInDenominator);
+    const denominator = countedUsages.length;
 
     // Bucket counts
-    const adoptionUsages = routeUsages.filter(u => u.analyticalBucket === 'adoption');
-    const shadowUsages = routeUsages.filter(u => u.analyticalBucket === 'shadow');
-    const neitherUsages = routeUsages.filter(u => u.analyticalBucket === 'neither');
+    const adoptionUsages = countedUsages.filter(u => u.analyticalBucket === 'adoption');
+    const shadowUsages = countedUsages.filter(u => u.analyticalBucket === 'shadow');
+    const neitherUsages = countedUsages.filter(u => u.analyticalBucket === 'neither');
 
     // Direct adoption (only direct DS)
     const directUsages = adoptionUsages.filter(u => u.classificationSource === 'direct-ds');
@@ -423,7 +442,7 @@ export function calculateRouteMetrics(
         formula: FORMULAS.directAdoption,
         denominator: {
           instances: denominator,
-          components: countUniqueComponents(routeUsages),
+          components: countUniqueComponents(countedUsages),
           explanation: DENOMINATOR_EXPLANATION,
         },
       },
@@ -435,7 +454,7 @@ export function calculateRouteMetrics(
         formula: FORMULAS.effectiveAdoptionProxy,
         denominator: {
           instances: denominator,
-          components: countUniqueComponents(routeUsages),
+          components: countUniqueComponents(countedUsages),
           explanation: DENOMINATOR_EXPLANATION,
         },
       },
@@ -447,7 +466,7 @@ export function calculateRouteMetrics(
         formula: FORMULAS.shadowUsageProxy,
         denominator: {
           instances: denominator,
-          components: countUniqueComponents(routeUsages),
+          components: countUniqueComponents(countedUsages),
           explanation: DENOMINATOR_EXPLANATION,
         },
       },
@@ -462,7 +481,23 @@ export function calculateRouteMetrics(
   return routeMetrics.sort((a, b) => a.routeId.localeCompare(b.routeId));
 }
 
-// ─── Repository Metrics ───────────────────────────────────────────────────────
+function isIncludedInDenominator(usage: ClassifiedUsage): boolean {
+  if (usage.category === 'html-native') {
+    return false;
+  }
+
+  if (usage.category === 'third-party' && usage.analyticalBucket !== 'adoption') {
+    return false;
+  }
+
+  return (
+    usage.analyticalBucket === 'adoption' ||
+    usage.analyticalBucket === 'shadow' ||
+    usage.analyticalBucket === 'neither'
+  );
+}
+
+// --- Repository Metrics ---
 
 /**
  * Calculate repository-level metrics for V2.
@@ -499,3 +534,4 @@ export function calculateRepositoryMetricsV2(
     routes: routeMetrics,
   };
 }
+

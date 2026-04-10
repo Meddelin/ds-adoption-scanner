@@ -16,7 +16,7 @@ import type { CategorizedUsage } from '../types.js';
 /**
  * Interface for analytical classifiers.
  */
-export interface AnalyticalClassifier {
+export interface AnalyticalClassifierContract {
   /** Classifier name */
   readonly name: string;
 

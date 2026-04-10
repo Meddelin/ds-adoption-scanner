@@ -165,7 +165,7 @@ export const NEXTJS_PAGES_PATTERNS = {
  */
 export const NEXTJS_APP_PATTERNS = {
   /** Page files in app directory */
-  pageFiles: /[\\/]app[\\/](?!.*\(.*?\).*[\\/]).*page\.(tsx|jsx|ts|js)$/,
+  pageFiles: /[\\/]app[\\/].*page\.(tsx|jsx|ts|js)$/,
 
   /** Route groups (ignored in path) */
   routeGroup: /\([^)]+\)/,

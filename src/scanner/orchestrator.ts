@@ -20,10 +20,30 @@ export interface ScanOptions {
   onProgress?: (current: number, total: number, repoName: string) => void;
 }
 
+export interface DetailedScanResult {
+  report: ScanReport;
+  repoData: RepoScanData[];
+}
+
 export async function runScan(
   config: ResolvedConfig,
   options: ScanOptions
 ): Promise<ScanReport> {
+  const { report } = await executeScan(config, options);
+  return report;
+}
+
+export async function runScanDetailed(
+  config: ResolvedConfig,
+  options: ScanOptions
+): Promise<DetailedScanResult> {
+  return executeScan(config, options);
+}
+
+async function executeScan(
+  config: ResolvedConfig,
+  options: ScanOptions
+): Promise<DetailedScanResult> {
   const startTime = Date.now();
 
   // Stage 0: Pre-scan design systems configured with path/git → build family catalog
@@ -166,7 +186,10 @@ export async function runScan(
     }
   }
 
-  return report;
+  return {
+    report,
+    repoData,
+  };
 }
 
 async function processWithConcurrency<T>(

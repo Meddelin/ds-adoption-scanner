@@ -2,6 +2,7 @@
 export { defineConfig } from './config/schema.js';
 export { loadConfig } from './config/loader.js';
 export { runScan } from './scanner/orchestrator.js';
+export { runScanDetailed } from './scanner/orchestrator.js';
 
 // V2 API (new deterministic analytical model)
 export { AnalyticalClassifier, createClassificationContext } from './classification/classifier.js';
