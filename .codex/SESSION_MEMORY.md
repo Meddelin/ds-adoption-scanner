@@ -37,6 +37,24 @@ Short rolling memory for future tasks. Keep it concise and factual.
 - Files touched: `docs/PRODUCT_ANALYST_VALIDATION_GUIDE.md`, `README.md`, `CHANGES.md`.
 - Tests/checks: no code changes; checks not required.
 
+## 2026-04-10 Deterministic Analytical Model v2.0
+
+- Scope: Complete refactor to support deterministic Beaver analytics model with route-level metrics and shadow usage detection.
+- Files touched:
+  - New: `src/domain/*`, `src/routes/*`, `src/classification/*`
+  - New: `src/metrics/calculator-v2.ts`, `src/metrics/aggregator-v2.ts`
+  - Updated: `src/index.ts`, `AGENTS.md`, `CHANGES.md`, `README.md`
+  - Design doc: `docs/deterministic-adoption-refactor-plan.md`
+- Tests/checks: `npm run build` ✓, `npm run test` (158 tests) ✓
+- Docs updated: `CHANGES.md`, `README.md`, `AGENTS.md`
+- Key changes:
+  - Analytical Buckets: Adoption / Shadow / Neither (mutually exclusive)
+  - Route-level architecture with Next.js and fallback resolvers
+  - Shadow Usage Proxy (deterministic signals only, no AI)
+  - Fixed transitive coverage bug (now properly weighted)
+  - V2 Report Schema with explicit proxy marking
+  - Invariant checks for bucket exclusivity and no double counting
+
 ## Update Template
 
 Use this block for each completed task:
