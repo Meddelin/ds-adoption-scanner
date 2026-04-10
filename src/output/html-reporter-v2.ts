@@ -634,16 +634,14 @@ function buildRoutesTab(report: ScanReportV2): string {
 
   const rows = sorted.map((rt, i) => {
     const xid = `xr${i}`;
-    const adoptComps = rt.components?.adoption ?? [];
     const shadowComps = rt.components?.shadow ?? [];
     const neitherCount = rt.components?.neither?.length ?? 0;
+    const dsComps = rt.components?.dsComponents ?? [];
+    const localWrapperComps = rt.components?.localWrappers ?? [];
     const hasTransitive = Math.abs(rt.effectiveAdoptionProxy.percentage - rt.directAdoption.percentage) >= 0.1;
 
-    const adoptChips = adoptComps.slice(0, 25)
-      .map(c => `<span class="chip chip-a">${esc(c)}</span>`).join('');
     const shadowChips = shadowComps.slice(0, 25)
       .map(c => `<span class="chip chip-s">${esc(c)}</span>`).join('');
-    const moreA = adoptComps.length > 25 ? `<span class="faded"> +${adoptComps.length - 25} more</span>` : '';
     const moreS = shadowComps.length > 25 ? `<span class="faded"> +${shadowComps.length - 25} more</span>` : '';
 
     const dataRow = `<tr class="dr" data-rid="${esc(rt.routeId)}" data-xid="${xid}" data-conf="${rt.confidence}" data-repo="${esc(rt.repoName)}" data-resolver="${esc(rt.resolver ?? '')}" onclick="toggleRow(this,'${xid}')">
@@ -661,10 +659,15 @@ function buildRoutesTab(report: ScanReportV2): string {
     const xRow = `<tr id="${xid}" class="xrow">
       <td colspan="${colspan}">
         <div class="xinner">
-          ${adoptComps.length > 0 ? `
+          ${dsComps.length > 0 ? `
           <div class="xblock">
-            <div class="xblock-title a">Adoption (${adoptComps.length})</div>
-            <div>${adoptChips}${moreA}</div>
+            <div class="xblock-title a" style="opacity:.65">DS Components (${dsComps.length})</div>
+            <div class="faded" style="font-size:12px">${dsComps.slice(0, 6).map(c => esc(c)).join(', ')}${dsComps.length > 6 ? ` +${dsComps.length - 6} more` : ''}</div>
+          </div>` : ''}
+          ${localWrapperComps.length > 0 ? `
+          <div class="xblock">
+            <div class="xblock-title a">Local Wrappers (${localWrapperComps.length})</div>
+            <div>${localWrapperComps.slice(0, 25).map(c => `<span class="chip chip-a">${esc(c)}</span>`).join('')}${localWrapperComps.length > 25 ? `<span class="faded"> +${localWrapperComps.length - 25} more</span>` : ''}</div>
           </div>` : ''}
           ${shadowComps.length > 0 ? `
           <div class="xblock">

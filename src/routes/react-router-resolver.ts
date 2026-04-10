@@ -380,13 +380,15 @@ function findRouteConfigFiles(repoPath: string): string[] {
     const base = path.basename(f).toLowerCase();
     if (!/\.(tsx?|jsx?)$/.test(f)) return;
 
+    const isInRoutesDir = f.split(path.sep).some(seg => seg === 'routes' || seg === 'router');
     const isCandidate =
       base.startsWith('route') ||
       base.startsWith('router') ||
       base === 'app.tsx' ||
       base === 'app.ts' ||
       base === 'app.jsx' ||
-      base === 'app.js';
+      base === 'app.js' ||
+      isInRoutesDir;
 
     if (!isCandidate) return;
 

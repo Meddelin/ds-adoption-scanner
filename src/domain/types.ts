@@ -148,6 +148,10 @@ export interface RouteMetrics {
     adoption: string[];
     shadow: string[];
     neither: string[];
+    /** Direct DS components (e.g. Button from antd) — informational, not actionable */
+    dsComponents: string[];
+    /** Local wrappers counted toward adoption via transitive detection */
+    localWrappers: string[];
   };
 
   // Warnings for incomplete data

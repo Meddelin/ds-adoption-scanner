@@ -491,6 +491,8 @@ export function calculateRouteMetrics(
         adoption: [...new Set(adoptionUsages.map(u => u.componentName))],
         shadow: [...new Set(shadowUsages.map(u => u.componentName))],
         neither: [...new Set(neitherUsages.map(u => u.componentName))],
+        dsComponents: [...new Set(adoptionUsages.filter(u => u.classificationSource === 'direct-ds').map(u => u.componentName))],
+        localWrappers: [...new Set(adoptionUsages.filter(u => u.classificationSource !== 'direct-ds').map(u => u.componentName))],
       },
     });
   }
