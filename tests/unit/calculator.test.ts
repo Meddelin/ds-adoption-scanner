@@ -25,6 +25,7 @@ function makeConfig(
     libraries: [],
     excludeLocalFromAdoption: false,
     excludeUniqueLocalFromAdoption: false,
+    reusableThreshold: 2,
     ...overrides,
   };
 }
