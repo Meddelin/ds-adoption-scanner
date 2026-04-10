@@ -90,7 +90,7 @@ function visitChildren(
 ): void {
   for (const key of Object.keys(node)) {
     if (key === 'parent') continue;
-    const child = (node as Record<string, unknown>)[key];
+    const child = (node as unknown as Record<string, unknown>)[key];
     if (Array.isArray(child)) {
       for (const item of child) {
         if (item && typeof item === 'object' && 'type' in item) {
@@ -124,7 +124,9 @@ function extractJSXUsage(
 
   } else if (nameNode.type === 'JSXMemberExpression') {
     // e.g. <Select.Option> or <DS.Button>
-    const { objectName, propertyName } = flattenMemberExpression(nameNode);
+    const flattened = flattenMemberExpression(nameNode);
+    if (!flattened) return null;
+    const { objectName, propertyName } = flattened;
     localName = objectName;
     componentName = `${objectName}.${propertyName}`;
 
@@ -175,9 +177,9 @@ function extractJSXUsage(
 
 function flattenMemberExpression(
   node: TSESTree.JSXMemberExpression
-): { objectName: string; propertyName: string } {
+): { objectName: string; propertyName: string } | null {
   // Get the root object name
-  let obj: TSESTree.JSXMemberExpression | TSESTree.JSXIdentifier = node.object;
+  let obj: TSESTree.JSXTagNameExpression = node.object;
   const parts: string[] = [node.property.name];
 
   while (obj.type === 'JSXMemberExpression') {
@@ -185,8 +187,12 @@ function flattenMemberExpression(
     obj = obj.object;
   }
 
+  if (obj.type !== 'JSXIdentifier') {
+    return null;
+  }
+
   return {
-    objectName: (obj as TSESTree.JSXIdentifier).name,
+    objectName: obj.name,
     propertyName: parts.join('.'),
   };
 }

@@ -28,7 +28,7 @@ export function formatCSV(report: ScanReport): string {
       String(repo.filesScanned),
       ...dsCols,
       String(repo.localLibrary.instances),
-      String(repo.local.instances),
+      String(repo.localReusable.instances + repo.localUnique.instances),
       String(repo.thirdParty.instances),
     ].join(','));
   }

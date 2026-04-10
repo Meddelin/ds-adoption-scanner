@@ -532,7 +532,7 @@ export function parseFileExports(
           for (const spec of node.specifiers) {
             const exportedName = spec.exported.type === 'Identifier'
               ? spec.exported.name
-              : (spec.exported as TSESTree.Literal).value as string;
+              : String(spec.exported.value);
             info.reExports.push({ name: exportedName, from });
           }
         }
@@ -547,7 +547,7 @@ export function parseFileExports(
           const localName = spec.local.name;
           const exportedName = spec.exported.type === 'Identifier'
             ? spec.exported.name
-            : (spec.exported as TSESTree.Literal).value as string;
+            : String(spec.exported.value);
           const importSource = importBindings.get(localName);
           if (importSource) {
             // "import X from './x'; export { X }" — treat as re-export
@@ -573,9 +573,7 @@ export function parseFileExports(
       }
       if (node.exported) {
         // export * as Namespace from './path'
-        const nsName = node.exported.type === 'Identifier'
-          ? node.exported.name
-          : (node.exported as TSESTree.Literal).value as string;
+        const nsName = node.exported.name;
         info.defined.add(nsName);
         // The namespace itself is "backed" if the underlying file is backed —
         // we handle this in resolveFileExports via the reExport chain.
@@ -613,14 +611,16 @@ export function parseFileExports(
   return info;
 }
 
-function extractDeclaredNames(decl: TSESTree.Declaration): string[] {
+function extractDeclaredNames(
+  decl: NonNullable<TSESTree.ExportNamedDeclaration['declaration']>
+): string[] {
   switch (decl.type) {
     case 'FunctionDeclaration':
     case 'ClassDeclaration':
       return decl.id ? [decl.id.name] : [];
 
     case 'VariableDeclaration':
-      return decl.declarations.flatMap(d =>
+      return decl.declarations.flatMap((d: TSESTree.VariableDeclarator) =>
         d.id.type === 'Identifier' ? [d.id.name] : []
       );
 
@@ -748,3 +748,4 @@ function resolveRelativePath(
   // Path is outside libRoot or not in discovered files — skip
   return null;
 }
+
