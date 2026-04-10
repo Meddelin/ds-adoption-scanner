@@ -22,6 +22,9 @@ const RESOLVE_EXTS = [
 
 const ROUTER_FACTORY_RE = /^create(Browser|Hash|Memory|Static)Router$/;
 
+/** Maps localName → { filePath, exportedName } for named imports from relative paths. */
+type NamedImportMap = Map<string, { filePath: string; exportedName: string }>;
+
 // ─── Resolver ─────────────────────────────────────────────────────────────────
 
 export class ReactRouterResolver implements RouteResolver {
@@ -90,8 +93,11 @@ export class ReactRouterResolver implements RouteResolver {
     // Build variable map: varName → AST node (for route arrays passed by name)
     const varMap = buildVariableMap(ast);
 
+    // Build named import map: localName → { filePath, exportedName } for cross-file resolution
+    const namedImportMap = buildNamedImportMap(ast, dir);
+
     // Extract from createBrowserRouter/createHashRouter etc.
-    this.extractV6Routes(ast, importMap, varMap);
+    this.extractV6Routes(ast, importMap, varMap, namedImportMap);
 
     // Extract from JSX <Route> elements
     this.extractJSXRoutes(ast, importMap);
@@ -102,7 +108,8 @@ export class ReactRouterResolver implements RouteResolver {
   private extractV6Routes(
     ast: TSESTree.Program,
     importMap: Map<string, string>,
-    varMap: Map<string, TSESTree.Expression>
+    varMap: Map<string, TSESTree.Expression>,
+    namedImportMap: NamedImportMap
   ): void {
     walkAST(ast, (node) => {
       if (
@@ -121,12 +128,21 @@ export class ReactRouterResolver implements RouteResolver {
       if (firstArg.type === 'ArrayExpression') {
         routesNode = firstArg;
       } else if (firstArg.type === 'Identifier') {
-        // createBrowserRouter(routes) where routes is declared elsewhere
+        // createBrowserRouter(routes) — local variable
         routesNode = varMap.get(firstArg.name) ?? null;
+
+        // createBrowserRouter(importedRoutes) — cross-file named import
+        if (!routesNode) {
+          const named = namedImportMap.get(firstArg.name);
+          if (named) {
+            this.resolveImportedRouteArray(named.filePath, named.exportedName, '', new Set());
+            return;
+          }
+        }
       }
 
       if (routesNode?.type === 'ArrayExpression') {
-        this.walkRouteObjects(routesNode.elements, importMap, varMap, '');
+        this.walkRouteObjects(routesNode.elements, importMap, varMap, namedImportMap, '', new Set());
       }
     });
   }
@@ -135,10 +151,37 @@ export class ReactRouterResolver implements RouteResolver {
     elements: (TSESTree.Expression | TSESTree.SpreadElement | null)[],
     importMap: Map<string, string>,
     varMap: Map<string, TSESTree.Expression>,
-    pathPrefix: string
+    namedImportMap: NamedImportMap,
+    pathPrefix: string,
+    visited: Set<string>
   ): void {
     for (const el of elements) {
-      if (!el || el.type !== 'ObjectExpression') continue;
+      if (!el) continue;
+
+      // Handle spread elements: [...metricsRoutes, ...dashboardRoutes]
+      if (el.type === 'SpreadElement') {
+        const arg = el.argument;
+        if (arg.type === 'Identifier') {
+          // Local variable spread: const allRoutes = [...]; [...allRoutes]
+          const localVar = varMap.get(arg.name);
+          if (localVar?.type === 'ArrayExpression') {
+            this.walkRouteObjects(localVar.elements, importMap, varMap, namedImportMap, pathPrefix, visited);
+          } else {
+            // Cross-file spread: import { metricsRoutes } from './metrics-routes'
+            const named = namedImportMap.get(arg.name);
+            if (named) {
+              const key = `${named.filePath}::${named.exportedName}`;
+              if (!visited.has(key)) {
+                visited.add(key);
+                this.resolveImportedRouteArray(named.filePath, named.exportedName, pathPrefix, visited);
+              }
+            }
+          }
+        }
+        continue;
+      }
+
+      if (el.type !== 'ObjectExpression') continue;
 
       let routePathSeg: string | null = null;
       let componentName: string | null = null;
@@ -167,9 +210,21 @@ export class ReactRouterResolver implements RouteResolver {
           if (prop.value.type === 'ArrayExpression') {
             childrenElements = prop.value.elements;
           } else if (prop.value.type === 'Identifier') {
+            // children: localVar
             const childVar = varMap.get(prop.value.name);
             if (childVar?.type === 'ArrayExpression') {
               childrenElements = childVar.elements;
+            } else {
+              // children: importedRoutes — resolve cross-file
+              const named = namedImportMap.get(prop.value.name);
+              if (named) {
+                const key = `${named.filePath}::${named.exportedName}`;
+                if (!visited.has(key)) {
+                  visited.add(key);
+                  this.resolveImportedRouteArray(named.filePath, named.exportedName,
+                    joinRoutePaths(pathPrefix, routePathSeg ?? ''), visited);
+                }
+              }
             }
           }
         }
@@ -185,8 +240,52 @@ export class ReactRouterResolver implements RouteResolver {
       }
 
       if (childrenElements) {
-        this.walkRouteObjects(childrenElements, importMap, varMap, fullPath);
+        this.walkRouteObjects(childrenElements, importMap, varMap, namedImportMap, fullPath, visited);
       }
+    }
+  }
+
+  // ── Cross-file route resolution ──────────────────────────────────────────────
+
+  /**
+   * Parse a separate route file and extract routes from a named export.
+   * Handles: export const metricsRoutes = [{path, element, children}, ...]
+   */
+  private resolveImportedRouteArray(
+    filePath: string,
+    exportedName: string,
+    pathPrefix: string,
+    visited: Set<string>
+  ): void {
+    let code: string;
+    try {
+      code = fs.readFileSync(filePath, 'utf-8');
+    } catch {
+      return;
+    }
+
+    let ast: TSESTree.Program;
+    try {
+      ast = parse(code, {
+        jsx: true,
+        loc: false,
+        range: false,
+        tokens: false,
+        comment: false,
+        errorOnUnknownASTType: false,
+      });
+    } catch {
+      return;
+    }
+
+    const dir = path.dirname(filePath);
+    const importMap = buildImportMap(ast, dir);
+    const varMap = buildVariableMap(ast);
+    const namedImportMap = buildNamedImportMap(ast, dir);
+
+    const array = findExportedArray(ast, exportedName, varMap);
+    if (array) {
+      this.walkRouteObjects(array.elements, importMap, varMap, namedImportMap, pathPrefix, visited);
     }
   }
 
@@ -355,6 +454,91 @@ function buildVariableMap(ast: TSESTree.Program): Map<string, TSESTree.Expressio
   }
 
   return map;
+}
+
+// ─── Named import map ─────────────────────────────────────────────────────────
+
+/**
+ * Build a map of localName → { filePath, exportedName } for named ImportSpecifiers
+ * from relative paths only. Used to resolve cross-file route arrays.
+ *
+ * import { metricsRoutes } from './metrics-routes'
+ *   → 'metricsRoutes' → { filePath: '/abs/metrics-routes.tsx', exportedName: 'metricsRoutes' }
+ *
+ * import { metricsRoutes as mr } from './metrics-routes'
+ *   → 'mr' → { filePath: '/abs/metrics-routes.tsx', exportedName: 'metricsRoutes' }
+ */
+function buildNamedImportMap(ast: TSESTree.Program, dir: string): NamedImportMap {
+  const map: NamedImportMap = new Map();
+
+  for (const node of ast.body) {
+    if (node.type !== 'ImportDeclaration') continue;
+    const src = node.source.value as string;
+    if (!src.startsWith('.')) continue;
+    const resolved = resolveImportPath(src, dir);
+    if (!resolved) continue;
+
+    for (const spec of node.specifiers) {
+      if (spec.type !== 'ImportSpecifier') continue;
+      const exportedName =
+        spec.imported.type === 'Identifier'
+          ? spec.imported.name
+          : (spec.imported as TSESTree.StringLiteral).value;
+      map.set(spec.local.name, { filePath: resolved, exportedName });
+    }
+  }
+
+  return map;
+}
+
+// ─── Exported array finder ────────────────────────────────────────────────────
+
+/**
+ * Find an exported array expression by its exported name in a parsed AST.
+ * Handles:
+ *   export const metricsRoutes = [...]
+ *   const metricsRoutes = [...]; export { metricsRoutes }
+ *   const inner = [...]; export { inner as metricsRoutes }
+ */
+function findExportedArray(
+  ast: TSESTree.Program,
+  exportedName: string,
+  varMap: Map<string, TSESTree.Expression>
+): TSESTree.ArrayExpression | null {
+  for (const node of ast.body) {
+    // export const metricsRoutes = [...]
+    if (node.type === 'ExportNamedDeclaration' && node.declaration) {
+      const decl = node.declaration;
+      if (decl.type === 'VariableDeclaration') {
+        for (const d of decl.declarations) {
+          if (
+            d.id.type === 'Identifier' &&
+            d.id.name === exportedName &&
+            d.init?.type === 'ArrayExpression'
+          ) {
+            return d.init;
+          }
+        }
+      }
+    }
+
+    // export { metricsRoutes } or export { inner as metricsRoutes }
+    if (node.type === 'ExportNamedDeclaration' && !node.declaration) {
+      for (const spec of node.specifiers) {
+        if (spec.type !== 'ExportSpecifier') continue;
+        const expName =
+          spec.exported.type === 'Identifier'
+            ? spec.exported.name
+            : (spec.exported as TSESTree.StringLiteral).value;
+        if (expName !== exportedName) continue;
+
+        const localVar = varMap.get(spec.local.name);
+        if (localVar?.type === 'ArrayExpression') return localVar;
+      }
+    }
+  }
+
+  return null;
 }
 
 // ─── Repo detection ───────────────────────────────────────────────────────────
