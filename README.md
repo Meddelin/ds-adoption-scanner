@@ -2,9 +2,12 @@
 
 CLI-инструмент для измерения adoption дизайн-системы в React/TypeScript проектах. Сканирует JSX-компоненты через AST, категоризирует их по источнику (DS / локальная библиотека / кастомный / third-party / HTML) и считает adoption rate.
 
+> **v2.0 Update**: Новая deterministic analytical модель с route-level метриками и shadow usage detection. См. [Deterministic Model](#deterministic-analytical-model-v2).
+
 ```
-📊 Direct DS Adoption:   68.6%  █████████████████████░░░░░░░░░
-📊 Effective Adoption:   79.7%  ████████████████████████░░░░░░  (+11.1% via transitive)
+📊 Direct DS Adoption:         68.6%  █████████████████████░░░░░░░░░  (exact)
+📊 Effective Adoption Proxy:   79.7%  ████████████████████████░░░░░░  (+11.1% via transitive, proxy)
+📊 Shadow Usage Proxy:         15.2%  █████░░░░░░░░░░░░░░░░░░░░░░░░░  (parallel UI layer)
 
 📐 Per Design System
 DS Name       Direct%   Effective%   Direct Inst.   Transitive Inst.   Unique
@@ -33,6 +36,75 @@ PageHeader        1            4       4
 🏗️ Repository Breakdown
 Repository       Direct Adoption   Effective Adoption   Local
 ant-design-pro         68.6%              79.7%         31.4%
+```
+
+---
+
+## Deterministic Analytical Model (v2.0)
+
+Новая версия сканера поддерживает детерминированную аналитическую модель с явным разделением exact/proxy метрик:
+
+### Analytical Buckets (взаимоисключающие)
+
+| Bucket | Описание | Примеры |
+|--------|----------|---------|
+| **Adoption** | Подтвержденное использование DS | Прямые DS компоненты, DS-backed обёртки |
+| **Shadow** | Параллельный локальный UI-слой | Reusable local компоненты, UI families |
+| **Neither** | Utility/business слой | Data fetchers, providers, thin wrappers |
+
+### Метрики
+
+| Метрика | Тип | Формула | Назначение |
+|---------|-----|---------|------------|
+| **Direct Adoption** | Exact | DS / (A+S+N) × 100 | Надёжный lower bound |
+| **Effective Adoption Proxy** | Proxy | (DS + Weighted Wrappers) / (A+S+N) × 100 | Расширенная structural метрика |
+| **Shadow Usage Proxy** | Proxy | Shadow / (A+S+N) × 100 | Сигнал параллельного UI |
+
+*A+S+N = Adoption + Shadow + Neither (исключая HTML native)*
+
+### Route-Level Аналитика
+
+Сканер теперь поддерживает route-level агрегацию:
+- Next.js pages/ и app/ директории
+- Fallback directory-based resolution
+- Confidence markers для всех маппингов
+
+### Shadow Usage Detection (Deterministic)
+
+Только rule-based сигналы (NO AI, NO embeddings):
+
+| Сигнал | Обнаружение | Сила |
+|--------|-------------|------|
+| `reusable-local` | Используется в ≥ N файлах | Strong |
+| `multi-route` | Используется в ≥ M роутах | Strong |
+| `ui-family` | Часть UI family pattern | Moderate |
+| `substantial-markup` | > X JSX элементов | Moderate |
+| `parallel-layer` | Формирует consistent UI layer | Moderate |
+| `primitive-like` | Имя совпадает с primitive pattern | Weak |
+
+### API (Programmatic)
+
+```typescript
+import { 
+  AnalyticalClassifier, 
+  createClassificationContext,
+  RouteResolutionOrchestrator,
+  calculateMetricsV2 
+} from 'ds-adoption-scanner';
+
+// Route resolution
+const routeResolver = new RouteResolutionOrchestrator({
+  enabled: true,
+  enableFallback: true,
+});
+
+// Classification
+const classifier = new AnalyticalClassifier(
+  createClassificationContext(repoPath, designSystems)
+);
+
+// V2 metrics
+const metrics = calculateMetricsV2(classifiedUsages, profiles, context);
 ```
 
 ---
