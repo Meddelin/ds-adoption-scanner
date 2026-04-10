@@ -128,6 +128,8 @@ export interface RouteMetrics {
   routeId: string;
   routeKey: string;
   confidence: 'high' | 'medium' | 'low';
+  /** Which resolver detected this route */
+  resolver?: 'react-router' | 'nextjs-pages' | 'nextjs-app' | 'path-pattern' | 'fallback-directory';
 
   // Bucket counts
   buckets: {
@@ -321,6 +323,8 @@ export interface ScanReportV2 {
     neitherHeuristicsEnabled: string[];
     transitiveRulesApplied: string[];
   };
+
+  invariants?: InvariantReport;
 }
 
 // ─── Classification Configuration ─────────────────────────────────────────────

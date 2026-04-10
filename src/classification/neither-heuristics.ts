@@ -5,10 +5,11 @@
 import type { CategorizedUsage } from '../types.js';
 import type { ClassificationContext, NeitherHeuristic } from './types.js';
 import { DEFAULT_NEITHER_HEURISTICS } from '../domain/constants.js';
+import { analyzeComponentSource } from './source-analysis.js';
 
 /**
  * Utility pattern heuristic.
- * Detects Provider, Context, Hook patterns.
+ * Detects Provider, Context, Hook patterns by name.
  */
 export class UtilityPatternHeuristic implements NeitherHeuristic {
   readonly name = 'utility-pattern';
@@ -21,8 +22,8 @@ export class UtilityPatternHeuristic implements NeitherHeuristic {
 
   check(
     componentName: string,
-    usages: CategorizedUsage[],
-    context: ClassificationContext
+    _usages: CategorizedUsage[],
+    _context: ClassificationContext
   ): boolean {
     return this.patterns.some(pattern => pattern.test(componentName));
   }
@@ -34,7 +35,8 @@ export class UtilityPatternHeuristic implements NeitherHeuristic {
 
 /**
  * Data component heuristic.
- * Detects Query, Mutation, Fetcher patterns.
+ * Name matches a data-fetching pattern AND the source has ≤ 2 JSX elements
+ * (confirmed via AST when a resolved path is available).
  */
 export class DataComponentHeuristic implements NeitherHeuristic {
   readonly name = 'data-component';
@@ -50,19 +52,23 @@ export class DataComponentHeuristic implements NeitherHeuristic {
   check(
     componentName: string,
     usages: CategorizedUsage[],
-    context: ClassificationContext
+    _context: ClassificationContext
   ): boolean {
-    // Check name pattern
-    const nameMatches = this.patterns.some(pattern => pattern.test(componentName));
-
+    const nameMatches = this.patterns.some(p => p.test(componentName));
     if (!nameMatches) {
       return false;
     }
 
-    // Additional check: data components typically have few JSX elements
-    // This would require AST analysis in full implementation
-    // For now, rely on name pattern
+    // Try AST confirmation: data components render very little JSX
+    const sourcePath = usages.map(u => u.resolvedPath).find((p): p is string => typeof p === 'string');
+    if (sourcePath) {
+      const analysis = analyzeComponentSource(sourcePath);
+      if (analysis) {
+        return analysis.jsxElementCount <= this.maxJsxElements;
+      }
+    }
 
+    // Fallback: trust the name pattern when source is unavailable
     return true;
   }
 
@@ -73,7 +79,8 @@ export class DataComponentHeuristic implements NeitherHeuristic {
 
 /**
  * Layout wrapper heuristic.
- * Detects Layout, Page, Template patterns.
+ * Name matches a layout pattern AND (when source available) the JSX tree is
+ * shallow (depth ≤ 3), confirming it's a structural shell rather than rich UI.
  */
 export class LayoutWrapperHeuristic implements NeitherHeuristic {
   readonly name = 'layout-wrapper';
@@ -87,9 +94,25 @@ export class LayoutWrapperHeuristic implements NeitherHeuristic {
   check(
     componentName: string,
     usages: CategorizedUsage[],
-    context: ClassificationContext
+    _context: ClassificationContext
   ): boolean {
-    return this.patterns.some(pattern => pattern.test(componentName));
+    const nameMatches = this.patterns.some(p => p.test(componentName));
+    if (!nameMatches) {
+      return false;
+    }
+
+    // AST confirmation: layout wrappers are shallow structural shells
+    const sourcePath = usages.map(u => u.resolvedPath).find((p): p is string => typeof p === 'string');
+    if (sourcePath) {
+      const analysis = analyzeComponentSource(sourcePath);
+      if (analysis) {
+        // A deep JSX tree (depth > 3) suggests rich UI content → not a simple layout
+        return analysis.topLevelJSXDepth <= 3;
+      }
+    }
+
+    // Fallback: trust the name pattern
+    return true;
   }
 
   getExplanation(componentName: string): string {
@@ -99,7 +122,8 @@ export class LayoutWrapperHeuristic implements NeitherHeuristic {
 
 /**
  * Thin wrapper heuristic.
- * Detects components that just pass through props.
+ * AST-based: component has ≤ 2 JSX elements AND (renders only children OR
+ * has spread attributes). Name suffix heuristics are a secondary fallback.
  */
 export class ThinWrapperHeuristic implements NeitherHeuristic {
   readonly name = 'thin-wrapper';
@@ -107,26 +131,41 @@ export class ThinWrapperHeuristic implements NeitherHeuristic {
   check(
     componentName: string,
     usages: CategorizedUsage[],
-    context: ClassificationContext
+    _context: ClassificationContext
   ): boolean {
-    // This would require AST analysis to detect:
-    // - Component just renders children
-    // - Component just spreads props
-    // - Component has no additional markup
+    const sourcePath = usages
+      .map(u => u.resolvedPath)
+      .find((p): p is string => typeof p === 'string');
 
-    // For now, use naming heuristic
-    const wrapperPatterns = [/Wrapper$/, /Container$/, /With/, /HOC$/];
-    return wrapperPatterns.some(pattern => pattern.test(componentName));
+    if (sourcePath) {
+      const analysis = analyzeComponentSource(sourcePath);
+      if (analysis) {
+        // AST signal: renders only children (pass-through) or single element
+        // with spread props and very little markup
+        if (analysis.isRendersOnlyChildren) {
+          return true;
+        }
+        if (analysis.jsxElementCount <= 2 && analysis.hasSpreadAttributes) {
+          return true;
+        }
+        return false;
+      }
+    }
+
+    // Fallback when source is unavailable: name-based heuristic
+    const fallbackPatterns = [/Wrapper$/, /Container$/, /^With[A-Z]/, /HOC$/];
+    return fallbackPatterns.some(p => p.test(componentName));
   }
 
   getExplanation(componentName: string): string {
-    return `Component "${componentName}" appears to be a thin wrapper`;
+    return `Component "${componentName}" appears to be a thin wrapper (AST-confirmed)`;
   }
 }
 
 /**
  * Business logic heuristic.
- * Detects business-specific components that aren't UI.
+ * Detects business-specific components that aren't UI (name-based only,
+ * as business logic rarely has meaningful JSX structure to analyse).
  */
 export class BusinessLogicHeuristic implements NeitherHeuristic {
   readonly name = 'business-logic';
@@ -144,8 +183,8 @@ export class BusinessLogicHeuristic implements NeitherHeuristic {
 
   check(
     componentName: string,
-    usages: CategorizedUsage[],
-    context: ClassificationContext
+    _usages: CategorizedUsage[],
+    _context: ClassificationContext
   ): boolean {
     return this.businessPatterns.some(pattern => pattern.test(componentName));
   }

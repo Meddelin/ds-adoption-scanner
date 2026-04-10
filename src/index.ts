@@ -3,6 +3,7 @@ export { defineConfig } from './config/schema.js';
 export { loadConfig } from './config/loader.js';
 export { runScan } from './scanner/orchestrator.js';
 export { runScanDetailed } from './scanner/orchestrator.js';
+export { runScanV2 } from './scanner/orchestrator-v2.js';
 
 // V2 API (new deterministic analytical model)
 export { AnalyticalClassifier, createClassificationContext } from './classification/classifier.js';
@@ -82,3 +83,4 @@ export type {
 // V2 Output
 export { formatJSONV2, writeJSONV2 } from './output/json-reporter-v2.js';
 export { buildHTMLV2, writeHTMLV2 } from './output/html-reporter-v2.js';
+export { printReportV2 } from './output/table-reporter-v2.js';

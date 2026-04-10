@@ -10,6 +10,7 @@ import type {
   ClassificationConfidence,
 } from '../domain/types.js';
 import type { CategorizedUsage } from '../types.js';
+import type { ThirdPartyWithoutDSBucket } from '../config/schema.js';
 
 // ─── Classifier Interface ─────────────────────────────────────────────────────
 
@@ -45,7 +46,7 @@ export interface ClassificationContext {
   repoPath: string;
 
   /** Route information (if available) */
-  routeMapping?: Map<string, string>; // filePath -> routeId
+  routeMapping?: Map<string, string | string[]>; // filePath -> routeId(s)
 
   /** Design system configuration */
   designSystems: { name: string; packages: string[] }[];
@@ -66,6 +67,9 @@ export interface ClassificationContext {
     shadowDetection: boolean;
     neitherDetection: boolean;
   };
+
+  /** Policy for third-party usages without DS backing */
+  thirdPartyWithoutDSBucket: ThirdPartyWithoutDSBucket;
 }
 
 // ─── Classification Result ────────────────────────────────────────────────────

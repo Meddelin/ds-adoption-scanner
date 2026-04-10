@@ -38,30 +38,33 @@ export function calculateMetricsV2(
   shadowUsageProxy: MetricWithDetails;
   bucketBreakdown: BucketBreakdown;
 } {
-  // Calculate denominator (Adoption + Shadow + Neither)
-  const denominator = calculateDenominator(usages);
+  // Metric denominator: Adoption + Shadow only (Neither excluded)
+  const metricDenom = calculateMetricDenominator(usages);
 
-  // Calculate bucket counts
+  // Total classified: Adoption + Shadow + Neither (for bucket bar visualization)
+  const totalClassified = calculateTotalClassified(usages);
+
+  // Calculate bucket counts (uses total classified)
   const bucketCounts = calculateBucketCounts(usages, profiles);
 
   // Direct adoption: only direct DS usages
   const directUsages = usages.filter(
     u =>
-      isIncludedInDenominator(u) &&
+      isInMetricDenominator(u) &&
       u.analyticalBucket === 'adoption' &&
       u.classificationSource === 'direct-ds'
   );
   const directDSInstances = directUsages.length;
 
   const directAdoption: MetricWithDetails = {
-    percentage: denominator.instances > 0 ? (directDSInstances / denominator.instances) * 100 : 0,
+    percentage: metricDenom.instances > 0 ? (directDSInstances / metricDenom.instances) * 100 : 0,
     instances: directDSInstances,
     components: countUniqueComponents(directUsages),
     isProxy: false,
     formula: FORMULAS.directAdoption,
     denominator: {
-      instances: denominator.instances,
-      components: denominator.components,
+      instances: metricDenom.instances,
+      components: metricDenom.components,
       explanation: DENOMINATOR_EXPLANATION,
     },
   };
@@ -69,7 +72,7 @@ export function calculateMetricsV2(
   // Effective adoption proxy: DS + weighted transitive
   const transitiveUsages = usages.filter(
     u =>
-      isIncludedInDenominator(u) &&
+      isInMetricDenominator(u) &&
       u.analyticalBucket === 'adoption' &&
       (u.classificationSource === 'transitive-declared' ||
         u.classificationSource === 'transitive-auto' ||
@@ -83,12 +86,12 @@ export function calculateMetricsV2(
   const effectiveInstances = directDSInstances + weightedTransitive;
 
   const effectiveAdoptionProxy: MetricWithDetails = {
-    percentage: denominator.instances > 0 ? (effectiveInstances / denominator.instances) * 100 : 0,
+    percentage: metricDenom.instances > 0 ? (effectiveInstances / metricDenom.instances) * 100 : 0,
     instances: effectiveInstances,
     components: countUniqueComponents(
       usages.filter(
         u =>
-          isIncludedInDenominator(u) &&
+          isInMetricDenominator(u) &&
           u.analyticalBucket === 'adoption' &&
           u.classificationSource !== 'unclassified'
       )
@@ -96,8 +99,8 @@ export function calculateMetricsV2(
     isProxy: true,
     formula: FORMULAS.effectiveAdoptionProxy,
     denominator: {
-      instances: denominator.instances,
-      components: denominator.components,
+      instances: metricDenom.instances,
+      components: metricDenom.components,
       explanation: DENOMINATOR_EXPLANATION,
     },
   };
@@ -106,23 +109,23 @@ export function calculateMetricsV2(
   const shadowInstances = bucketCounts.shadow.instances;
 
   const shadowUsageProxy: MetricWithDetails = {
-    percentage: denominator.instances > 0 ? (shadowInstances / denominator.instances) * 100 : 0,
+    percentage: metricDenom.instances > 0 ? (shadowInstances / metricDenom.instances) * 100 : 0,
     instances: shadowInstances,
     components: bucketCounts.shadow.components,
     isProxy: true,
     formula: FORMULAS.shadowUsageProxy,
     denominator: {
-      instances: denominator.instances,
-      components: denominator.components,
+      instances: metricDenom.instances,
+      components: metricDenom.components,
       explanation: DENOMINATOR_EXPLANATION,
     },
   };
 
-  // Bucket breakdown
+  // Bucket breakdown — percentages relative to total classified (for stacked bar)
   const bucketBreakdown: BucketBreakdown = {
-    adoption: calculateBucketStats(usages, profiles, 'adoption', denominator.instances),
-    shadow: calculateBucketStats(usages, profiles, 'shadow', denominator.instances),
-    neither: calculateBucketStats(usages, profiles, 'neither', denominator.instances),
+    adoption: calculateBucketStats(usages, profiles, 'adoption', totalClassified.instances),
+    shadow: calculateBucketStats(usages, profiles, 'shadow', totalClassified.instances),
+    neither: calculateBucketStats(usages, profiles, 'neither', totalClassified.instances),
   };
 
   return {
@@ -136,19 +139,27 @@ export function calculateMetricsV2(
 // --- Denominator Calculation ---
 
 /**
- * Calculate denominator: Adoption + Shadow + Neither
- * Excludes HTML native and non-UI third-party.
+ * Metric denominator: Adoption + Shadow only.
+ * Neither is excluded so utility/business wrappers don't dilute adoption %.
  */
-function calculateDenominator(usages: ClassifiedUsage[]): {
+function calculateMetricDenominator(usages: ClassifiedUsage[]): {
   instances: number;
   components: number;
 } {
-  const relevantUsages = usages.filter(isIncludedInDenominator);
+  const relevant = usages.filter(isInMetricDenominator);
+  return { instances: relevant.length, components: countUniqueComponents(relevant) };
+}
 
-  const instances = relevantUsages.length;
-  const components = countUniqueComponents(relevantUsages);
-
-  return { instances, components };
+/**
+ * Total classified: Adoption + Shadow + Neither.
+ * Used for bucket bar visualization (stacked bar adds to 100%).
+ */
+function calculateTotalClassified(usages: ClassifiedUsage[]): {
+  instances: number;
+  components: number;
+} {
+  const relevant = usages.filter(isClassifiedUsage);
+  return { instances: relevant.length, components: countUniqueComponents(relevant) };
 }
 
 // --- Bucket Counts ---
@@ -160,13 +171,13 @@ interface BucketCounts {
 }
 
 /**
- * Calculate counts per bucket.
+ * Calculate counts per bucket (uses total classified — includes neither).
  */
 function calculateBucketCounts(
   usages: ClassifiedUsage[],
   profiles: LocalComponentProfile[]
 ): BucketCounts {
-  const relevantUsages = usages.filter(isIncludedInDenominator);
+  const relevantUsages = usages.filter(isClassifiedUsage);
 
   const byBucket = {
     adoption: [] as ClassifiedUsage[],
@@ -207,8 +218,9 @@ function calculateBucketStats(
   bucket: 'adoption' | 'shadow' | 'neither',
   totalInstances: number
 ): BucketStats {
+  // totalInstances = total classified (adoption+shadow+neither) — for stacked bar %
   const bucketUsages = usages.filter(
-    u => isIncludedInDenominator(u) && u.analyticalBucket === bucket
+    u => isClassifiedUsage(u) && u.analyticalBucket === bucket
   );
   const instances = bucketUsages.length;
 
@@ -274,15 +286,15 @@ export function calculatePerDSMetricsV2(
   usages: ClassifiedUsage[],
   config: ResolvedConfig
 ): DesignSystemMetricsV2[] {
-  const denominatorUsages = usages.filter(isIncludedInDenominator);
-  const denominatorInstances = denominatorUsages.length;
-  const denominatorComponents = countUniqueComponents(denominatorUsages);
+  const metricDenomUsages = usages.filter(isInMetricDenominator);
+  const denominatorInstances = metricDenomUsages.length;
+  const denominatorComponents = countUniqueComponents(metricDenomUsages);
 
   return config.designSystems.map(ds => {
     // Direct DS usages
     const directUsages = usages.filter(
       u =>
-        isIncludedInDenominator(u) &&
+        isInMetricDenominator(u) &&
         u.dsName === ds.name &&
         u.classificationSource === 'direct-ds'
     );
@@ -290,7 +302,7 @@ export function calculatePerDSMetricsV2(
     // Transitive usages for this DS
     const transitiveUsages = usages.filter(
       u =>
-        isIncludedInDenominator(u) &&
+        isInMetricDenominator(u) &&
         u.transitiveDS?.dsName === ds.name &&
         u.analyticalBucket === 'adoption'
     );
@@ -374,13 +386,14 @@ export function calculatePerDSMetricsV2(
  */
 export function calculateRouteMetrics(
   usages: ClassifiedUsage[],
-  routeMapping: Map<string, string>
+  routeMapping?: Map<string, string>,
+  sourceByRouteId?: Map<string, string>
 ): RouteMetrics[] {
   // Group usages by route
   const byRoute = new Map<string, ClassifiedUsage[]>();
 
   for (const usage of usages) {
-    const routeId = routeMapping.get(usage.filePath);
+    const routeId = usage.routeId ?? routeMapping?.get(usage.filePath);
     if (!routeId) continue;
 
     const existing = byRoute.get(routeId);
@@ -395,13 +408,12 @@ export function calculateRouteMetrics(
   const routeMetrics: RouteMetrics[] = [];
 
   for (const [routeId, routeUsages] of byRoute) {
-    const countedUsages = routeUsages.filter(isIncludedInDenominator);
-    const denominator = countedUsages.length;
-
-    // Bucket counts
+    const countedUsages = routeUsages.filter(isClassifiedUsage);
     const adoptionUsages = countedUsages.filter(u => u.analyticalBucket === 'adoption');
     const shadowUsages = countedUsages.filter(u => u.analyticalBucket === 'shadow');
     const neitherUsages = countedUsages.filter(u => u.analyticalBucket === 'neither');
+    // Metric denominator excludes neither
+    const denominator = adoptionUsages.length + shadowUsages.length;
 
     // Direct adoption (only direct DS)
     const directUsages = adoptionUsages.filter(u => u.classificationSource === 'direct-ds');
@@ -416,10 +428,15 @@ export function calculateRouteMetrics(
     // Shadow instances
     const shadowInstances = shadowUsages.length;
 
+    const routeConfidence = getRouteConfidence(routeUsages);
+
+    const routeSource = sourceByRouteId?.get(routeId) as RouteMetrics['resolver'] | undefined;
+
     routeMetrics.push({
       routeId,
       routeKey: routeId,
-      confidence: 'high', // Would come from route resolver
+      confidence: routeConfidence,
+      resolver: routeSource,
       buckets: {
         adoption: {
           instances: adoptionUsages.length,
@@ -481,20 +498,44 @@ export function calculateRouteMetrics(
   return routeMetrics.sort((a, b) => a.routeId.localeCompare(b.routeId));
 }
 
-function isIncludedInDenominator(usage: ClassifiedUsage): boolean {
-  if (usage.category === 'html-native') {
-    return false;
+/**
+ * Returns true for every usage that is part of the classified UI layer.
+ * Used for: bucket bar visualization, total component counts.
+ * Excludes: HTML native elements, third-party classified as neither.
+ */
+function isClassifiedUsage(usage: ClassifiedUsage): boolean {
+  if (usage.category === 'html-native') return false;
+  if (usage.category === 'third-party' && usage.analyticalBucket === 'neither') return false;
+  return true;
+}
+
+/**
+ * Returns true for usages that belong in the adoption/shadow metric denominator.
+ * Neither is intentionally excluded — it is a service layer (providers, data
+ * fetchers, business wrappers) that should not influence adoption or shadow %.
+ *
+ * Adoption % = DS / (Adoption + Shadow) × 100
+ * Shadow %   = Shadow / (Adoption + Shadow) × 100
+ */
+function isInMetricDenominator(usage: ClassifiedUsage): boolean {
+  if (!isClassifiedUsage(usage)) return false;
+  return usage.analyticalBucket === 'adoption' || usage.analyticalBucket === 'shadow';
+}
+
+function getRouteConfidence(usages: ClassifiedUsage[]): 'high' | 'medium' | 'low' {
+  let rank = 1;
+  for (const usage of usages) {
+    const confidence = usage.routeConfidence ?? 'low';
+    if (confidence === 'high') {
+      rank = Math.max(rank, 3);
+    } else if (confidence === 'medium') {
+      rank = Math.max(rank, 2);
+    }
   }
 
-  if (usage.category === 'third-party' && usage.analyticalBucket !== 'adoption') {
-    return false;
-  }
-
-  return (
-    usage.analyticalBucket === 'adoption' ||
-    usage.analyticalBucket === 'shadow' ||
-    usage.analyticalBucket === 'neither'
-  );
+  if (rank === 3) return 'high';
+  if (rank === 2) return 'medium';
+  return 'low';
 }
 
 // --- Repository Metrics ---

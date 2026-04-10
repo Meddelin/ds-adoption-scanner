@@ -41,6 +41,41 @@ export interface TransitiveAdoptionConfig {
                       // For third-party: scans node_modules package directory.
 }
 
+export type ThirdPartyWithoutDSBucket = 'neither' | 'shadow';
+
+export interface V2RouteResolutionConfig {
+  enabled?: boolean;
+  preferredResolver?: string;
+  enableFallback?: boolean;
+  fallbackBoundaryDirs?: string[];
+}
+
+export interface V2ClassificationThresholds {
+  reusableFileThreshold?: number;
+  shadowFileThreshold?: number;
+  shadowRouteThreshold?: number;
+  substantialMarkupThreshold?: number;
+}
+
+export interface V2ClassificationConfig {
+  shadowDetection?: boolean;
+  neitherDetection?: boolean;
+  thresholds?: V2ClassificationThresholds;
+  thirdPartyWithoutDSBucket?: ThirdPartyWithoutDSBucket;
+}
+
+export interface V2InvariantConfig {
+  enabled?: boolean;
+  failOnViolation?: boolean;
+}
+
+export interface V2Config {
+  enabled?: boolean;
+  routeResolution?: V2RouteResolutionConfig;
+  classification?: V2ClassificationConfig;
+  invariants?: V2InvariantConfig;
+}
+
 // Declares a library whose source should be pre-scanned for per-component DS coverage.
 // More accurate than transitiveRules.coverage because each component is checked individually.
 // Only direct imports from designSystems[].packages count — inter-library chains are excluded.
@@ -84,12 +119,27 @@ export interface DSScannerConfig {
   // Formula becomes: DS / (DS + local-library + localReusable)
   // Has no additional effect when excludeLocalFromAdoption is also true.
   excludeUniqueLocalFromAdoption?: boolean;
+
+  // V2 deterministic analytical model configuration.
+  v2?: V2Config;
 }
 
-export type ResolvedConfig = Required<Omit<DSScannerConfig, 'thresholds' | 'transitiveAdoption'>> & {
+export interface ResolvedV2Config {
+  enabled: boolean;
+  routeResolution: Required<Omit<V2RouteResolutionConfig, 'preferredResolver'>> & {
+    preferredResolver?: string;
+  };
+  classification: Required<Omit<V2ClassificationConfig, 'thresholds'>> & {
+    thresholds: Required<V2ClassificationThresholds>;
+  };
+  invariants: Required<V2InvariantConfig>;
+}
+
+export type ResolvedConfig = Required<Omit<DSScannerConfig, 'thresholds' | 'transitiveAdoption' | 'v2'>> & {
   thresholds: ThresholdConfig;
   transitiveAdoption: Required<TransitiveAdoptionConfig>;
   reusableThreshold: number;
+  v2: ResolvedV2Config;
 };
 
 // Helper function for user configs

@@ -10,3 +10,4 @@ export * from './csv-reporter.js';
 // V2 reporters (deterministic analytical model)
 export * from './json-reporter-v2.js';
 export * from './html-reporter-v2.js';
+export * from './table-reporter-v2.js';

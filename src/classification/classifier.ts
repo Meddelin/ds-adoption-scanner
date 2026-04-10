@@ -22,7 +22,6 @@ import {
   calculateShadowScore,
 } from './shadow-signals.js';
 import { createNeitherHeuristics, checkNeitherHeuristics } from './neither-heuristics.js';
-import { CLASSIFICATION_SOURCE_PRIORITY } from '../domain/constants.js';
 
 /**
  * Main analytical classifier.
@@ -68,9 +67,19 @@ export class AnalyticalClassifier {
     // Build local component profiles for shadow/neither classification
     const { profiles, profileByKey } = this.buildLocalProfiles(firstPass);
 
-    // Second pass: apply shadow/neither classification to local components
+    // Second pass: apply shadow/neither classification to local components.
+    // Skip local-library usages already classified to adoption via transitive DS —
+    // their first-pass classification is authoritative and must not be overridden.
     const classified = firstPass.map(usage => {
       if (usage.category === 'local' || usage.category === 'local-library') {
+        if (
+          usage.category === 'local-library' &&
+          usage.analyticalBucket === 'adoption' &&
+          (usage.classificationSource === 'transitive-declared' ||
+            usage.classificationSource === 'transitive-auto')
+        ) {
+          return usage;
+        }
         return this.applyLocalClassification(usage, profileByKey);
       }
       return usage;
@@ -113,10 +122,11 @@ export class AnalyticalClassifier {
 
     // Third-party without DS backing -> Neither (for now)
     if (usage.category === 'third-party' && !usage.transitiveDS) {
+      const bucket = this.context.thirdPartyWithoutDSBucket;
       return {
         ...usage,
-        analyticalBucket: 'neither',
-        classificationSource: 'utility-heuristic',
+        analyticalBucket: bucket,
+        classificationSource: bucket === 'shadow' ? 'local-ui-signal' : 'utility-heuristic',
         classificationConfidence: 'medium',
       };
     }
@@ -231,7 +241,14 @@ export class AnalyticalClassifier {
       if (this.context.routeMapping) {
         for (const usage of componentUsages) {
           const route = this.context.routeMapping.get(usage.filePath);
-          if (route) routeSet.add(route);
+          if (!route) continue;
+          if (Array.isArray(route)) {
+            for (const routeId of route) {
+              routeSet.add(routeId);
+            }
+          } else {
+            routeSet.add(route);
+          }
         }
       }
 
@@ -361,9 +378,10 @@ export function createClassificationContext(
   repoPath: string,
   designSystems: { name: string; packages: string[] }[],
   options?: {
-    routeMapping?: Map<string, string>;
+    routeMapping?: Map<string, string | string[]>;
     thresholds?: Partial<ClassificationContext['thresholds']>;
     features?: Partial<ClassificationContext['features']>;
+    thirdPartyWithoutDSBucket?: ClassificationContext['thirdPartyWithoutDSBucket'];
   }
 ): ClassificationContext {
   return {
@@ -383,5 +401,6 @@ export function createClassificationContext(
       neitherDetection: true,
       ...options?.features,
     },
+    thirdPartyWithoutDSBucket: options?.thirdPartyWithoutDSBucket ?? 'neither',
   };
 }

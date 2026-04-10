@@ -4,6 +4,8 @@ export default defineConfig({
   repositories: [
     // ant-design-pro - real project using Ant Design
     '../ant-design-pro',
+    // demo-crm - synthetic CRM app with React Router
+    '../demo-crm',
   ],
 
   designSystems: [
@@ -36,8 +38,13 @@ export default defineConfig({
   ],
 
   localLibraryPatterns: [
-    '@/**',  // Path alias for src/
+    '@/**',             // Path alias for src/
+    'src/ui-kit/**',    // demo-crm local UI kit (wraps antd)
   ],
+
+  transitiveAdoption: {
+    enabled: true,
+  },
 
   output: {
     format: 'table',

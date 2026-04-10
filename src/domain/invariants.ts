@@ -213,14 +213,15 @@ export function checkReportInvariants(report: ScanReportV2): InvariantReport {
     )
   );
 
-  // Check no double counting in summary
-  const { adoption, shadow, neither } = report.summary.bucketBreakdown;
+  // Check no double counting: adoption + shadow should equal the metric denominator
+  // (Neither is excluded from the denominator by design, so it is NOT part of this sum)
+  const { adoption, shadow } = report.summary.bucketBreakdown;
   const denominatorInstances = report.summary.directAdoption.denominator.instances;
   checks.push(
     checkNoDoubleCounting(
       adoption.instances,
       shadow.instances,
-      neither.instances,
+      0, // neither excluded from denominator
       denominatorInstances
     )
   );

@@ -21,6 +21,30 @@ function makeConfig(): ResolvedConfig {
     excludeLocalFromAdoption: false,
     excludeUniqueLocalFromAdoption: false,
     reusableThreshold: 2,
+    v2: {
+      enabled: true,
+      routeResolution: {
+        enabled: true,
+        preferredResolver: undefined,
+        enableFallback: true,
+        fallbackBoundaryDirs: ['pages', 'routes', 'views', 'screens', 'features', 'app'],
+      },
+      classification: {
+        shadowDetection: true,
+        neitherDetection: true,
+        thirdPartyWithoutDSBucket: 'neither',
+        thresholds: {
+          reusableFileThreshold: 2,
+          shadowFileThreshold: 2,
+          shadowRouteThreshold: 2,
+          substantialMarkupThreshold: 5,
+        },
+      },
+      invariants: {
+        enabled: true,
+        failOnViolation: false,
+      },
+    },
   };
 }
 

@@ -209,14 +209,14 @@ export const REPORT_VERSION = '2.0' as const;
  */
 export const FORMULAS = {
   directAdoption:
-    'Direct Adoption = Direct DS Instances / (Adoption + Shadow + Neither) × 100',
+    'Direct Adoption = Direct DS Instances / (Adoption + Shadow) × 100',
   effectiveAdoptionProxy:
-    'Effective Adoption Proxy = (Direct DS + Weighted DS-backed Wrappers) / Denominator × 100',
-  shadowUsageProxy: 'Shadow Usage Proxy = Shadow Instances / Denominator × 100',
+    'Effective Adoption Proxy = (Direct DS + Weighted DS-backed Wrappers) / (Adoption + Shadow) × 100',
+  shadowUsageProxy: 'Shadow Usage Proxy = Shadow Instances / (Adoption + Shadow) × 100',
   bucketPercentage: '{bucket} % = {bucket} Instances / Total Classified × 100',
 } as const;
 
 // ─── Denominator Explanation ──────────────────────────────────────────────────
 
 export const DENOMINATOR_EXPLANATION =
-  'Adoption + Shadow + Neither (excluding HTML native and non-UI third-party)';
+  'Adoption + Shadow (Neither excluded — utility/business wrappers do not affect adoption rate)';

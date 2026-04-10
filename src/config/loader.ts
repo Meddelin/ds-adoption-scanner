@@ -124,6 +124,42 @@ function mergeWithDefaults(userConfig: DSScannerConfig): ResolvedConfig {
     excludeLocalFromAdoption: userConfig.excludeLocalFromAdoption ?? false,
     excludeUniqueLocalFromAdoption: userConfig.excludeUniqueLocalFromAdoption ?? false,
     reusableThreshold: userConfig.reusableThreshold ?? DEFAULT_CONFIG.reusableThreshold!,
+    v2: {
+      enabled: userConfig.v2?.enabled ?? true,
+      routeResolution: {
+        enabled: userConfig.v2?.routeResolution?.enabled ?? true,
+        preferredResolver: userConfig.v2?.routeResolution?.preferredResolver,
+        enableFallback: userConfig.v2?.routeResolution?.enableFallback ?? true,
+        fallbackBoundaryDirs: userConfig.v2?.routeResolution?.fallbackBoundaryDirs ?? [
+          'pages',
+          'routes',
+          'views',
+          'screens',
+          'features',
+          'app',
+        ],
+      },
+      classification: {
+        shadowDetection: userConfig.v2?.classification?.shadowDetection ?? true,
+        neitherDetection: userConfig.v2?.classification?.neitherDetection ?? true,
+        thirdPartyWithoutDSBucket:
+          userConfig.v2?.classification?.thirdPartyWithoutDSBucket ?? 'neither',
+        thresholds: {
+          reusableFileThreshold:
+            userConfig.v2?.classification?.thresholds?.reusableFileThreshold ?? 2,
+          shadowFileThreshold:
+            userConfig.v2?.classification?.thresholds?.shadowFileThreshold ?? 2,
+          shadowRouteThreshold:
+            userConfig.v2?.classification?.thresholds?.shadowRouteThreshold ?? 2,
+          substantialMarkupThreshold:
+            userConfig.v2?.classification?.thresholds?.substantialMarkupThreshold ?? 5,
+        },
+      },
+      invariants: {
+        enabled: userConfig.v2?.invariants?.enabled ?? true,
+        failOnViolation: userConfig.v2?.invariants?.failOnViolation ?? false,
+      },
+    },
   };
 }
 
@@ -178,6 +214,13 @@ function validateConfig(config: ResolvedConfig, configPath: string): void {
         `libraries entry for "${lib.package}": specify either \`path\` or \`git\`, not both`
       );
     }
+  }
+
+  const thirdPartyBucket = config.v2.classification.thirdPartyWithoutDSBucket;
+  if (thirdPartyBucket !== 'neither' && thirdPartyBucket !== 'shadow') {
+    errors.push(
+      `v2.classification.thirdPartyWithoutDSBucket must be "neither" or "shadow", got "${String(thirdPartyBucket)}"`
+    );
   }
 
   if (errors.length > 0) {

@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { parse } from '@typescript-eslint/typescript-estree';
 import type { CategorizedUsage } from '../types.js';
 import type { ResolvedConfig } from '../config/schema.js';
 import { parseFile } from './parser.js';
@@ -201,10 +202,14 @@ export async function enrichWithTransitiveDS(
 async function detectFromFile(
   resolvedPath: string,
   config: ResolvedConfig,
-  cache: Map<string, TransitiveDetection | null>
+  cache: Map<string, TransitiveDetection | null>,
+  visited: Set<string> = new Set()
 ): Promise<TransitiveDetection | null> {
   const cached = cache.get(resolvedPath);
   if (cached !== undefined) return cached;
+
+  if (visited.has(resolvedPath)) return null;
+  visited.add(resolvedPath);
 
   let detection: TransitiveDetection | null = null;
 
@@ -217,12 +222,67 @@ async function detectFromFile(
         break;
       }
     }
+
+    // If no direct DS import found, follow one level of re-exports.
+    // Barrel files (e.g. ui-kit/index.ts) only have `export { X } from './X'`
+    // and no direct DS imports, so we need to check the re-exported files.
+    if (!detection) {
+      const dir = path.dirname(resolvedPath);
+      const reExportSources = extractReExportSources(resolvedPath);
+      for (const src of reExportSources) {
+        if (!src.startsWith('.')) continue;
+        const target = resolveFileWithExtensions(path.resolve(dir, src));
+        if (!target) continue;
+        detection = await detectFromFile(target, config, cache, visited);
+        if (detection) break;
+      }
+    }
   } catch {
     detection = null;
   }
 
   cache.set(resolvedPath, detection);
   return detection;
+}
+
+/**
+ * Extract the source strings from re-export statements in a file.
+ * Handles `export { X } from './X'` and `export * from './X'`.
+ */
+function extractReExportSources(filePath: string): string[] {
+  let code: string;
+  try {
+    code = fs.readFileSync(filePath, 'utf-8');
+  } catch {
+    return [];
+  }
+  try {
+    const ast = parse(code, { jsx: true, loc: false, range: false, tokens: false, comment: false, errorOnUnknownASTType: false });
+    const sources: string[] = [];
+    for (const node of ast.body) {
+      if (
+        (node.type === 'ExportNamedDeclaration' || node.type === 'ExportAllDeclaration') &&
+        node.source &&
+        typeof node.source.value === 'string'
+      ) {
+        sources.push(node.source.value);
+      }
+    }
+    return sources;
+  } catch {
+    return [];
+  }
+}
+
+const DETECT_EXTENSIONS = ['.tsx', '.ts', '.jsx', '.js', '/index.tsx', '/index.ts', '/index.js'];
+
+function resolveFileWithExtensions(base: string): string | null {
+  if (fs.existsSync(base) && fs.statSync(base).isFile()) return base;
+  for (const ext of DETECT_EXTENSIONS) {
+    const candidate = base + ext;
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return null;
 }
 
 // ─── Per-package detection (third-party node_modules) ────────────────────────

@@ -1,14 +1,14 @@
-// src/classification/shadow-signals.ts
+﻿// src/classification/shadow-signals.ts
 // Deterministic shadow usage signal detection
-// NO AI, NO embeddings — only structural/rule-based signals
+// NO AI, NO embeddings вЂ” only structural/rule-based signals
 
 import type { ShadowSignal, ShadowSignalType } from '../domain/types.js';
 import type { CategorizedUsage } from '../types.js';
 import type { ClassificationContext, ShadowSignalDetector } from './types.js';
 import {
-  DEFAULT_SHADOW_THRESHOLDS,
   PRIMITIVE_NAME_PATTERNS,
 } from '../domain/constants.js';
+import { analyzeComponentSource } from './source-analysis.js';
 
 /**
  * Reusable local component detector.
@@ -63,7 +63,15 @@ export class MultiRouteDetector implements ShadowSignalDetector {
     const routeSet = new Set<string>();
     for (const usage of usages) {
       const route = context.routeMapping.get(usage.filePath);
-      if (route) {
+      if (!route) {
+        continue;
+      }
+
+      if (Array.isArray(route)) {
+        for (const routeId of route) {
+          routeSet.add(routeId);
+        }
+      } else {
         routeSet.add(route);
       }
     }
@@ -140,30 +148,32 @@ export class SubstantialMarkupDetector implements ShadowSignalDetector {
   readonly type: ShadowSignalType = 'substantial-markup';
 
   detect(
-    componentName: string,
+    _componentName: string,
     usages: CategorizedUsage[],
     context: ClassificationContext
   ): ShadowSignal | null {
-    // This is a placeholder — actual implementation would need to:
-    // 1. Parse the component source file
-    // 2. Count JSX elements in the component
-    // 3. Return signal if count > threshold
+    const threshold = context.thresholds.substantialMarkupThreshold;
+    const sourcePath = usages
+      .map(u => u.resolvedPath)
+      .find((p): p is string => typeof p === 'string');
 
-    // For now, use heuristic based on component name patterns
-    const hasSubstantialName =
-      /(Form|List|Table|Card|Modal|Dialog|Panel|Section|Page|Layout|View|Screen)/.test(
-        componentName
-      );
-
-    if (hasSubstantialName) {
-      return {
-        type: this.type,
-        strength: 'moderate',
-        evidence: `Component name "${componentName}" suggests substantial UI markup`,
-      };
+    if (!sourcePath) {
+      return null;
     }
 
-    return null;
+    const analysis = analyzeComponentSource(sourcePath);
+    if (!analysis || analysis.jsxElementCount < threshold) {
+      return null;
+    }
+
+    return {
+      type: this.type,
+      strength: analysis.jsxElementCount >= threshold * 2 ? 'strong' : 'moderate',
+      evidence:
+        `Component source contains ${analysis.jsxElementCount} JSX elements ` +
+        `(threshold: ${threshold})`,
+      value: analysis.jsxElementCount,
+    };
   }
 }
 
@@ -188,7 +198,7 @@ export class ParallelLayerDetector implements ShadowSignalDetector {
       return null;
     }
 
-    // This is a simplified check — actual implementation would:
+    // This is a simplified check вЂ” actual implementation would:
     // 1. Analyze the directory structure
     // 2. Check for consistent patterns (e.g., all components in "components/ui/")
     // 3. Compare with DS component names
@@ -297,3 +307,4 @@ export function calculateShadowScore(signals: ShadowSignal[]): number {
   // Max possible: 6 signals * 3 (strong) = 18
   return Math.min(100, (totalWeight / 18) * 100);
 }
+

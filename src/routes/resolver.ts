@@ -4,6 +4,7 @@
 import type { RouteResolver, RouteResolutionConfig, RouteExtractionResult } from './types.js';
 import type { RouteMatch } from '../domain/types.js';
 import { NextJsResolver } from './nextjs-resolver.js';
+import { ReactRouterResolver } from './react-router-resolver.js';
 import { FallbackResolver, PatternResolver } from './fallback-resolver.js';
 
 /**
@@ -27,6 +28,7 @@ export class RouteResolutionOrchestrator {
   private initializeResolvers(): void {
     // Add framework-specific resolvers
     this.resolvers.push(new NextJsResolver());
+    this.resolvers.push(new ReactRouterResolver());
 
     // Add custom pattern resolver if patterns configured
     if (this.config.customPatterns && this.config.customPatterns.length > 0) {
