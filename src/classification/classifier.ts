@@ -146,7 +146,7 @@ export class AnalyticalClassifier {
     // Local and local-library without DS backing -> needs further classification
     return {
       ...usage,
-      analyticalBucket: 'unclassified',
+      analyticalBucket: 'neither',
       classificationSource: 'unclassified',
       classificationConfidence: 'low',
     };

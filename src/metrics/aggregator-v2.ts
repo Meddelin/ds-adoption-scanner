@@ -142,9 +142,9 @@ export function aggregateCrossRepository(
   }
 
   // Collect all profiles
-  const allProfiles: LocalComponentProfile[] = [];
+  const allProfilesList: LocalComponentProfile[] = [];
   for (const [, profiles] of allProfiles) {
-    allProfiles.push(...profiles);
+    allProfilesList.push(...profiles);
   }
 
   // Build component breakdown
@@ -157,8 +157,8 @@ export function aggregateCrossRepository(
         filesUsedIn: c.filesUsedIn,
       }))
     ),
-    shadow: allProfiles.filter(p => p.analyticalBucket === 'shadow'),
-    neither: allProfiles.filter(p => p.analyticalBucket === 'neither'),
+    shadow: allProfilesList.filter(p => p.analyticalBucket === 'shadow'),
+    neither: allProfilesList.filter(p => p.analyticalBucket === 'neither'),
   };
 
   return {
@@ -191,7 +191,7 @@ export function aggregateCrossRepository(
     byRepository: repoMetrics,
     byRoute: allRoutes.length > 0 ? allRoutes : undefined,
     byComponent,
-    localComponentProfiles: allProfiles,
+    localComponentProfiles: allProfilesList,
     classificationConfig: {
       shadowSignalsEnabled: [
         'reusable-local',
