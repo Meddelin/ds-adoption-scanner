@@ -77,3 +77,7 @@ export type {
   ShadowSignalDetector,
   NeitherHeuristic,
 } from './classification/types.js';
+
+// V2 Output
+export { formatJSONV2, writeJSONV2 } from './output/json-reporter-v2.js';
+export { buildHTMLV2, writeHTMLV2 } from './output/html-reporter-v2.js';

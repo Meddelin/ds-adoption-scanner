@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DS Adoption Report v2</title>
+  <style>:root {
+  --ds:    #4f46e5;
+  --lib:   #0891b2;
+  --loc:   #6b7280;
+  --ok:    #16a34a;
+  --warn:  #d97706;
+  --bad:   #dc2626;
+  --bg:    #f8fafc;
+  --card:  #ffffff;
+  --border:#e2e8f0;
+  --text:  #0f172a;
+  --muted: #64748b;
+  --head:  #1e293b;
+  --shadow:#7c3aed;
+  --neither:#94a3b8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;background:var(--bg);color:var(--text);line-height:1.5}
+a{color:var(--ds);text-decoration:none}
+.page{max-width:1200px;margin:0 auto;padding:24px 20px}
+.header{background:var(--head);color:#fff;padding:20px 24px;border-radius:10px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.header h1{font-size:20px;font-weight:700;letter-spacing:-.3px}
+.header-meta{font-size:12px;opacity:.7;text-align:right}
+.cards{display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;flex:1 1 200px;min-width:200px}
+.card-title{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.card-value{font-size:32px;font-weight:700;line-height:1}
+.card-sub{font-size:12px;color:var(--muted);margin-top:6px}
+.hero-ok{color:var(--ok)}.hero-warn{color:var(--warn)}.hero-bad{color:var(--bad)}
+.section{margin-bottom:32px}
+.section-title{font-size:15px;font-weight:700;color:var(--head);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+table{width:100%;border-collapse:collapse;background:var(--card);border-radius:10px;overflow:hidden;border:1px solid var(--border);font-size:13px}
+thead th{background:var(--head);color:#fff;padding:10px 14px;text-align:left;font-size:12px;font-weight:600;letter-spacing:.04em;white-space:nowrap}
+tbody tr:nth-child(even){background:#f1f5f9}
+tbody tr:hover{background:#e2e8f0}
+td{padding:9px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+td.muted{color:var(--muted)}
+.bar{display:inline-block;height:8px;width:var(--w,0%);background:var(--c,#ccc);border-radius:4px;vertical-align:middle;max-width:160px;min-width:2px;transition:width .3s}
+.bar-wrap{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;color:#fff;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.proxy-tag{font-size:10px;padding:2px 6px;border-radius:4px;background:var(--warn);color:#fff;text-transform:uppercase;letter-spacing:0.05em}
+.exact-tag{font-size:10px;padding:2px 6px;border-radius:4px;background:var(--ok);color:#fff;text-transform:uppercase;letter-spacing:0.05em}
+/* Bucket breakdown */
+.bucket-grid{display:grid;grid-template-columns:repeat(3, 1fr);gap:16px;margin-bottom:24px}
+.bucket-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px}
+.bucket-card.adoption{border-left:4px solid var(--ds)}
+.bucket-card.shadow{border-left:4px solid var(--shadow)}
+.bucket-card.neither{border-left:4px solid var(--neither)}
+.bucket-name{font-size:13px;font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em}
+.bucket-card.adoption .bucket-name{color:var(--ds)}
+.bucket-card.shadow .bucket-name{color:var(--shadow)}
+.bucket-card.neither .bucket-name{color:var(--neither)}
+.bucket-value{font-size:24px;font-weight:700;margin-bottom:4px}
+.bucket-pct{font-size:12px;color:var(--muted)}
+/* Formula box */
+.formula-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:24px}
+.formula-row{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 10px;margin-bottom:10px;font-size:13px}
+.formula-row:last-child{margin-bottom:0}
+.formula-label{font-weight:700;color:var(--head);min-width:200px}
+.formula-eq{font-family:'Courier New',monospace;color:var(--text);font-weight:600}
+.formula-result{font-weight:700;font-size:15px}
+/* Route table */
+.route-row{cursor:pointer}
+.route-row:hover{background:#e2e8f0}
+.route-details{padding:16px;background:#f8fafc;border-top:1px solid var(--border)}
+/* Footer */
+.footer{margin-top:32px;padding-top:16px;border-top:1px solid var(--border);color:var(--muted);font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}</style>
+</head>
+<body>
+  <div class="page">
+    
+  <div class="header">
+    <h1>📊 DS Adoption Report v2</h1>
+    <div class="header-meta">
+      <div>10.04.2026, 12:41:32</div>
+      <div>1 repo · 217 files</div>
+    </div>
+  </div>
+    
+  <div class="cards">
+    <div class="card">
+      <div class="card-title">Direct Adoption <span class="exact-tag">exact</span></div>
+      <div class="card-value hero-ok">83.2%</div>
+      <div class="card-sub"><span class="bar" style="--w:83.2%;--c:var(--ok)" title="83.2%"></span> 564 instances</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Effective Adoption Proxy <span class="proxy-tag" title="Proxy metric — see formula for details">proxy</span></div>
+      <div class="card-value hero-ok">83.2%</div>
+      <div class="card-sub"><span class="bar" style="--w:83.2%;--c:var(--ok)" title="83.2%"></span> +0.0% via transitive</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Shadow Usage Proxy <span class="proxy-tag" title="Proxy metric — see formula for details">proxy</span></div>
+      <div class="card-value" style="color:var(--ok)">1.2%</div>
+      <div class="card-sub"><span class="bar" style="--w:1.2%;--c:var(--ok)" title="1.2%"></span> 8 instances</div>
+    </div>
+  </div>
+    
+  <div class="section">
+    <div class="section-title">📦 Analytical Bucket Breakdown</div>
+    <div class="bucket-grid">
+      <div class="bucket-card adoption">
+        <div class="bucket-name">Adoption</div>
+        <div class="bucket-value">83.2%</div>
+        <div class="bucket-pct">564 instances · 112 components</div>
+      </div>
+      <div class="bucket-card shadow">
+        <div class="bucket-name">Shadow Usage</div>
+        <div class="bucket-value">1.2%</div>
+        <div class="bucket-pct">8 instances · 2 components</div>
+      </div>
+      <div class="bucket-card neither">
+        <div class="bucket-name">Neither</div>
+        <div class="bucket-value">44.3%</div>
+        <div class="bucket-pct">540 instances · 83 components</div>
+      </div>
+    </div>
+  </div>
+    
+  <div class="section">
+    <div class="section-title">📐 Metric Formulas</div>
+    <div class="formula-box">
+      <div class="formula-row">
+        <span class="formula-label">Direct Adoption</span>
+        <span class="formula-eq">Direct DS / (Adoption + Shadow + Neither) × 100</span>
+      </div>
+      <div class="formula-row">
+        <span class="formula-label">Effective Adoption Proxy</span>
+        <span class="formula-eq">(Direct DS + Weighted Transitive) / Denominator × 100</span>
+      </div>
+      <div class="formula-row">
+        <span class="formula-label">Shadow Usage Proxy</span>
+        <span class="formula-eq">Shadow / Denominator × 100</span>
+      </div>
+      <div class="formula-row" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+        <span class="formula-label">Denominator</span>
+        <span class="formula-eq">DS + Local Library + Reusable Local (excluding HTML native and third-party)</span>
+      </div>
+    </div>
+  </div>
+    
+  <div class="section">
+    <div class="section-title">🎨 Design Systems</div>
+    <div class="cards">
+    <div class="card" style="border-left:4px solid var(--ds)">
+      <div class="card-title">Ant Design</div>
+      <div style="display:flex;gap:16px;margin-bottom:8px">
+        <div>
+          <div style="font-size:11px;color:var(--muted)">Direct</div>
+          <div style="font-size:20px;font-weight:700;color:var(--ds)">83.2%</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted)">Effective Proxy</div>
+          <div style="font-size:20px;font-weight:700">83.2%</div>
+        </div>
+      </div>
+      <div class="card-sub">564 direct · 0 transitive · 112 unique</div>
+    </div></div>
+  </div>
+    
+    
+    
+  <div class="footer">
+    <div>
+      <div>DS Adoption Scanner v2.0.0</div>
+      <div style="color:var(--warn)">⚠️ Route resolution not enabled for this scan</div>
+    </div>
+    <div style="text-align:right">
+      <div>Scanned in 1.8s</div>
+      <div>Route resolution: disabled</div>
+    </div>
+  </div>
+  </div>
+</body>
+</html>

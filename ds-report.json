@@ -1,0 +1,4804 @@
+{
+  "meta": {
+    "version": "0.1.0",
+    "timestamp": "2026-04-10T09:41:32.183Z",
+    "scanDurationMs": 1787,
+    "configPath": "C:\\Users\\crash\\ds-report\\ds-adoption-scanner\\ant-design.config.ts",
+    "filesScanned": 217,
+    "repositoriesScanned": 1,
+    "designSystemsConfigured": [
+      "Ant Design"
+    ],
+    "excludeLocalFromAdoption": false,
+    "excludeUniqueLocalFromAdoption": false,
+    "reusableThreshold": 2
+  },
+  "summary": {
+    "adoptionRate": 83.1858407079646,
+    "effectiveAdoptionRate": 83.1858407079646,
+    "transitiveDS": {
+      "totalInstances": 0,
+      "weightedInstances": 0,
+      "byDS": [
+        {
+          "name": "Ant Design",
+          "instances": 0,
+          "weightedInstances": 0
+        }
+      ]
+    },
+    "totalComponentInstances": 678,
+    "designSystems": [
+      {
+        "name": "Ant Design",
+        "adoptionRate": 83.1858407079646,
+        "effectiveAdoptionRate": 83.1858407079646,
+        "instances": 564,
+        "transitiveInstances": 0,
+        "uniqueComponents": 112,
+        "totalFamilies": 75,
+        "familiesUsed": 31,
+        "familyCoverage": 41.333333333333336
+      }
+    ],
+    "designSystemTotal": {
+      "instances": 564,
+      "uniqueComponents": 112,
+      "topComponents": [
+        {
+          "name": "Col",
+          "dsName": "Ant Design",
+          "packageName": "antd",
+          "resolvedPath": null,
+          "instances": 55,
+          "filesUsedIn": 14,
+          "topProps": [
+            {
+              "name": "sm",
+              "count": 40
+            },
+            {
+              "name": "md",
+              "count": 34
+            },
+            {
+              "name": "lg",
+              "count": 34
+            },
+            {
+              "name": "xs",
+              "count": 28
+            },
+            {
+              "name": "xl",
+              "count": 24
+            }
+          ]
+        },
+        {
+          "name": "Card",
+          "dsName": "Ant Design",
+          "packageName": "antd",
+          "resolvedPath": null,
+          "instances": 48,
+          "filesUsedIn": 28,
+          "topProps": [
+            {
+              "name": "variant",
+              "count": 38
+            },
+            {
+              "name": "title",
+              "count": 21
+            },
+            {
+              "name": "style",
+              "count": 14
+            },
+            {
+              "name": "className",
+              "count": 12
+            },
+            {
+              "name": "styles",
+              "count": 12
+            }
+          ]
+        },
+        {
+          "name": "Descriptions.Item",
+          "dsName": "Ant Design",
+          "packageName": "antd",
+          "resolvedPath": null,
+          "instances": 39,
+          "filesUsedIn": 4,
+          "topProps": [
+            {
+              "name": "label",
+              "count": 39
+            }
+          ]
+        },
+        {
+          "name": "Button",
+          "dsName": "Ant Design",
+          "packageName": "antd",
+          "resolvedPath": null,
+          "instances": 32,
+          "filesUsedIn": 20,
+          "topProps": [
+            {
+              "name": "type",
+              "count": 21
+            },
+            {
+              "name": "onClick",
+              "count": 12
+            },
+            {
+              "name": "className",
+              "count": 7
+            },
+            {
+              "name": "size",
+              "count": 5
+            },
+            {
+              "name": "loading",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "name": "Row",
+          "dsName": "Ant Design",
+          "packageName": "antd",
+          "resolvedPath": null,
+          "instances": 23,
+          "filesUsedIn": 14,
+          "topProps": [
+            {
+              "name": "gutter",
+              "count": 18
+            },
+            {
+              "name": "style",
+              "count": 3
+            }
+          ]
+        },
+        {
+          "name": "ProFormText",
+          "dsName": "Ant Design",
+          "packageName": "@ant-design/pro-components",
+          "resolvedPath": null,
+          "instances": 17,
+          "filesUsedIn": 8,
+          "topProps": [
+            {
+              "name": "name",
+              "count": 17
+            },
+            {
+              "name": "rules",
+              "count": 15
+            },
+            {
+              "name": "label",
+              "count": 13
+            },
+            {
+              "name": "placeholder",
+              "count": 10
+            },
+            {
+              "name": "width",
+              "count": 9
+            }
+          ]
+        },
+        {
+          "name": "Avatar",
+          "dsName": "Ant Design",
+          "packageName": "antd",
+          "resolvedPath": null,
+          "instances": 16,
+          "filesUsedIn": 9,
+          "topProps": [
+            {
+              "name": "size",
+              "count": 15
+            },
+            {
+              "name": "src",
+              "count": 14
+            },
+            {
+              "name": "style",
+              "count": 4
+            },
+            {
+              "name": "shape",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "name": "ProFormSelect",
+          "dsName": "Ant Design",
+          "packageName": "@ant-design/pro-components",
+          "resolvedPath": null,
+          "instances": 16,
+          "filesUsedIn": 6,
+          "topProps": [
+            {
+              "name": "name",
+              "count": 16
+            },
+            {
+              "name": "label",
+              "count": 12
+            },
+            {
+              "name": "rules",
+              "count": 12
+            },
+            {
+              "name": "options",
+              "count": 9
+            },
+            {
+              "name": "width",
+              "count": 8
+            }
+          ]
+        },
+        {
+          "name": "Tooltip",
+          "dsName": "Ant Design",
+          "packageName": "antd",
+          "resolvedPath": null,
+          "instances": 15,
+          "filesUsedIn": 7,
+          "topProps": [
+            {
+              "name": "title",
+              "count": 15
+            },
+            {
+              "name": "key",
+              "count": 6
+            }
+          ]
+        },
+        {
+          "name": "List.Item",
+          "dsName": "Ant Design",
+          "packageName": "antd",
+          "resolvedPath": null,
+          "instances": 13,
+          "filesUsedIn": 12,
+          "topProps": [
+            {
+              "name": "key",
+              "count": 6
+            },
+            {
+              "name": "actions",
+              "count": 6
+            },
+            {
+              "name": "extra",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    "localLibrary": {
+      "instances": 6,
+      "uniqueComponents": 5,
+      "topComponents": [
+        {
+          "name": "Footer",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": "C:\\Users\\crash\\ds-report\\ant-design-pro\\src\\components",
+          "instances": 2,
+          "filesUsedIn": 2,
+          "topProps": []
+        },
+        {
+          "name": "Question",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": "C:\\Users\\crash\\ds-report\\ant-design-pro\\src\\components",
+          "instances": 1,
+          "filesUsedIn": 1,
+          "topProps": [
+            {
+              "name": "key",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "name": "SelectLang",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": "C:\\Users\\crash\\ds-report\\ant-design-pro\\src\\components",
+          "instances": 1,
+          "filesUsedIn": 1,
+          "topProps": [
+            {
+              "name": "key",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "name": "AvatarName",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": "C:\\Users\\crash\\ds-report\\ant-design-pro\\src\\components",
+          "instances": 1,
+          "filesUsedIn": 1,
+          "topProps": []
+        },
+        {
+          "name": "AvatarDropdown",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": "C:\\Users\\crash\\ds-report\\ant-design-pro\\src\\components",
+          "instances": 1,
+          "filesUsedIn": 1,
+          "topProps": []
+        }
+      ]
+    },
+    "localReusable": {
+      "instances": 8,
+      "uniqueComponents": 2,
+      "topComponents": [
+        {
+          "name": "Trend",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/dashboard/analysis/components/Trend/index.tsx",
+          "instances": 5,
+          "filesUsedIn": 2,
+          "topProps": [
+            {
+              "name": "flag",
+              "count": 5
+            },
+            {
+              "name": "style",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "name": "NumberInfo",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/dashboard/analysis/components/NumberInfo/index.tsx",
+          "instances": 3,
+          "filesUsedIn": 2,
+          "topProps": [
+            {
+              "name": "subTitle",
+              "count": 3
+            },
+            {
+              "name": "gap",
+              "count": 3
+            },
+            {
+              "name": "total",
+              "count": 3
+            },
+            {
+              "name": "status",
+              "count": 2
+            },
+            {
+              "name": "subTotal",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    "localUnique": {
+      "instances": 100,
+      "uniqueComponents": 51,
+      "topComponents": [
+        {
+          "name": "FormItem",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": null,
+          "instances": 13,
+          "filesUsedIn": 3,
+          "topProps": [
+            {
+              "name": "name",
+              "count": 12
+            },
+            {
+              "name": "rules",
+              "count": 5
+            },
+            {
+              "name": "label",
+              "count": 4
+            },
+            {
+              "name": "className",
+              "count": 1
+            },
+            {
+              "name": "noStyle",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "name": "StandardFormRow",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/list/search/applications/components/StandardFormRow/index.tsx",
+          "instances": 7,
+          "filesUsedIn": 3,
+          "topProps": [
+            {
+              "name": "title",
+              "count": 7
+            },
+            {
+              "name": "grid",
+              "count": 4
+            },
+            {
+              "name": "block",
+              "count": 3
+            },
+            {
+              "name": "style",
+              "count": 3
+            },
+            {
+              "name": "last",
+              "count": 3
+            }
+          ]
+        },
+        {
+          "name": "IconText",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": null,
+          "instances": 6,
+          "filesUsedIn": 2,
+          "topProps": [
+            {
+              "name": "key",
+              "count": 6
+            },
+            {
+              "name": "text",
+              "count": 6
+            },
+            {
+              "name": "type",
+              "count": 3
+            },
+            {
+              "name": "icon",
+              "count": 3
+            }
+          ]
+        },
+        {
+          "name": "CheckableTag",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": null,
+          "instances": 6,
+          "filesUsedIn": 3,
+          "topProps": [
+            {
+              "name": "checked",
+              "count": 6
+            },
+            {
+              "name": "key",
+              "count": 6
+            },
+            {
+              "name": "onChange",
+              "count": 6
+            }
+          ]
+        },
+        {
+          "name": "ChartCard",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/dashboard/analysis/components/Charts/index.tsx",
+          "instances": 4,
+          "filesUsedIn": 1,
+          "topProps": [
+            {
+              "name": "variant",
+              "count": 4
+            },
+            {
+              "name": "title",
+              "count": 4
+            },
+            {
+              "name": "action",
+              "count": 4
+            },
+            {
+              "name": "loading",
+              "count": 4
+            },
+            {
+              "name": "total",
+              "count": 4
+            }
+          ]
+        },
+        {
+          "name": "InfoCard",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": null,
+          "instances": 3,
+          "filesUsedIn": 1,
+          "topProps": [
+            {
+              "name": "index",
+              "count": 3
+            },
+            {
+              "name": "href",
+              "count": 3
+            },
+            {
+              "name": "title",
+              "count": 3
+            },
+            {
+              "name": "desc",
+              "count": 3
+            },
+            {
+              "name": "isDark",
+              "count": 3
+            }
+          ]
+        },
+        {
+          "name": "Info",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": null,
+          "instances": 3,
+          "filesUsedIn": 1,
+          "topProps": [
+            {
+              "name": "title",
+              "count": 3
+            },
+            {
+              "name": "value",
+              "count": 3
+            },
+            {
+              "name": "bordered",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "name": "Field",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/dashboard/analysis/components/Charts/index.tsx",
+          "instances": 3,
+          "filesUsedIn": 1,
+          "topProps": [
+            {
+              "name": "label",
+              "count": 3
+            },
+            {
+              "name": "value",
+              "count": 3
+            }
+          ]
+        },
+        {
+          "name": "TagSelect.Option",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/list/search/applications/components/TagSelect/index.tsx",
+          "instances": 3,
+          "filesUsedIn": 3,
+          "topProps": [
+            {
+              "name": "value",
+              "count": 3
+            },
+            {
+              "name": "key",
+              "count": 3
+            }
+          ]
+        },
+        {
+          "name": "TagSelect",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/list/search/applications/components/TagSelect/index.tsx",
+          "instances": 3,
+          "filesUsedIn": 3,
+          "topProps": [
+            {
+              "name": "expandable",
+              "count": 3
+            }
+          ]
+        }
+      ]
+    },
+    "thirdParty": {
+      "instances": 69,
+      "uniqueComponents": 19,
+      "topComponents": [
+        {
+          "name": "FormattedMessage",
+          "dsName": null,
+          "packageName": "@umijs/max",
+          "resolvedPath": null,
+          "instances": 31,
+          "filesUsedIn": 4,
+          "topProps": [
+            {
+              "name": "id",
+              "count": 31
+            },
+            {
+              "name": "defaultMessage",
+              "count": 31
+            },
+            {
+              "name": "key",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "name": "Link",
+          "dsName": null,
+          "packageName": "@umijs/max",
+          "resolvedPath": null,
+          "instances": 11,
+          "filesUsedIn": 8,
+          "topProps": [
+            {
+              "name": "to",
+              "count": 11
+            },
+            {
+              "name": "prefetch",
+              "count": 10
+            },
+            {
+              "name": "key",
+              "count": 1
+            },
+            {
+              "name": "target",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "name": "Suspense",
+          "dsName": null,
+          "packageName": "react",
+          "resolvedPath": null,
+          "instances": 5,
+          "filesUsedIn": 1,
+          "topProps": [
+            {
+              "name": "fallback",
+              "count": 5
+            }
+          ]
+        },
+        {
+          "name": "Area",
+          "dsName": null,
+          "packageName": "@ant-design/plots",
+          "resolvedPath": null,
+          "instances": 4,
+          "filesUsedIn": 3,
+          "topProps": [
+            {
+              "name": "xField",
+              "count": 4
+            },
+            {
+              "name": "yField",
+              "count": 4
+            },
+            {
+              "name": "height",
+              "count": 4
+            },
+            {
+              "name": "axis",
+              "count": 4
+            },
+            {
+              "name": "style",
+              "count": 4
+            }
+          ]
+        },
+        {
+          "name": "Column",
+          "dsName": null,
+          "packageName": "@ant-design/plots",
+          "resolvedPath": null,
+          "instances": 3,
+          "filesUsedIn": 2,
+          "topProps": [
+            {
+              "name": "xField",
+              "count": 3
+            },
+            {
+              "name": "yField",
+              "count": 3
+            },
+            {
+              "name": "axis",
+              "count": 3
+            },
+            {
+              "name": "height",
+              "count": 3
+            },
+            {
+              "name": "data",
+              "count": 3
+            }
+          ]
+        },
+        {
+          "name": "PointLayer",
+          "dsName": null,
+          "packageName": "@antv/l7-react",
+          "resolvedPath": null,
+          "instances": 2,
+          "filesUsedIn": 1,
+          "topProps": [
+            {
+              "name": "key",
+              "count": 2
+            },
+            {
+              "name": "source",
+              "count": 2
+            },
+            {
+              "name": "color",
+              "count": 2
+            },
+            {
+              "name": "shape",
+              "count": 2
+            },
+            {
+              "name": "size",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "name": "UmiSelectLang",
+          "dsName": null,
+          "packageName": "@umijs/max",
+          "resolvedPath": null,
+          "instances": 1,
+          "filesUsedIn": 1,
+          "topProps": [
+            {
+              "name": "style",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "name": "Gauge",
+          "dsName": null,
+          "packageName": "@ant-design/plots",
+          "resolvedPath": null,
+          "instances": 1,
+          "filesUsedIn": 1,
+          "topProps": [
+            {
+              "name": "height",
+              "count": 1
+            },
+            {
+              "name": "data",
+              "count": 1
+            },
+            {
+              "name": "padding",
+              "count": 1
+            },
+            {
+              "name": "style",
+              "count": 1
+            },
+            {
+              "name": "meta",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "name": "WordCloud",
+          "dsName": null,
+          "packageName": "@ant-design/plots",
+          "resolvedPath": null,
+          "instances": 1,
+          "filesUsedIn": 1,
+          "topProps": [
+            {
+              "name": "data",
+              "count": 1
+            },
+            {
+              "name": "height",
+              "count": 1
+            },
+            {
+              "name": "textField",
+              "count": 1
+            },
+            {
+              "name": "colorField",
+              "count": 1
+            },
+            {
+              "name": "layout",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "name": "Liquid",
+          "dsName": null,
+          "packageName": "@ant-design/plots",
+          "resolvedPath": null,
+          "instances": 1,
+          "filesUsedIn": 1,
+          "topProps": [
+            {
+              "name": "height",
+              "count": 1
+            },
+            {
+              "name": "percent",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    "htmlNative": {
+      "instances": 371,
+      "uniqueComponents": 13,
+      "topComponents": [
+        {
+          "name": "div",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": null,
+          "instances": 162,
+          "filesUsedIn": 45,
+          "topProps": [
+            {
+              "name": "className",
+              "count": 126
+            },
+            {
+              "name": "style",
+              "count": 24
+            },
+            {
+              "name": "title",
+              "count": 3
+            },
+            {
+              "name": "ref",
+              "count": 1
+            },
+            {
+              "name": "data-lang",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "name": "span",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": null,
+          "instances": 98,
+          "filesUsedIn": 36,
+          "topProps": [
+            {
+              "name": "className",
+              "count": 25
+            },
+            {
+              "name": "style",
+              "count": 16
+            },
+            {
+              "name": "title",
+              "count": 4
+            },
+            {
+              "name": "ref",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "name": "a",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": null,
+          "instances": 49,
+          "filesUsedIn": 26,
+          "topProps": [
+            {
+              "name": "href",
+              "count": 18
+            },
+            {
+              "name": "key",
+              "count": 14
+            },
+            {
+              "name": "className",
+              "count": 8
+            },
+            {
+              "name": "onClick",
+              "count": 7
+            },
+            {
+              "name": "style",
+              "count": 6
+            }
+          ]
+        },
+        {
+          "name": "p",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": null,
+          "instances": 22,
+          "filesUsedIn": 9,
+          "topProps": [
+            {
+              "name": "style",
+              "count": 3
+            },
+            {
+              "name": "className",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "name": "img",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": null,
+          "instances": 10,
+          "filesUsedIn": 6,
+          "topProps": [
+            {
+              "name": "alt",
+              "count": 10
+            },
+            {
+              "name": "src",
+              "count": 10
+            },
+            {
+              "name": "className",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "name": "em",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": null,
+          "instances": 7,
+          "filesUsedIn": 5,
+          "topProps": [
+            {
+              "name": "className",
+              "count": 4
+            }
+          ]
+        },
+        {
+          "name": "li",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": null,
+          "instances": 7,
+          "filesUsedIn": 4,
+          "topProps": [
+            {
+              "name": "key",
+              "count": 5
+            },
+            {
+              "name": "className",
+              "count": 5
+            },
+            {
+              "name": "onClick",
+              "count": 3
+            }
+          ]
+        },
+        {
+          "name": "h4",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": null,
+          "instances": 5,
+          "filesUsedIn": 3,
+          "topProps": [
+            {
+              "name": "className",
+              "count": 2
+            },
+            {
+              "name": "style",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "name": "ul",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": null,
+          "instances": 4,
+          "filesUsedIn": 3,
+          "topProps": [
+            {
+              "name": "className",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "name": "h3",
+          "dsName": null,
+          "packageName": null,
+          "resolvedPath": null,
+          "instances": 3,
+          "filesUsedIn": 3,
+          "topProps": [
+            {
+              "name": "className",
+              "count": 1
+            },
+            {
+              "name": "style",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "byRepository": [
+    {
+      "name": "ant-design-pro",
+      "path": "C:\\Users\\crash\\ds-report\\ant-design-pro",
+      "adoptionRate": 83.1858407079646,
+      "effectiveAdoptionRate": 83.1858407079646,
+      "filesScanned": 217,
+      "designSystems": [
+        {
+          "name": "Ant Design",
+          "adoptionRate": 83.1858407079646,
+          "effectiveAdoptionRate": 83.1858407079646,
+          "instances": 564,
+          "transitiveInstances": 0,
+          "uniqueComponents": 112,
+          "totalFamilies": 75,
+          "familiesUsed": 31,
+          "familyCoverage": 41.333333333333336
+        }
+      ],
+      "designSystemTotal": {
+        "instances": 564,
+        "uniqueComponents": 112,
+        "topComponents": [
+          {
+            "name": "Col",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 55,
+            "filesUsedIn": 14,
+            "topProps": [
+              {
+                "name": "sm",
+                "count": 40
+              },
+              {
+                "name": "md",
+                "count": 34
+              },
+              {
+                "name": "lg",
+                "count": 34
+              },
+              {
+                "name": "xs",
+                "count": 28
+              },
+              {
+                "name": "xl",
+                "count": 24
+              }
+            ]
+          },
+          {
+            "name": "Card",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 48,
+            "filesUsedIn": 28,
+            "topProps": [
+              {
+                "name": "variant",
+                "count": 38
+              },
+              {
+                "name": "title",
+                "count": 21
+              },
+              {
+                "name": "style",
+                "count": 14
+              },
+              {
+                "name": "className",
+                "count": 12
+              },
+              {
+                "name": "styles",
+                "count": 12
+              }
+            ]
+          },
+          {
+            "name": "Descriptions.Item",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 39,
+            "filesUsedIn": 4,
+            "topProps": [
+              {
+                "name": "label",
+                "count": 39
+              }
+            ]
+          },
+          {
+            "name": "Button",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 32,
+            "filesUsedIn": 20,
+            "topProps": [
+              {
+                "name": "type",
+                "count": 21
+              },
+              {
+                "name": "onClick",
+                "count": 12
+              },
+              {
+                "name": "className",
+                "count": 7
+              },
+              {
+                "name": "size",
+                "count": 5
+              },
+              {
+                "name": "loading",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "name": "Row",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 23,
+            "filesUsedIn": 14,
+            "topProps": [
+              {
+                "name": "gutter",
+                "count": 18
+              },
+              {
+                "name": "style",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "name": "ProFormText",
+            "dsName": "Ant Design",
+            "packageName": "@ant-design/pro-components",
+            "resolvedPath": null,
+            "instances": 17,
+            "filesUsedIn": 8,
+            "topProps": [
+              {
+                "name": "name",
+                "count": 17
+              },
+              {
+                "name": "rules",
+                "count": 15
+              },
+              {
+                "name": "label",
+                "count": 13
+              },
+              {
+                "name": "placeholder",
+                "count": 10
+              },
+              {
+                "name": "width",
+                "count": 9
+              }
+            ]
+          },
+          {
+            "name": "Avatar",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 16,
+            "filesUsedIn": 9,
+            "topProps": [
+              {
+                "name": "size",
+                "count": 15
+              },
+              {
+                "name": "src",
+                "count": 14
+              },
+              {
+                "name": "style",
+                "count": 4
+              },
+              {
+                "name": "shape",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "ProFormSelect",
+            "dsName": "Ant Design",
+            "packageName": "@ant-design/pro-components",
+            "resolvedPath": null,
+            "instances": 16,
+            "filesUsedIn": 6,
+            "topProps": [
+              {
+                "name": "name",
+                "count": 16
+              },
+              {
+                "name": "label",
+                "count": 12
+              },
+              {
+                "name": "rules",
+                "count": 12
+              },
+              {
+                "name": "options",
+                "count": 9
+              },
+              {
+                "name": "width",
+                "count": 8
+              }
+            ]
+          },
+          {
+            "name": "Tooltip",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 15,
+            "filesUsedIn": 7,
+            "topProps": [
+              {
+                "name": "title",
+                "count": 15
+              },
+              {
+                "name": "key",
+                "count": 6
+              }
+            ]
+          },
+          {
+            "name": "List.Item",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 13,
+            "filesUsedIn": 12,
+            "topProps": [
+              {
+                "name": "key",
+                "count": 6
+              },
+              {
+                "name": "actions",
+                "count": 6
+              },
+              {
+                "name": "extra",
+                "count": 1
+              }
+            ]
+          }
+        ]
+      },
+      "localLibrary": {
+        "instances": 6,
+        "uniqueComponents": 5,
+        "topComponents": [
+          {
+            "name": "Footer",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": "C:\\Users\\crash\\ds-report\\ant-design-pro\\src\\components",
+            "instances": 2,
+            "filesUsedIn": 2,
+            "topProps": []
+          },
+          {
+            "name": "Question",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": "C:\\Users\\crash\\ds-report\\ant-design-pro\\src\\components",
+            "instances": 1,
+            "filesUsedIn": 1,
+            "topProps": [
+              {
+                "name": "key",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "SelectLang",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": "C:\\Users\\crash\\ds-report\\ant-design-pro\\src\\components",
+            "instances": 1,
+            "filesUsedIn": 1,
+            "topProps": [
+              {
+                "name": "key",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "AvatarName",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": "C:\\Users\\crash\\ds-report\\ant-design-pro\\src\\components",
+            "instances": 1,
+            "filesUsedIn": 1,
+            "topProps": []
+          },
+          {
+            "name": "AvatarDropdown",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": "C:\\Users\\crash\\ds-report\\ant-design-pro\\src\\components",
+            "instances": 1,
+            "filesUsedIn": 1,
+            "topProps": []
+          }
+        ]
+      },
+      "localReusable": {
+        "instances": 8,
+        "uniqueComponents": 2,
+        "topComponents": [
+          {
+            "name": "Trend",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/dashboard/analysis/components/Trend/index.tsx",
+            "instances": 5,
+            "filesUsedIn": 2,
+            "topProps": [
+              {
+                "name": "flag",
+                "count": 5
+              },
+              {
+                "name": "style",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "name": "NumberInfo",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/dashboard/analysis/components/NumberInfo/index.tsx",
+            "instances": 3,
+            "filesUsedIn": 2,
+            "topProps": [
+              {
+                "name": "subTitle",
+                "count": 3
+              },
+              {
+                "name": "gap",
+                "count": 3
+              },
+              {
+                "name": "total",
+                "count": 3
+              },
+              {
+                "name": "status",
+                "count": 2
+              },
+              {
+                "name": "subTotal",
+                "count": 2
+              }
+            ]
+          }
+        ]
+      },
+      "localUnique": {
+        "instances": 100,
+        "uniqueComponents": 51,
+        "topComponents": [
+          {
+            "name": "FormItem",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": null,
+            "instances": 13,
+            "filesUsedIn": 3,
+            "topProps": [
+              {
+                "name": "name",
+                "count": 12
+              },
+              {
+                "name": "rules",
+                "count": 5
+              },
+              {
+                "name": "label",
+                "count": 4
+              },
+              {
+                "name": "className",
+                "count": 1
+              },
+              {
+                "name": "noStyle",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "StandardFormRow",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/list/search/applications/components/StandardFormRow/index.tsx",
+            "instances": 7,
+            "filesUsedIn": 3,
+            "topProps": [
+              {
+                "name": "title",
+                "count": 7
+              },
+              {
+                "name": "grid",
+                "count": 4
+              },
+              {
+                "name": "block",
+                "count": 3
+              },
+              {
+                "name": "style",
+                "count": 3
+              },
+              {
+                "name": "last",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "name": "IconText",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": null,
+            "instances": 6,
+            "filesUsedIn": 2,
+            "topProps": [
+              {
+                "name": "key",
+                "count": 6
+              },
+              {
+                "name": "text",
+                "count": 6
+              },
+              {
+                "name": "type",
+                "count": 3
+              },
+              {
+                "name": "icon",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "name": "CheckableTag",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": null,
+            "instances": 6,
+            "filesUsedIn": 3,
+            "topProps": [
+              {
+                "name": "checked",
+                "count": 6
+              },
+              {
+                "name": "key",
+                "count": 6
+              },
+              {
+                "name": "onChange",
+                "count": 6
+              }
+            ]
+          },
+          {
+            "name": "ChartCard",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/dashboard/analysis/components/Charts/index.tsx",
+            "instances": 4,
+            "filesUsedIn": 1,
+            "topProps": [
+              {
+                "name": "variant",
+                "count": 4
+              },
+              {
+                "name": "title",
+                "count": 4
+              },
+              {
+                "name": "action",
+                "count": 4
+              },
+              {
+                "name": "loading",
+                "count": 4
+              },
+              {
+                "name": "total",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "name": "InfoCard",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": null,
+            "instances": 3,
+            "filesUsedIn": 1,
+            "topProps": [
+              {
+                "name": "index",
+                "count": 3
+              },
+              {
+                "name": "href",
+                "count": 3
+              },
+              {
+                "name": "title",
+                "count": 3
+              },
+              {
+                "name": "desc",
+                "count": 3
+              },
+              {
+                "name": "isDark",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "name": "Info",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": null,
+            "instances": 3,
+            "filesUsedIn": 1,
+            "topProps": [
+              {
+                "name": "title",
+                "count": 3
+              },
+              {
+                "name": "value",
+                "count": 3
+              },
+              {
+                "name": "bordered",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "name": "Field",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/dashboard/analysis/components/Charts/index.tsx",
+            "instances": 3,
+            "filesUsedIn": 1,
+            "topProps": [
+              {
+                "name": "label",
+                "count": 3
+              },
+              {
+                "name": "value",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "name": "TagSelect.Option",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/list/search/applications/components/TagSelect/index.tsx",
+            "instances": 3,
+            "filesUsedIn": 3,
+            "topProps": [
+              {
+                "name": "value",
+                "count": 3
+              },
+              {
+                "name": "key",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "name": "TagSelect",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/list/search/applications/components/TagSelect/index.tsx",
+            "instances": 3,
+            "filesUsedIn": 3,
+            "topProps": [
+              {
+                "name": "expandable",
+                "count": 3
+              }
+            ]
+          }
+        ]
+      },
+      "thirdParty": {
+        "instances": 69,
+        "uniqueComponents": 19,
+        "topComponents": [
+          {
+            "name": "FormattedMessage",
+            "dsName": null,
+            "packageName": "@umijs/max",
+            "resolvedPath": null,
+            "instances": 31,
+            "filesUsedIn": 4,
+            "topProps": [
+              {
+                "name": "id",
+                "count": 31
+              },
+              {
+                "name": "defaultMessage",
+                "count": 31
+              },
+              {
+                "name": "key",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "Link",
+            "dsName": null,
+            "packageName": "@umijs/max",
+            "resolvedPath": null,
+            "instances": 11,
+            "filesUsedIn": 8,
+            "topProps": [
+              {
+                "name": "to",
+                "count": 11
+              },
+              {
+                "name": "prefetch",
+                "count": 10
+              },
+              {
+                "name": "key",
+                "count": 1
+              },
+              {
+                "name": "target",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "Suspense",
+            "dsName": null,
+            "packageName": "react",
+            "resolvedPath": null,
+            "instances": 5,
+            "filesUsedIn": 1,
+            "topProps": [
+              {
+                "name": "fallback",
+                "count": 5
+              }
+            ]
+          },
+          {
+            "name": "Area",
+            "dsName": null,
+            "packageName": "@ant-design/plots",
+            "resolvedPath": null,
+            "instances": 4,
+            "filesUsedIn": 3,
+            "topProps": [
+              {
+                "name": "xField",
+                "count": 4
+              },
+              {
+                "name": "yField",
+                "count": 4
+              },
+              {
+                "name": "height",
+                "count": 4
+              },
+              {
+                "name": "axis",
+                "count": 4
+              },
+              {
+                "name": "style",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "name": "Column",
+            "dsName": null,
+            "packageName": "@ant-design/plots",
+            "resolvedPath": null,
+            "instances": 3,
+            "filesUsedIn": 2,
+            "topProps": [
+              {
+                "name": "xField",
+                "count": 3
+              },
+              {
+                "name": "yField",
+                "count": 3
+              },
+              {
+                "name": "axis",
+                "count": 3
+              },
+              {
+                "name": "height",
+                "count": 3
+              },
+              {
+                "name": "data",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "name": "PointLayer",
+            "dsName": null,
+            "packageName": "@antv/l7-react",
+            "resolvedPath": null,
+            "instances": 2,
+            "filesUsedIn": 1,
+            "topProps": [
+              {
+                "name": "key",
+                "count": 2
+              },
+              {
+                "name": "source",
+                "count": 2
+              },
+              {
+                "name": "color",
+                "count": 2
+              },
+              {
+                "name": "shape",
+                "count": 2
+              },
+              {
+                "name": "size",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "name": "UmiSelectLang",
+            "dsName": null,
+            "packageName": "@umijs/max",
+            "resolvedPath": null,
+            "instances": 1,
+            "filesUsedIn": 1,
+            "topProps": [
+              {
+                "name": "style",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "Gauge",
+            "dsName": null,
+            "packageName": "@ant-design/plots",
+            "resolvedPath": null,
+            "instances": 1,
+            "filesUsedIn": 1,
+            "topProps": [
+              {
+                "name": "height",
+                "count": 1
+              },
+              {
+                "name": "data",
+                "count": 1
+              },
+              {
+                "name": "padding",
+                "count": 1
+              },
+              {
+                "name": "style",
+                "count": 1
+              },
+              {
+                "name": "meta",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "WordCloud",
+            "dsName": null,
+            "packageName": "@ant-design/plots",
+            "resolvedPath": null,
+            "instances": 1,
+            "filesUsedIn": 1,
+            "topProps": [
+              {
+                "name": "data",
+                "count": 1
+              },
+              {
+                "name": "height",
+                "count": 1
+              },
+              {
+                "name": "textField",
+                "count": 1
+              },
+              {
+                "name": "colorField",
+                "count": 1
+              },
+              {
+                "name": "layout",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "Liquid",
+            "dsName": null,
+            "packageName": "@ant-design/plots",
+            "resolvedPath": null,
+            "instances": 1,
+            "filesUsedIn": 1,
+            "topProps": [
+              {
+                "name": "height",
+                "count": 1
+              },
+              {
+                "name": "percent",
+                "count": 1
+              }
+            ]
+          }
+        ]
+      },
+      "htmlNative": {
+        "instances": 371,
+        "uniqueComponents": 13,
+        "topComponents": [
+          {
+            "name": "div",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": null,
+            "instances": 162,
+            "filesUsedIn": 45,
+            "topProps": [
+              {
+                "name": "className",
+                "count": 126
+              },
+              {
+                "name": "style",
+                "count": 24
+              },
+              {
+                "name": "title",
+                "count": 3
+              },
+              {
+                "name": "ref",
+                "count": 1
+              },
+              {
+                "name": "data-lang",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "span",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": null,
+            "instances": 98,
+            "filesUsedIn": 36,
+            "topProps": [
+              {
+                "name": "className",
+                "count": 25
+              },
+              {
+                "name": "style",
+                "count": 16
+              },
+              {
+                "name": "title",
+                "count": 4
+              },
+              {
+                "name": "ref",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "a",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": null,
+            "instances": 49,
+            "filesUsedIn": 26,
+            "topProps": [
+              {
+                "name": "href",
+                "count": 18
+              },
+              {
+                "name": "key",
+                "count": 14
+              },
+              {
+                "name": "className",
+                "count": 8
+              },
+              {
+                "name": "onClick",
+                "count": 7
+              },
+              {
+                "name": "style",
+                "count": 6
+              }
+            ]
+          },
+          {
+            "name": "p",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": null,
+            "instances": 22,
+            "filesUsedIn": 9,
+            "topProps": [
+              {
+                "name": "style",
+                "count": 3
+              },
+              {
+                "name": "className",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "name": "img",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": null,
+            "instances": 10,
+            "filesUsedIn": 6,
+            "topProps": [
+              {
+                "name": "alt",
+                "count": 10
+              },
+              {
+                "name": "src",
+                "count": 10
+              },
+              {
+                "name": "className",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "em",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": null,
+            "instances": 7,
+            "filesUsedIn": 5,
+            "topProps": [
+              {
+                "name": "className",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "name": "li",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": null,
+            "instances": 7,
+            "filesUsedIn": 4,
+            "topProps": [
+              {
+                "name": "key",
+                "count": 5
+              },
+              {
+                "name": "className",
+                "count": 5
+              },
+              {
+                "name": "onClick",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "name": "h4",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": null,
+            "instances": 5,
+            "filesUsedIn": 3,
+            "topProps": [
+              {
+                "name": "className",
+                "count": 2
+              },
+              {
+                "name": "style",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "ul",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": null,
+            "instances": 4,
+            "filesUsedIn": 3,
+            "topProps": [
+              {
+                "name": "className",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "name": "h3",
+            "dsName": null,
+            "packageName": null,
+            "resolvedPath": null,
+            "instances": 3,
+            "filesUsedIn": 3,
+            "topProps": [
+              {
+                "name": "className",
+                "count": 1
+              },
+              {
+                "name": "style",
+                "count": 1
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "byComponent": {
+    "designSystems": [
+      {
+        "name": "Ant Design",
+        "components": [
+          {
+            "name": "Col",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 55,
+            "filesUsedIn": 14,
+            "topProps": [
+              {
+                "name": "sm",
+                "count": 40
+              },
+              {
+                "name": "md",
+                "count": 34
+              },
+              {
+                "name": "lg",
+                "count": 34
+              },
+              {
+                "name": "xs",
+                "count": 28
+              },
+              {
+                "name": "xl",
+                "count": 24
+              }
+            ]
+          },
+          {
+            "name": "Card",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 48,
+            "filesUsedIn": 28,
+            "topProps": [
+              {
+                "name": "variant",
+                "count": 38
+              },
+              {
+                "name": "title",
+                "count": 21
+              },
+              {
+                "name": "style",
+                "count": 14
+              },
+              {
+                "name": "className",
+                "count": 12
+              },
+              {
+                "name": "styles",
+                "count": 12
+              }
+            ]
+          },
+          {
+            "name": "Descriptions.Item",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 39,
+            "filesUsedIn": 4,
+            "topProps": [
+              {
+                "name": "label",
+                "count": 39
+              }
+            ]
+          },
+          {
+            "name": "Button",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 32,
+            "filesUsedIn": 20,
+            "topProps": [
+              {
+                "name": "type",
+                "count": 21
+              },
+              {
+                "name": "onClick",
+                "count": 12
+              },
+              {
+                "name": "className",
+                "count": 7
+              },
+              {
+                "name": "size",
+                "count": 5
+              },
+              {
+                "name": "loading",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "name": "Row",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 23,
+            "filesUsedIn": 14,
+            "topProps": [
+              {
+                "name": "gutter",
+                "count": 18
+              },
+              {
+                "name": "style",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "name": "ProFormText",
+            "dsName": "Ant Design",
+            "packageName": "@ant-design/pro-components",
+            "resolvedPath": null,
+            "instances": 17,
+            "filesUsedIn": 8,
+            "topProps": [
+              {
+                "name": "name",
+                "count": 17
+              },
+              {
+                "name": "rules",
+                "count": 15
+              },
+              {
+                "name": "label",
+                "count": 13
+              },
+              {
+                "name": "placeholder",
+                "count": 10
+              },
+              {
+                "name": "width",
+                "count": 9
+              }
+            ]
+          },
+          {
+            "name": "Avatar",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 16,
+            "filesUsedIn": 9,
+            "topProps": [
+              {
+                "name": "size",
+                "count": 15
+              },
+              {
+                "name": "src",
+                "count": 14
+              },
+              {
+                "name": "style",
+                "count": 4
+              },
+              {
+                "name": "shape",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "ProFormSelect",
+            "dsName": "Ant Design",
+            "packageName": "@ant-design/pro-components",
+            "resolvedPath": null,
+            "instances": 16,
+            "filesUsedIn": 6,
+            "topProps": [
+              {
+                "name": "name",
+                "count": 16
+              },
+              {
+                "name": "label",
+                "count": 12
+              },
+              {
+                "name": "rules",
+                "count": 12
+              },
+              {
+                "name": "options",
+                "count": 9
+              },
+              {
+                "name": "width",
+                "count": 8
+              }
+            ]
+          },
+          {
+            "name": "Tooltip",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 15,
+            "filesUsedIn": 7,
+            "topProps": [
+              {
+                "name": "title",
+                "count": 15
+              },
+              {
+                "name": "key",
+                "count": 6
+              }
+            ]
+          },
+          {
+            "name": "List.Item",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 13,
+            "filesUsedIn": 12,
+            "topProps": [
+              {
+                "name": "key",
+                "count": 6
+              },
+              {
+                "name": "actions",
+                "count": 6
+              },
+              {
+                "name": "extra",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "PageContainer",
+            "dsName": "Ant Design",
+            "packageName": "@ant-design/pro-components",
+            "resolvedPath": null,
+            "instances": 12,
+            "filesUsedIn": 12,
+            "topProps": [
+              {
+                "name": "content",
+                "count": 8
+              },
+              {
+                "name": "extraContent",
+                "count": 3
+              },
+              {
+                "name": "tabList",
+                "count": 2
+              },
+              {
+                "name": "tabActiveKey",
+                "count": 2
+              },
+              {
+                "name": "onTabChange",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "name": "List",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 12,
+            "filesUsedIn": 12,
+            "topProps": [
+              {
+                "name": "renderItem",
+                "count": 12
+              },
+              {
+                "name": "dataSource",
+                "count": 12
+              },
+              {
+                "name": "rowKey",
+                "count": 8
+              },
+              {
+                "name": "loading",
+                "count": 6
+              },
+              {
+                "name": "grid",
+                "count": 5
+              }
+            ]
+          },
+          {
+            "name": "Statistic",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 10,
+            "filesUsedIn": 5,
+            "topProps": [
+              {
+                "name": "value",
+                "count": 10
+              },
+              {
+                "name": "title",
+                "count": 9
+              },
+              {
+                "name": "suffix",
+                "count": 4
+              },
+              {
+                "name": "precision",
+                "count": 1
+              },
+              {
+                "name": "prefix",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "Descriptions",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 10,
+            "filesUsedIn": 4,
+            "topProps": [
+              {
+                "name": "title",
+                "count": 7
+              },
+              {
+                "name": "style",
+                "count": 6
+              },
+              {
+                "name": "column",
+                "count": 3
+              },
+              {
+                "name": "bordered",
+                "count": 1
+              },
+              {
+                "name": "className",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "Result",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 9,
+            "filesUsedIn": 9,
+            "topProps": [
+              {
+                "name": "status",
+                "count": 9
+              },
+              {
+                "name": "title",
+                "count": 9
+              },
+              {
+                "name": "subTitle",
+                "count": 9
+              },
+              {
+                "name": "extra",
+                "count": 9
+              },
+              {
+                "name": "className",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "name": "Input",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 9,
+            "filesUsedIn": 4,
+            "topProps": [
+              {
+                "name": "placeholder",
+                "count": 6
+              },
+              {
+                "name": "size",
+                "count": 6
+              },
+              {
+                "name": "type",
+                "count": 2
+              },
+              {
+                "name": "className",
+                "count": 2
+              },
+              {
+                "name": "ref",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "Tag",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 8,
+            "filesUsedIn": 3,
+            "topProps": [
+              {
+                "name": "key",
+                "count": 1
+              },
+              {
+                "name": "onClick",
+                "count": 1
+              },
+              {
+                "name": "style",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "Divider",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 8,
+            "filesUsedIn": 4,
+            "topProps": [
+              {
+                "name": "style",
+                "count": 7
+              },
+              {
+                "name": "dashed",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "name": "Select",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 8,
+            "filesUsedIn": 4,
+            "topProps": [
+              {
+                "name": "style",
+                "count": 8
+              },
+              {
+                "name": "placeholder",
+                "count": 7
+              },
+              {
+                "name": "options",
+                "count": 7
+              },
+              {
+                "name": "size",
+                "count": 1
+              },
+              {
+                "name": "value",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "GridContent",
+            "dsName": "Ant Design",
+            "packageName": "@ant-design/pro-components",
+            "resolvedPath": null,
+            "instances": 7,
+            "filesUsedIn": 7,
+            "topProps": []
+          },
+          {
+            "name": "List.Item.Meta",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 7,
+            "filesUsedIn": 7,
+            "topProps": [
+              {
+                "name": "title",
+                "count": 7
+              },
+              {
+                "name": "description",
+                "count": 7
+              },
+              {
+                "name": "avatar",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "name": "InfoCircleOutlined",
+            "dsName": "Ant Design",
+            "packageName": "@ant-design/icons",
+            "resolvedPath": null,
+            "instances": 7,
+            "filesUsedIn": 3,
+            "topProps": [
+              {
+                "name": "style",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "name": "Dropdown",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 6,
+            "filesUsedIn": 6,
+            "topProps": [
+              {
+                "name": "menu",
+                "count": 5
+              },
+              {
+                "name": "placement",
+                "count": 2
+              },
+              {
+                "name": "key",
+                "count": 2
+              },
+              {
+                "name": "classNames",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "Progress",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 6,
+            "filesUsedIn": 4,
+            "topProps": [
+              {
+                "name": "percent",
+                "count": 6
+              },
+              {
+                "name": "type",
+                "count": 3
+              },
+              {
+                "name": "status",
+                "count": 3
+              },
+              {
+                "name": "size",
+                "count": 2
+              },
+              {
+                "name": "style",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "Card.Meta",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 6,
+            "filesUsedIn": 6,
+            "topProps": [
+              {
+                "name": "title",
+                "count": 6
+              },
+              {
+                "name": "description",
+                "count": 4
+              },
+              {
+                "name": "avatar",
+                "count": 3
+              },
+              {
+                "name": "style",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "ProFormTextArea",
+            "dsName": "Ant Design",
+            "packageName": "@ant-design/pro-components",
+            "resolvedPath": null,
+            "instances": 6,
+            "filesUsedIn": 5,
+            "topProps": [
+              {
+                "name": "name",
+                "count": 6
+              },
+              {
+                "name": "label",
+                "count": 5
+              },
+              {
+                "name": "rules",
+                "count": 5
+              },
+              {
+                "name": "placeholder",
+                "count": 5
+              },
+              {
+                "name": "width",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "name": "StepsForm.StepForm",
+            "dsName": "Ant Design",
+            "packageName": "@ant-design/pro-components",
+            "resolvedPath": null,
+            "instances": 6,
+            "filesUsedIn": 2,
+            "topProps": [
+              {
+                "name": "title",
+                "count": 6
+              },
+              {
+                "name": "initialValues",
+                "count": 4
+              },
+              {
+                "name": "formRef",
+                "count": 1
+              },
+              {
+                "name": "onFinish",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "PlusOutlined",
+            "dsName": "Ant Design",
+            "packageName": "@ant-design/icons",
+            "resolvedPath": null,
+            "instances": 5,
+            "filesUsedIn": 5,
+            "topProps": []
+          },
+          {
+            "name": "DownOutlined",
+            "dsName": "Ant Design",
+            "packageName": "@ant-design/icons",
+            "resolvedPath": null,
+            "instances": 5,
+            "filesUsedIn": 5,
+            "topProps": []
+          },
+          {
+            "name": "DingdingOutlined",
+            "dsName": "Ant Design",
+            "packageName": "@ant-design/icons",
+            "resolvedPath": null,
+            "instances": 5,
+            "filesUsedIn": 3,
+            "topProps": [
+              {
+                "name": "style",
+                "count": 4
+              },
+              {
+                "name": "className",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "Badge",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 5,
+            "filesUsedIn": 2,
+            "topProps": [
+              {
+                "name": "status",
+                "count": 5
+              },
+              {
+                "name": "text",
+                "count": 5
+              }
+            ]
+          },
+          {
+            "name": "EllipsisOutlined",
+            "dsName": "Ant Design",
+            "packageName": "@ant-design/icons",
+            "resolvedPath": null,
+            "instances": 4,
+            "filesUsedIn": 4,
+            "topProps": []
+          },
+          {
+            "name": "CloseCircleOutlined",
+            "dsName": "Ant Design",
+            "packageName": "@ant-design/icons",
+            "resolvedPath": null,
+            "instances": 4,
+            "filesUsedIn": 2,
+            "topProps": [
+              {
+                "name": "className",
+                "count": 3
+              },
+              {
+                "name": "style",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "name": "Table",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 4,
+            "filesUsedIn": 2,
+            "topProps": [
+              {
+                "name": "pagination",
+                "count": 4
+              },
+              {
+                "name": "dataSource",
+                "count": 4
+              },
+              {
+                "name": "columns",
+                "count": 4
+              },
+              {
+                "name": "loading",
+                "count": 3
+              },
+              {
+                "name": "rowKey",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "Form",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 4,
+            "filesUsedIn": 4,
+            "topProps": [
+              {
+                "name": "onValuesChange",
+                "count": 3
+              },
+              {
+                "name": "form",
+                "count": 2
+              },
+              {
+                "name": "layout",
+                "count": 2
+              },
+              {
+                "name": "name",
+                "count": 1
+              },
+              {
+                "name": "onFinish",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "Alert",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 3,
+            "filesUsedIn": 3,
+            "topProps": [
+              {
+                "name": "showIcon",
+                "count": 3
+              },
+              {
+                "name": "style",
+                "count": 3
+              },
+              {
+                "name": "title",
+                "count": 2
+              },
+              {
+                "name": "type",
+                "count": 2
+              },
+              {
+                "name": "banner",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "ProTable",
+            "dsName": "Ant Design",
+            "packageName": "@ant-design/pro-components",
+            "resolvedPath": null,
+            "instances": 3,
+            "filesUsedIn": 2,
+            "topProps": [
+              {
+                "name": "search",
+                "count": 3
+              },
+              {
+                "name": "toolBarRender",
+                "count": 3
+              },
+              {
+                "name": "columns",
+                "count": 3
+              },
+              {
+                "name": "rowKey",
+                "count": 2
+              },
+              {
+                "name": "style",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "name": "Popover",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 3,
+            "filesUsedIn": 3,
+            "topProps": [
+              {
+                "name": "content",
+                "count": 3
+              },
+              {
+                "name": "getPopupContainer",
+                "count": 2
+              },
+              {
+                "name": "placement",
+                "count": 2
+              },
+              {
+                "name": "title",
+                "count": 1
+              },
+              {
+                "name": "overlayClassName",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "ProForm",
+            "dsName": "Ant Design",
+            "packageName": "@ant-design/pro-components",
+            "resolvedPath": null,
+            "instances": 3,
+            "filesUsedIn": 3,
+            "topProps": [
+              {
+                "name": "layout",
+                "count": 3
+              },
+              {
+                "name": "requiredMark",
+                "count": 3
+              },
+              {
+                "name": "initialValues",
+                "count": 3
+              },
+              {
+                "name": "onFinish",
+                "count": 3
+              },
+              {
+                "name": "submitter",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "name": "RouteContext.Consumer",
+            "dsName": "Ant Design",
+            "packageName": "@ant-design/pro-components",
+            "resolvedPath": null,
+            "instances": 3,
+            "filesUsedIn": 1,
+            "topProps": []
+          },
+          {
+            "name": "Tabs",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 3,
+            "filesUsedIn": 3,
+            "topProps": [
+              {
+                "name": "items",
+                "count": 3
+              },
+              {
+                "name": "activeKey",
+                "count": 2
+              },
+              {
+                "name": "onChange",
+                "count": 2
+              },
+              {
+                "name": "centered",
+                "count": 1
+              },
+              {
+                "name": "className",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "Form.Item",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 3,
+            "filesUsedIn": 1,
+            "topProps": [
+              {
+                "name": "name",
+                "count": 3
+              },
+              {
+                "name": "label",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "name": "UpOutlined",
+            "dsName": "Ant Design",
+            "packageName": "@ant-design/icons",
+            "resolvedPath": null,
+            "instances": 3,
+            "filesUsedIn": 3,
+            "topProps": []
+          },
+          {
+            "name": "Skeleton",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 2,
+            "filesUsedIn": 2,
+            "topProps": [
+              {
+                "name": "active",
+                "count": 2
+              },
+              {
+                "name": "style",
+                "count": 1
+              },
+              {
+                "name": "avatar",
+                "count": 1
+              },
+              {
+                "name": "paragraph",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "Spin",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 2,
+            "filesUsedIn": 2,
+            "topProps": [
+              {
+                "name": "size",
+                "count": 2
+              },
+              {
+                "name": "style",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "UserOutlined",
+            "dsName": "Ant Design",
+            "packageName": "@ant-design/icons",
+            "resolvedPath": null,
+            "instances": 2,
+            "filesUsedIn": 2,
+            "topProps": []
+          },
+          {
+            "name": "FooterToolbar",
+            "dsName": "Ant Design",
+            "packageName": "@ant-design/pro-components",
+            "resolvedPath": null,
+            "instances": 2,
+            "filesUsedIn": 2,
+            "topProps": [
+              {
+                "name": "extra",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "Segmented",
+            "dsName": "Ant Design",
+            "packageName": "antd",
+            "resolvedPath": null,
+            "instances": 2,
+            "filesUsedIn": 2,
+            "topProps": [
+              {
+                "name": "options",
+                "count": 2
+              },
+              {
+                "name": "defaultValue",
+                "count": 1
+              },
+              {
+                "name": "className",
+                "count": 1
+              },
+              {
+                "name": "value",
+                "count": 1
+              },
+              {
+                "name": "onChange",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "ProFormDateRangePicker",
+            "dsName": "Ant Design",
+            "packageName": "@ant-design/pro-components",
+            "resolvedPath": null,
+            "instances": 2,
+            "filesUsedIn": 2,
+            "topProps": [
+              {
+                "name": "label",
+                "count": 2
+              },
+              {
+                "name": "name",
+                "count": 2
+              },
+              {
+                "name": "rules",
+                "count": 2
+              },
+              {
+                "name": "fieldProps",
+                "count": 1
+              },
+              {
+                "name": "width",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "name": "ProFormDigit",
+            "dsName": "Ant Design",
+            "packageName": "@ant-design/pro-components",
+            "resolvedPath": null,
+            "instances": 2,
+            "filesUsedIn": 2,
+            "topProps": [
+              {
+                "name": "label",
+                "count": 2
+              },
+              {
+                "name": "name",
+                "count": 2
+              },
+              {
+                "name": "placeholder",
+                "count": 2
+              },
+              {
+                "name": "width",
+                "count": 2
+              },
+              {
+                "name": "fieldProps",
+                "count": 2
+              }
+            ]
+          }
+        ],
+        "topFamilies": [
+          {
+            "family": "descriptions",
+            "components": [
+              "Descriptions",
+              "Row"
+            ],
+            "instances": 72,
+            "filesUsedIn": 18,
+            "reposUsedIn": 1
+          },
+          {
+            "family": "card",
+            "components": [
+              "Card"
+            ],
+            "instances": 55,
+            "filesUsedIn": 28,
+            "reposUsedIn": 1
+          },
+          {
+            "family": "grid",
+            "components": [
+              "Col"
+            ],
+            "instances": 55,
+            "filesUsedIn": 14,
+            "reposUsedIn": 1
+          },
+          {
+            "family": "button",
+            "components": [
+              "Button"
+            ],
+            "instances": 32,
+            "filesUsedIn": 20,
+            "reposUsedIn": 1
+          },
+          {
+            "family": "list",
+            "components": [
+              "List"
+            ],
+            "instances": 32,
+            "filesUsedIn": 12,
+            "reposUsedIn": 1
+          },
+          {
+            "family": "avatar",
+            "components": [
+              "Avatar"
+            ],
+            "instances": 16,
+            "filesUsedIn": 9,
+            "reposUsedIn": 1
+          },
+          {
+            "family": "tooltip",
+            "components": [
+              "Tooltip"
+            ],
+            "instances": 15,
+            "filesUsedIn": 7,
+            "reposUsedIn": 1
+          },
+          {
+            "family": "statistic",
+            "components": [
+              "Statistic"
+            ],
+            "instances": 11,
+            "filesUsedIn": 5,
+            "reposUsedIn": 1
+          },
+          {
+            "family": "input",
+            "components": [
+              "Input"
+            ],
+            "instances": 10,
+            "filesUsedIn": 5,
+            "reposUsedIn": 1
+          },
+          {
+            "family": "result",
+            "components": [
+              "Result"
+            ],
+            "instances": 9,
+            "filesUsedIn": 9,
+            "reposUsedIn": 1
+          },
+          {
+            "family": "divider",
+            "components": [
+              "Divider"
+            ],
+            "instances": 8,
+            "filesUsedIn": 4,
+            "reposUsedIn": 1
+          },
+          {
+            "family": "progress",
+            "components": [
+              "Progress",
+              "Steps"
+            ],
+            "instances": 8,
+            "filesUsedIn": 6,
+            "reposUsedIn": 1
+          },
+          {
+            "family": "select",
+            "components": [
+              "Select"
+            ],
+            "instances": 8,
+            "filesUsedIn": 4,
+            "reposUsedIn": 1
+          },
+          {
+            "family": "tag",
+            "components": [
+              "Tag"
+            ],
+            "instances": 8,
+            "filesUsedIn": 3,
+            "reposUsedIn": 1
+          },
+          {
+            "family": "dropdown",
+            "components": [
+              "Dropdown"
+            ],
+            "instances": 7,
+            "filesUsedIn": 6,
+            "reposUsedIn": 1
+          },
+          {
+            "family": "form",
+            "components": [
+              "Form"
+            ],
+            "instances": 7,
+            "filesUsedIn": 4,
+            "reposUsedIn": 1
+          },
+          {
+            "family": ".dumi",
+            "components": [
+              "Badge"
+            ],
+            "instances": 5,
+            "filesUsedIn": 2,
+            "reposUsedIn": 1
+          },
+          {
+            "family": "alert",
+            "components": [
+              "Alert"
+            ],
+            "instances": 3,
+            "filesUsedIn": 3,
+            "reposUsedIn": 1
+          },
+          {
+            "family": "popover",
+            "components": [
+              "Popover"
+            ],
+            "instances": 3,
+            "filesUsedIn": 3,
+            "reposUsedIn": 1
+          },
+          {
+            "family": "space",
+            "components": [
+              "Space"
+            ],
+            "instances": 3,
+            "filesUsedIn": 2,
+            "reposUsedIn": 1
+          }
+        ]
+      }
+    ],
+    "localMostUsed": [
+      {
+        "name": "FormItem",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": null,
+        "instances": 13,
+        "filesUsedIn": 3,
+        "topProps": [
+          {
+            "name": "name",
+            "count": 12
+          },
+          {
+            "name": "rules",
+            "count": 5
+          },
+          {
+            "name": "label",
+            "count": 4
+          },
+          {
+            "name": "className",
+            "count": 1
+          },
+          {
+            "name": "noStyle",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "name": "StandardFormRow",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/list/search/applications/components/StandardFormRow/index.tsx",
+        "instances": 7,
+        "filesUsedIn": 3,
+        "topProps": [
+          {
+            "name": "title",
+            "count": 7
+          },
+          {
+            "name": "grid",
+            "count": 4
+          },
+          {
+            "name": "block",
+            "count": 3
+          },
+          {
+            "name": "style",
+            "count": 3
+          },
+          {
+            "name": "last",
+            "count": 3
+          }
+        ]
+      },
+      {
+        "name": "IconText",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": null,
+        "instances": 6,
+        "filesUsedIn": 2,
+        "topProps": [
+          {
+            "name": "key",
+            "count": 6
+          },
+          {
+            "name": "text",
+            "count": 6
+          },
+          {
+            "name": "type",
+            "count": 3
+          },
+          {
+            "name": "icon",
+            "count": 3
+          }
+        ]
+      },
+      {
+        "name": "CheckableTag",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": null,
+        "instances": 6,
+        "filesUsedIn": 3,
+        "topProps": [
+          {
+            "name": "checked",
+            "count": 6
+          },
+          {
+            "name": "key",
+            "count": 6
+          },
+          {
+            "name": "onChange",
+            "count": 6
+          }
+        ]
+      },
+      {
+        "name": "Trend",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/dashboard/analysis/components/Trend/index.tsx",
+        "instances": 5,
+        "filesUsedIn": 2,
+        "topProps": [
+          {
+            "name": "flag",
+            "count": 5
+          },
+          {
+            "name": "style",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "name": "ChartCard",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/dashboard/analysis/components/Charts/index.tsx",
+        "instances": 4,
+        "filesUsedIn": 1,
+        "topProps": [
+          {
+            "name": "variant",
+            "count": 4
+          },
+          {
+            "name": "title",
+            "count": 4
+          },
+          {
+            "name": "action",
+            "count": 4
+          },
+          {
+            "name": "loading",
+            "count": 4
+          },
+          {
+            "name": "total",
+            "count": 4
+          }
+        ]
+      },
+      {
+        "name": "InfoCard",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": null,
+        "instances": 3,
+        "filesUsedIn": 1,
+        "topProps": [
+          {
+            "name": "index",
+            "count": 3
+          },
+          {
+            "name": "href",
+            "count": 3
+          },
+          {
+            "name": "title",
+            "count": 3
+          },
+          {
+            "name": "desc",
+            "count": 3
+          },
+          {
+            "name": "isDark",
+            "count": 3
+          }
+        ]
+      },
+      {
+        "name": "Info",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": null,
+        "instances": 3,
+        "filesUsedIn": 1,
+        "topProps": [
+          {
+            "name": "title",
+            "count": 3
+          },
+          {
+            "name": "value",
+            "count": 3
+          },
+          {
+            "name": "bordered",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "name": "Field",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/dashboard/analysis/components/Charts/index.tsx",
+        "instances": 3,
+        "filesUsedIn": 1,
+        "topProps": [
+          {
+            "name": "label",
+            "count": 3
+          },
+          {
+            "name": "value",
+            "count": 3
+          }
+        ]
+      },
+      {
+        "name": "NumberInfo",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/dashboard/analysis/components/NumberInfo/index.tsx",
+        "instances": 3,
+        "filesUsedIn": 2,
+        "topProps": [
+          {
+            "name": "subTitle",
+            "count": 3
+          },
+          {
+            "name": "gap",
+            "count": 3
+          },
+          {
+            "name": "total",
+            "count": 3
+          },
+          {
+            "name": "status",
+            "count": 2
+          },
+          {
+            "name": "subTotal",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "name": "TagSelect.Option",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/list/search/applications/components/TagSelect/index.tsx",
+        "instances": 3,
+        "filesUsedIn": 3,
+        "topProps": [
+          {
+            "name": "value",
+            "count": 3
+          },
+          {
+            "name": "key",
+            "count": 3
+          }
+        ]
+      },
+      {
+        "name": "TagSelect",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/list/search/applications/components/TagSelect/index.tsx",
+        "instances": 3,
+        "filesUsedIn": 3,
+        "topProps": [
+          {
+            "name": "expandable",
+            "count": 3
+          }
+        ]
+      },
+      {
+        "name": "Footer",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": "C:\\Users\\crash\\ds-report\\ant-design-pro\\src\\components",
+        "instances": 2,
+        "filesUsedIn": 2,
+        "topProps": []
+      },
+      {
+        "name": "Paragraph",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": null,
+        "instances": 2,
+        "filesUsedIn": 2,
+        "topProps": [
+          {
+            "name": "ellipsis",
+            "count": 2
+          },
+          {
+            "name": "className",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "name": "StepDescriptions",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": null,
+        "instances": 2,
+        "filesUsedIn": 1,
+        "topProps": [
+          {
+            "name": "stepData",
+            "count": 2
+          },
+          {
+            "name": "bordered",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "name": "LoginMessage",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": null,
+        "instances": 2,
+        "filesUsedIn": 1,
+        "topProps": [
+          {
+            "name": "content",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "name": "Option",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": null,
+        "instances": 2,
+        "filesUsedIn": 1,
+        "topProps": [
+          {
+            "name": "value",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "name": "CardInfo",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": null,
+        "instances": 2,
+        "filesUsedIn": 2,
+        "topProps": [
+          {
+            "name": "activeUser",
+            "count": 2
+          },
+          {
+            "name": "newUser",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "name": "ArticleListContent",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/list/search/articles/components/ArticleListContent/index.tsx",
+        "instances": 2,
+        "filesUsedIn": 2,
+        "topProps": [
+          {
+            "name": "data",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "name": "AvatarList.Item",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/list/search/projects/components/AvatarList/index.tsx",
+        "instances": 2,
+        "filesUsedIn": 2,
+        "topProps": [
+          {
+            "name": "key",
+            "count": 2
+          },
+          {
+            "name": "src",
+            "count": 2
+          },
+          {
+            "name": "tips",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "name": "AvatarList",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/list/search/projects/components/AvatarList/index.tsx",
+        "instances": 2,
+        "filesUsedIn": 2,
+        "topProps": [
+          {
+            "name": "size",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "name": "Question",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": "C:\\Users\\crash\\ds-report\\ant-design-pro\\src\\components",
+        "instances": 1,
+        "filesUsedIn": 1,
+        "topProps": [
+          {
+            "name": "key",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "name": "SelectLang",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": "C:\\Users\\crash\\ds-report\\ant-design-pro\\src\\components",
+        "instances": 1,
+        "filesUsedIn": 1,
+        "topProps": [
+          {
+            "name": "key",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "name": "AvatarName",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": "C:\\Users\\crash\\ds-report\\ant-design-pro\\src\\components",
+        "instances": 1,
+        "filesUsedIn": 1,
+        "topProps": []
+      },
+      {
+        "name": "AvatarDropdown",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": "C:\\Users\\crash\\ds-report\\ant-design-pro\\src\\components",
+        "instances": 1,
+        "filesUsedIn": 1,
+        "topProps": []
+      },
+      {
+        "name": "HeaderDropdown",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/components/HeaderDropdown/index.tsx",
+        "instances": 1,
+        "filesUsedIn": 1,
+        "topProps": [
+          {
+            "name": "menu",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "name": "UpdateForm",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/table-list/components/UpdateForm.tsx",
+        "instances": 1,
+        "filesUsedIn": 1,
+        "topProps": [
+          {
+            "name": "trigger",
+            "count": 1
+          },
+          {
+            "name": "key",
+            "count": 1
+          },
+          {
+            "name": "onOk",
+            "count": 1
+          },
+          {
+            "name": "values",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "name": "CreateForm",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/table-list/components/CreateForm.tsx",
+        "instances": 1,
+        "filesUsedIn": 1,
+        "topProps": [
+          {
+            "name": "key",
+            "count": 1
+          },
+          {
+            "name": "reload",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "name": "MonitorMap",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/dashboard/monitor/components/Map/index.tsx",
+        "instances": 1,
+        "filesUsedIn": 1,
+        "topProps": []
+      },
+      {
+        "name": "ActiveChart",
+        "dsName": null,
+        "packageName": null,
+        "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/dashboard/monitor/components/ActiveChart/index.tsx",
+        "instances": 1,
+        "filesUsedIn": 1,
+        "topProps": []
+      }
+    ],
+    "localTopFamilies": [
+      {
+        "family": "Charts",
+        "components": [
+          "ChartCard",
+          "Field"
+        ],
+        "instances": 7,
+        "filesUsedIn": 1,
+        "reposUsedIn": 1
+      },
+      {
+        "family": "StandardFormRow",
+        "components": [
+          "StandardFormRow"
+        ],
+        "instances": 7,
+        "filesUsedIn": 3,
+        "reposUsedIn": 1
+      },
+      {
+        "family": "TagSelect",
+        "components": [
+          "TagSelect",
+          "TagSelect.Option"
+        ],
+        "instances": 6,
+        "filesUsedIn": 3,
+        "reposUsedIn": 1
+      },
+      {
+        "family": "analysis",
+        "components": [
+          "IntroduceRow",
+          "OfflineData",
+          "ProportionSales",
+          "SalesCard",
+          "TopSearch"
+        ],
+        "instances": 5,
+        "filesUsedIn": 1,
+        "reposUsedIn": 1
+      },
+      {
+        "family": "Trend",
+        "components": [
+          "Trend"
+        ],
+        "instances": 5,
+        "filesUsedIn": 2,
+        "reposUsedIn": 1
+      },
+      {
+        "family": "AvatarList",
+        "components": [
+          "AvatarList",
+          "AvatarList.Item"
+        ],
+        "instances": 4,
+        "filesUsedIn": 2,
+        "reposUsedIn": 1
+      },
+      {
+        "family": "settings",
+        "components": [
+          "BaseView",
+          "BindingView",
+          "NotificationView",
+          "SecurityView"
+        ],
+        "instances": 4,
+        "filesUsedIn": 1,
+        "reposUsedIn": 1
+      },
+      {
+        "family": "NumberInfo",
+        "components": [
+          "NumberInfo"
+        ],
+        "instances": 3,
+        "filesUsedIn": 2,
+        "reposUsedIn": 1
+      },
+      {
+        "family": "ArticleListContent",
+        "components": [
+          "ArticleListContent"
+        ],
+        "instances": 2,
+        "filesUsedIn": 2,
+        "reposUsedIn": 1
+      },
+      {
+        "family": "table-list",
+        "components": [
+          "CreateForm",
+          "UpdateForm"
+        ],
+        "instances": 2,
+        "filesUsedIn": 1,
+        "reposUsedIn": 1
+      },
+      {
+        "family": "ActiveChart",
+        "components": [
+          "ActiveChart"
+        ],
+        "instances": 1,
+        "filesUsedIn": 1,
+        "reposUsedIn": 1
+      },
+      {
+        "family": "Applications",
+        "components": [
+          "Applications"
+        ],
+        "instances": 1,
+        "filesUsedIn": 1,
+        "reposUsedIn": 1
+      },
+      {
+        "family": "Articles",
+        "components": [
+          "Articles"
+        ],
+        "instances": 1,
+        "filesUsedIn": 1,
+        "reposUsedIn": 1
+      },
+      {
+        "family": "basic-list",
+        "components": [
+          "OperationModal"
+        ],
+        "instances": 1,
+        "filesUsedIn": 1,
+        "reposUsedIn": 1
+      },
+      {
+        "family": "EditableLinkGroup",
+        "components": [
+          "EditableLinkGroup"
+        ],
+        "instances": 1,
+        "filesUsedIn": 1,
+        "reposUsedIn": 1
+      },
+      {
+        "family": "HeaderDropdown",
+        "components": [
+          "HeaderDropdown"
+        ],
+        "instances": 1,
+        "filesUsedIn": 1,
+        "reposUsedIn": 1
+      },
+      {
+        "family": "Map",
+        "components": [
+          "MonitorMap"
+        ],
+        "instances": 1,
+        "filesUsedIn": 1,
+        "reposUsedIn": 1
+      },
+      {
+        "family": "PageLoading",
+        "components": [
+          "PageLoading"
+        ],
+        "instances": 1,
+        "filesUsedIn": 1,
+        "reposUsedIn": 1
+      },
+      {
+        "family": "Projects",
+        "components": [
+          "Projects"
+        ],
+        "instances": 1,
+        "filesUsedIn": 1,
+        "reposUsedIn": 1
+      },
+      {
+        "family": "utils",
+        "components": [
+          "Yuan"
+        ],
+        "instances": 1,
+        "filesUsedIn": 1,
+        "reposUsedIn": 1
+      }
+    ],
+    "thirdParty": [
+      {
+        "name": "FormattedMessage",
+        "dsName": null,
+        "packageName": "@umijs/max",
+        "resolvedPath": null,
+        "instances": 31,
+        "filesUsedIn": 4,
+        "topProps": [
+          {
+            "name": "id",
+            "count": 31
+          },
+          {
+            "name": "defaultMessage",
+            "count": 31
+          },
+          {
+            "name": "key",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "name": "Link",
+        "dsName": null,
+        "packageName": "@umijs/max",
+        "resolvedPath": null,
+        "instances": 11,
+        "filesUsedIn": 8,
+        "topProps": [
+          {
+            "name": "to",
+            "count": 11
+          },
+          {
+            "name": "prefetch",
+            "count": 10
+          },
+          {
+            "name": "key",
+            "count": 1
+          },
+          {
+            "name": "target",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "name": "Suspense",
+        "dsName": null,
+        "packageName": "react",
+        "resolvedPath": null,
+        "instances": 5,
+        "filesUsedIn": 1,
+        "topProps": [
+          {
+            "name": "fallback",
+            "count": 5
+          }
+        ]
+      },
+      {
+        "name": "Area",
+        "dsName": null,
+        "packageName": "@ant-design/plots",
+        "resolvedPath": null,
+        "instances": 4,
+        "filesUsedIn": 3,
+        "topProps": [
+          {
+            "name": "xField",
+            "count": 4
+          },
+          {
+            "name": "yField",
+            "count": 4
+          },
+          {
+            "name": "height",
+            "count": 4
+          },
+          {
+            "name": "axis",
+            "count": 4
+          },
+          {
+            "name": "style",
+            "count": 4
+          }
+        ]
+      },
+      {
+        "name": "Column",
+        "dsName": null,
+        "packageName": "@ant-design/plots",
+        "resolvedPath": null,
+        "instances": 3,
+        "filesUsedIn": 2,
+        "topProps": [
+          {
+            "name": "xField",
+            "count": 3
+          },
+          {
+            "name": "yField",
+            "count": 3
+          },
+          {
+            "name": "axis",
+            "count": 3
+          },
+          {
+            "name": "height",
+            "count": 3
+          },
+          {
+            "name": "data",
+            "count": 3
+          }
+        ]
+      },
+      {
+        "name": "PointLayer",
+        "dsName": null,
+        "packageName": "@antv/l7-react",
+        "resolvedPath": null,
+        "instances": 2,
+        "filesUsedIn": 1,
+        "topProps": [
+          {
+            "name": "key",
+            "count": 2
+          },
+          {
+            "name": "source",
+            "count": 2
+          },
+          {
+            "name": "color",
+            "count": 2
+          },
+          {
+            "name": "shape",
+            "count": 2
+          },
+          {
+            "name": "size",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "name": "UmiSelectLang",
+        "dsName": null,
+        "packageName": "@umijs/max",
+        "resolvedPath": null,
+        "instances": 1,
+        "filesUsedIn": 1,
+        "topProps": [
+          {
+            "name": "style",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "name": "Gauge",
+        "dsName": null,
+        "packageName": "@ant-design/plots",
+        "resolvedPath": null,
+        "instances": 1,
+        "filesUsedIn": 1,
+        "topProps": [
+          {
+            "name": "height",
+            "count": 1
+          },
+          {
+            "name": "data",
+            "count": 1
+          },
+          {
+            "name": "padding",
+            "count": 1
+          },
+          {
+            "name": "style",
+            "count": 1
+          },
+          {
+            "name": "meta",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "name": "WordCloud",
+        "dsName": null,
+        "packageName": "@ant-design/plots",
+        "resolvedPath": null,
+        "instances": 1,
+        "filesUsedIn": 1,
+        "topProps": [
+          {
+            "name": "data",
+            "count": 1
+          },
+          {
+            "name": "height",
+            "count": 1
+          },
+          {
+            "name": "textField",
+            "count": 1
+          },
+          {
+            "name": "colorField",
+            "count": 1
+          },
+          {
+            "name": "layout",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "name": "Liquid",
+        "dsName": null,
+        "packageName": "@ant-design/plots",
+        "resolvedPath": null,
+        "instances": 1,
+        "filesUsedIn": 1,
+        "topProps": [
+          {
+            "name": "height",
+            "count": 1
+          },
+          {
+            "name": "percent",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "name": "Radar",
+        "dsName": null,
+        "packageName": "@ant-design/plots",
+        "resolvedPath": null,
+        "instances": 1,
+        "filesUsedIn": 1,
+        "topProps": [
+          {
+            "name": "height",
+            "count": 1
+          },
+          {
+            "name": "data",
+            "count": 1
+          },
+          {
+            "name": "xField",
+            "count": 1
+          },
+          {
+            "name": "colorField",
+            "count": 1
+          },
+          {
+            "name": "yField",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "name": "Outlet",
+        "dsName": null,
+        "packageName": "@umijs/max",
+        "resolvedPath": null,
+        "instances": 1,
+        "filesUsedIn": 1,
+        "topProps": []
+      },
+      {
+        "name": "SelectLang",
+        "dsName": null,
+        "packageName": "@umijs/max",
+        "resolvedPath": null,
+        "instances": 1,
+        "filesUsedIn": 1,
+        "topProps": []
+      },
+      {
+        "name": "Helmet",
+        "dsName": null,
+        "packageName": "@umijs/max",
+        "resolvedPath": null,
+        "instances": 1,
+        "filesUsedIn": 1,
+        "topProps": []
+      },
+      {
+        "name": "Tiny.Ring",
+        "dsName": null,
+        "packageName": "@ant-design/plots",
+        "resolvedPath": null,
+        "instances": 1,
+        "filesUsedIn": 1,
+        "topProps": [
+          {
+            "name": "height",
+            "count": 1
+          },
+          {
+            "name": "width",
+            "count": 1
+          },
+          {
+            "name": "percent",
+            "count": 1
+          },
+          {
+            "name": "color",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "name": "Line",
+        "dsName": null,
+        "packageName": "@ant-design/plots",
+        "resolvedPath": null,
+        "instances": 1,
+        "filesUsedIn": 1,
+        "topProps": [
+          {
+            "name": "height",
+            "count": 1
+          },
+          {
+            "name": "data",
+            "count": 1
+          },
+          {
+            "name": "xField",
+            "count": 1
+          },
+          {
+            "name": "yField",
+            "count": 1
+          },
+          {
+            "name": "colorField",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "name": "Pie",
+        "dsName": null,
+        "packageName": "@ant-design/plots",
+        "resolvedPath": null,
+        "instances": 1,
+        "filesUsedIn": 1,
+        "topProps": [
+          {
+            "name": "height",
+            "count": 1
+          },
+          {
+            "name": "radius",
+            "count": 1
+          },
+          {
+            "name": "innerRadius",
+            "count": 1
+          },
+          {
+            "name": "angleField",
+            "count": 1
+          },
+          {
+            "name": "colorField",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "name": "HeatmapLayer",
+        "dsName": null,
+        "packageName": "@antv/l7-react",
+        "resolvedPath": null,
+        "instances": 1,
+        "filesUsedIn": 1,
+        "topProps": [
+          {
+            "name": "key",
+            "count": 1
+          },
+          {
+            "name": "source",
+            "count": 1
+          },
+          {
+            "name": "color",
+            "count": 1
+          },
+          {
+            "name": "shape",
+            "count": 1
+          },
+          {
+            "name": "style",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "name": "MapboxScene",
+        "dsName": null,
+        "packageName": "@antv/l7-react",
+        "resolvedPath": null,
+        "instances": 1,
+        "filesUsedIn": 1,
+        "topProps": [
+          {
+            "name": "map",
+            "count": 1
+          },
+          {
+            "name": "style",
+            "count": 1
+          }
+        ]
+      }
+    ]
+  },
+  "localReuseAnalysis": {
+    "totalTracked": 34,
+    "inlineCount": 53,
+    "singletonCount": 32,
+    "localReuseCount": 2,
+    "crossRepoCount": 0,
+    "topCandidates": [
+      {
+        "componentName": "Trend",
+        "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/dashboard/analysis/components/Trend/index.tsx",
+        "instances": 5,
+        "filesUsedIn": 2,
+        "reposUsedIn": 1
+      },
+      {
+        "componentName": "NumberInfo",
+        "resolvedPath": "C:/Users/crash/ds-report/ant-design-pro/src/pages/dashboard/analysis/components/NumberInfo/index.tsx",
+        "instances": 3,
+        "filesUsedIn": 2,
+        "reposUsedIn": 1
+      }
+    ]
+  },
+  "dsPrescan": [
+    {
+      "dsName": "Ant Design",
+      "totalFamilies": 75,
+      "totalComponents": 400
+    }
+  ]
+}
