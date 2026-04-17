@@ -30,11 +30,11 @@ The JSON report (`report.json`) contains:
 
 | Field | Description |
 |-------|-------------|
-| `summary.adoptionRate` | Direct adoption: only explicit DS imports |
-| `summary.effectiveAdoptionRate` | Adoption including transitive DS usage via wrapper libraries |
-| `summary.designSystems[].transitiveInstances` | How many usages are credited transitively to each DS |
-| `byComponent.localMostUsed[].resolvedPath` | Absolute path to component source — use for reading the file |
+| `summary.directAdoption.percentage` | Direct adoption: only explicit DS imports |
+| `summary.effectiveAdoptionProxy.percentage` | Adoption including transitive DS usage via wrapper libraries |
+| `byDesignSystem[].transitiveInstances` | How many usages are credited transitively to each DS |
+| `byDesignSystem[].directAdoption.percentage`| Direct adoption rate specific to a design system |
+| `byComponent.shadow[]` | Local components explicitly classified as shadow by deterministic rules |
 | `byComponent.thirdParty[]` | Third-party packages — check if any wrap the DS |
-| `localReuseAnalysis.topCandidates` | Local components used in 2+ files/repos — prime DS migration candidates |
-| `localReuseAnalysis.topCandidates[].reposUsedIn` | How many repos use this component — cross-repo = strongest DS migration signal |
-| `localReuseAnalysis.topCandidates[].resolvedPath` | Absolute path to the component source — use for reading the file |
+| `localComponentProfiles[]` | Components evaluated for shadow metrics with triggered signals |
+| `localComponentProfiles[].resolvedPath` | Absolute path to the component source — use for reading the file |

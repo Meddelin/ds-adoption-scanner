@@ -129,8 +129,8 @@ Note: the denominator is `adoption + shadow` only — neither is excluded.
 ## Response Format
 
 1. **Transitive candidates found** — list of packages with justification and suggested coverage
-2. **Suggested config block** — ready-to-paste `transitiveRules` configuration
-3. **Projected impact** — estimated `effectiveAdoptionRate` after applying the rules
+2. **Suggested config block** — ready-to-paste `transitiveRules` or `libraries` configuration
+3. **Projected impact** — estimated `effectiveAdoptionProxy.percentage` after applying the rules
 4. **Verification steps** — how to confirm: re-run scanner and compare Direct vs Effective
 
 ## Example Output

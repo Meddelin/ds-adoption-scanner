@@ -12,6 +12,7 @@ import { parse } from '@typescript-eslint/typescript-estree';
 import type { TSESTree } from '@typescript-eslint/typescript-estree';
 import type { RouteResolver } from './types.js';
 import type { RouteMatch } from '../domain/types.js';
+import { readTsConfigPaths, resolveAliasPath, type TsConfigPaths } from '../scanner/tsconfig-paths.js';
 
 type Confidence = 'high' | 'medium' | 'low';
 
@@ -33,16 +34,32 @@ export class ReactRouterResolver implements RouteResolver {
 
   private fileToRoute = new Map<string, { routeId: string; confidence: Confidence }>();
   private repoPath = '';
+  private tsConfigPaths: TsConfigPaths | null = null;
 
   async detect(repoPath: string): Promise<boolean> {
     this.repoPath = repoPath;
     this.fileToRoute.clear();
+    this.tsConfigPaths = readTsConfigPaths(repoPath);
 
-    if (!hasReactRouterDep(repoPath)) return false;
+    if (!hasReactRouterDep(repoPath)) {
+      if (process.env.DS_SCANNER_DEBUG) {
+        console.log(`[react-router-resolver] No react-router dependency in ${repoPath}`);
+      }
+      return false;
+    }
 
     const routeFiles = findRouteConfigFiles(repoPath);
+    if (process.env.DS_SCANNER_DEBUG) {
+      console.log(`[react-router-resolver] Found ${routeFiles.length} route candidate files in ${repoPath}`);
+      for (const f of routeFiles) console.log(`  - ${path.relative(repoPath, f)}`);
+    }
+
     for (const f of routeFiles) {
       this.parseRouteFile(f);
+    }
+
+    if (process.env.DS_SCANNER_DEBUG) {
+      console.log(`[react-router-resolver] Extracted ${this.fileToRoute.size} route mappings`);
     }
 
     return this.fileToRoute.size > 0;
@@ -86,15 +103,16 @@ export class ReactRouterResolver implements RouteResolver {
     }
 
     const dir = path.dirname(filePath);
+    const tsPaths = this.tsConfigPaths;
 
     // Build import map: localName → absolute file path (static + lazy)
-    const importMap = buildImportMap(ast, dir);
+    const importMap = buildImportMap(ast, dir, tsPaths);
 
     // Build variable map: varName → AST node (for route arrays passed by name)
     const varMap = buildVariableMap(ast);
 
     // Build named import map: localName → { filePath, exportedName } for cross-file resolution
-    const namedImportMap = buildNamedImportMap(ast, dir);
+    const namedImportMap = buildNamedImportMap(ast, dir, tsPaths);
 
     // Extract from createBrowserRouter/createHashRouter etc.
     this.extractV6Routes(ast, importMap, varMap, namedImportMap);
@@ -200,6 +218,33 @@ export class ReactRouterResolver implements RouteResolver {
           componentName =
             extractComponentFromJSXExpr(prop.value) ??
             extractComponentFromCreateElement(prop.value);
+
+          // Handle <Navigate to="..." /> and <Redirect path="..." /> as redirect routes
+          if (!componentName && prop.value.type === 'JSXElement') {
+            const tag = prop.value.openingElement.name;
+            if (tag.type === 'JSXIdentifier') {
+              const tagName = tag.name;
+              if (tagName === 'Navigate') {
+                const navigateTo = extractNavigateTarget(prop.value);
+                if (navigateTo) {
+                  this.registerRoute(
+                    `redirect://navigate/${fullPath ?? routePathSeg ?? '/'}`,
+                    fullPath || routePathSeg || '/',
+                    'medium'
+                  );
+                }
+              } else if (tagName === 'Redirect') {
+                const redirectTarget = extractRedirectTarget(prop.value);
+                if (redirectTarget) {
+                  this.registerRoute(
+                    `redirect://redirect/${fullPath ?? routePathSeg ?? '/'}`,
+                    fullPath || routePathSeg || '/',
+                    'medium'
+                  );
+                }
+              }
+            }
+          }
         }
 
         if (key === 'component' || key === 'Component') {
@@ -279,9 +324,10 @@ export class ReactRouterResolver implements RouteResolver {
     }
 
     const dir = path.dirname(filePath);
-    const importMap = buildImportMap(ast, dir);
+    const tsPaths = this.tsConfigPaths;
+    const importMap = buildImportMap(ast, dir, tsPaths);
     const varMap = buildVariableMap(ast);
-    const namedImportMap = buildNamedImportMap(ast, dir);
+    const namedImportMap = buildNamedImportMap(ast, dir, tsPaths);
 
     const array = findExportedArray(ast, exportedName, varMap);
     if (array) {
@@ -349,15 +395,18 @@ export class ReactRouterResolver implements RouteResolver {
  *  - Lazy imports: const X = lazy(() => import('./X'))
  *  - React.lazy: const X = React.lazy(() => import('./X'))
  */
-function buildImportMap(ast: TSESTree.Program, dir: string): Map<string, string> {
+function buildImportMap(
+  ast: TSESTree.Program,
+  dir: string,
+  tsPaths: TsConfigPaths | null
+): Map<string, string> {
   const map = new Map<string, string>();
 
   for (const node of ast.body) {
     // Static imports
     if (node.type === 'ImportDeclaration') {
       const src = node.source.value as string;
-      if (!src.startsWith('.')) continue;
-      const resolved = resolveImportPath(src, dir);
+      const resolved = resolveImportPath(src, dir, tsPaths);
       if (!resolved) continue;
 
       for (const spec of node.specifiers) {
@@ -377,8 +426,8 @@ function buildImportMap(ast: TSESTree.Program, dir: string): Map<string, string>
         if (decl.id.type !== 'Identifier') continue;
         const localName = decl.id.name;
         const lazyPath = extractLazyImportPath(decl.init);
-        if (!lazyPath || !lazyPath.startsWith('.')) continue;
-        const resolved = resolveImportPath(lazyPath, dir);
+        if (!lazyPath) continue;
+        const resolved = resolveImportPath(lazyPath, dir, tsPaths);
         if (resolved) map.set(localName, resolved);
       }
     }
@@ -468,14 +517,17 @@ function buildVariableMap(ast: TSESTree.Program): Map<string, TSESTree.Expressio
  * import { metricsRoutes as mr } from './metrics-routes'
  *   → 'mr' → { filePath: '/abs/metrics-routes.tsx', exportedName: 'metricsRoutes' }
  */
-function buildNamedImportMap(ast: TSESTree.Program, dir: string): NamedImportMap {
+function buildNamedImportMap(
+  ast: TSESTree.Program,
+  dir: string,
+  tsPaths: TsConfigPaths | null
+): NamedImportMap {
   const map: NamedImportMap = new Map();
 
   for (const node of ast.body) {
     if (node.type !== 'ImportDeclaration') continue;
     const src = node.source.value as string;
-    if (!src.startsWith('.')) continue;
-    const resolved = resolveImportPath(src, dir);
+    const resolved = resolveImportPath(src, dir, tsPaths);
     if (!resolved) continue;
 
     for (const spec of node.specifiers) {
@@ -564,7 +616,12 @@ function findRouteConfigFiles(repoPath: string): string[] {
     const base = path.basename(f).toLowerCase();
     if (!/\.(tsx?|jsx?)$/.test(f)) return;
 
-    const isInRoutesDir = f.split(path.sep).some(seg => seg === 'routes' || seg === 'router');
+    const segments = f.split(path.sep);
+    const isInRoutesDir = segments.some(
+      seg => seg === 'routes' || seg === 'router' || seg === 'navigation'
+    );
+    const isFeatureRoutes =
+      segments.includes('features') && /\.routes?\.(tsx?|jsx?)$/.test(base);
     const isCandidate =
       base.startsWith('route') ||
       base.startsWith('router') ||
@@ -572,19 +629,72 @@ function findRouteConfigFiles(repoPath: string): string[] {
       base === 'app.ts' ||
       base === 'app.jsx' ||
       base === 'app.js' ||
-      isInRoutesDir;
+      isInRoutesDir ||
+      isFeatureRoutes;
 
     if (!isCandidate) return;
 
     try {
       const content = fs.readFileSync(f, 'utf-8');
-      if (content.includes('react-router')) results.push(f);
+      // Files that directly import react-router are always candidates
+      if (content.includes('react-router')) {
+        results.push(f);
+        return;
+      }
+
+      // For route-config files in known directories or with known names,
+      // do a lightweight AST check for route-object shape instead of
+      // requiring the react-router string.
+      if (isInRoutesDir || isFeatureRoutes || base.endsWith('-routes.tsx') || base.endsWith('-routes.ts') || base.endsWith('-paths.tsx') || base.endsWith('-paths.ts')) {
+        if (looksLikeRouteConfig(content)) {
+          results.push(f);
+        }
+      }
     } catch {
       /* ignore */
     }
   }, 5);
 
   return results;
+}
+
+/**
+ * Lightweight AST check: does the file contain object literals with
+ * both `path` and (`element` or `children`) properties?
+ * This catches exported RouteObject arrays without requiring react-router imports.
+ */
+function looksLikeRouteConfig(code: string): boolean {
+  try {
+    const ast = parse(code, {
+      jsx: true,
+      loc: false,
+      range: false,
+      tokens: false,
+      comment: false,
+      errorOnUnknownASTType: false,
+    });
+
+    let found = false;
+    walkAST(ast, (node) => {
+      if (found) return;
+      if (node.type !== 'ObjectExpression') return;
+
+      let hasPath = false;
+      let hasElementOrChildren = false;
+      for (const prop of node.properties) {
+        if (prop.type !== 'Property') continue;
+        const key = propKeyName(prop.key);
+        if (key === 'path') hasPath = true;
+        if (key === 'element' || key === 'children') hasElementOrChildren = true;
+      }
+      if (hasPath && hasElementOrChildren) {
+        found = true;
+      }
+    });
+    return found;
+  } catch {
+    return false;
+  }
 }
 
 function walkDir(dir: string, cb: (f: string) => void, maxDepth: number): void {
@@ -607,13 +717,38 @@ function walkDir(dir: string, cb: (f: string) => void, maxDepth: number): void {
 
 // ─── Import path resolution ───────────────────────────────────────────────────
 
-function resolveImportPath(specifier: string, dir: string): string | null {
-  const base = path.resolve(dir, specifier);
-  if (fs.existsSync(base) && !fs.statSync(base).isDirectory()) return base;
-  for (const ext of RESOLVE_EXTS) {
-    const candidate = base + ext;
-    if (fs.existsSync(candidate)) return candidate;
+function resolveImportPath(
+  specifier: string,
+  dir: string,
+  tsPaths: TsConfigPaths | null
+): string | null {
+  // Relative imports
+  if (specifier.startsWith('.')) {
+    const base = path.resolve(dir, specifier);
+    if (fs.existsSync(base) && !fs.statSync(base).isDirectory()) return base;
+    for (const ext of RESOLVE_EXTS) {
+      const candidate = base + ext;
+      if (fs.existsSync(candidate)) return candidate;
+    }
+    return null;
   }
+
+  // Absolute imports (already absolute path)
+  if (specifier.startsWith('/')) {
+    if (fs.existsSync(specifier) && !fs.statSync(specifier).isDirectory()) return specifier;
+    for (const ext of RESOLVE_EXTS) {
+      const candidate = specifier + ext;
+      if (fs.existsSync(candidate)) return candidate;
+    }
+    return null;
+  }
+
+  // Path aliases via tsconfig
+  if (tsPaths) {
+    const aliasResolved = resolveAliasPath(specifier, tsPaths);
+    if (aliasResolved) return aliasResolved;
+  }
+
   return null;
 }
 
@@ -721,6 +856,56 @@ function extractComponentFromCreateElement(node: TSESTree.Expression): string | 
   ) {
     const first = node.arguments[0];
     if (first?.type === 'Identifier') return first.name;
+  }
+  return null;
+}
+
+/** Extract `to` attribute from <Navigate to="/path" /> or <Navigate to={expr} />. */
+function extractNavigateTarget(node: TSESTree.Expression): string | null {
+  if (node.type !== 'JSXElement') return null;
+  const tag = node.openingElement.name;
+  if (tag.type !== 'JSXIdentifier' || tag.name !== 'Navigate') return null;
+
+  for (const attr of node.openingElement.attributes) {
+    if (attr.type !== 'JSXAttribute') continue;
+    const attrName = attr.name.type === 'JSXIdentifier' ? attr.name.name : null;
+    if (attrName !== 'to') continue;
+
+    // String literal: to="/path"
+    if (attr.value?.type === 'Literal' && typeof attr.value.value === 'string') {
+      return attr.value.value;
+    }
+    // Expression container: to={"/path"}
+    if (attr.value?.type === 'JSXExpressionContainer') {
+      const expr = attr.value.expression;
+      if (expr.type !== 'JSXEmptyExpression' && expr.type === 'Literal' && typeof expr.value === 'string') {
+        return expr.value;
+      }
+    }
+  }
+  return null;
+}
+
+/** Extract `path` attribute from <Redirect path="/target" />. */
+function extractRedirectTarget(node: TSESTree.Expression): string | null {
+  if (node.type !== 'JSXElement') return null;
+  const tag = node.openingElement.name;
+  if (tag.type !== 'JSXIdentifier' || tag.name !== 'Redirect') return null;
+
+  for (const attr of node.openingElement.attributes) {
+    if (attr.type !== 'JSXAttribute') continue;
+    const attrName = attr.name.type === 'JSXIdentifier' ? attr.name.name : null;
+    if (attrName !== 'path') continue;
+
+    if (attr.value?.type === 'Literal' && typeof attr.value.value === 'string') {
+      return attr.value.value;
+    }
+    if (attr.value?.type === 'JSXExpressionContainer') {
+      const expr = attr.value.expression;
+      if (expr.type !== 'JSXEmptyExpression' && expr.type === 'Literal' && typeof expr.value === 'string') {
+        return expr.value;
+      }
+    }
   }
   return null;
 }

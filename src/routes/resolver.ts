@@ -66,17 +66,30 @@ export class RouteResolutionOrchestrator {
     // Try each resolver in priority order
     for (const resolver of this.resolvers) {
       try {
-        if (await resolver.detect(repoPath)) {
+        const matched = await resolver.detect(repoPath);
+        if (matched) {
           this.activeResolver = resolver;
+          if (process.env.DS_SCANNER_DEBUG) {
+            console.log(`[resolver] Selected "${resolver.name}" for ${repoPath}`);
+          }
           return true;
         }
-      } catch {
+        if (process.env.DS_SCANNER_DEBUG) {
+          console.log(`[resolver] "${resolver.name}" did not match ${repoPath}`);
+        }
+      } catch (err) {
+        if (process.env.DS_SCANNER_DEBUG) {
+          console.log(`[resolver] "${resolver.name}" errored on ${repoPath}:`, err);
+        }
         // Continue to next resolver
       }
     }
 
     // No resolver matched
     this.activeResolver = null;
+    if (process.env.DS_SCANNER_DEBUG) {
+      console.log(`[resolver] No resolver matched for ${repoPath}`);
+    }
     return false;
   }
 

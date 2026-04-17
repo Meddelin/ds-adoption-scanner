@@ -865,44 +865,23 @@ npm run codex:bootstrap -- --with-checks
 ### Структура проекта
 
 ```
-.codex/
-├── PROJECT_CONTEXT.md         # Короткий постоянный контекст проекта для старта задач
-├── TASK_PLAYBOOK.md           # Пошаговый playbook + матрица "тип изменения -> тесты"
-└── SESSION_MEMORY.md          # Короткая rolling-память по последним задачам/выводам
-scripts/
-└── codex-bootstrap.mjs        # Быстрый срез состояния репозитория (git + файлы + команды)
 src/
-├── cli.ts                     # Entry point, commander
-├── types.ts                   # Все TypeScript-типы
-├── config/
-│   ├── schema.ts              # DSScannerConfig, defineConfig()
-│   ├── defaults.ts            # Дефолтные include/exclude
-│   └── loader.ts              # Загрузка .ts конфига через jiti
-├── scanner/
-│   ├── file-discovery.ts      # fdir + picomatch
-│   ├── parser.ts              # Парсинг файла через typescript-estree
-│   ├── jsx-extractor.ts       # Двухпроходный AST-обход
-│   ├── import-resolver.ts     # TypeScript API, кэш per-repo
-│   ├── categorizer.ts         # Правила категоризации + declarative transitiveRules
-│   ├── library-prescan.ts     # Пре-скан libraries[]: экспорты + DS-детект per-component
-│   ├── transitive-resolver.ts # Обогащение usages: registry → auto-scan → declared
-│   └── orchestrator.ts        # Оркестрация, concurrency limit 16
-├── metrics/
-│   ├── calculator.ts          # Adoption formula, per-DS метрики
-│   ├── aggregator.ts          # Агрегация по репо → ScanReport
-│   └── history.ts             # Сохранение истории, сравнение
-└── output/
-    ├── json-reporter.ts
-    ├── table-reporter.ts      # cli-table3 + chalk
-    ├── csv-reporter.ts
-    └── html-reporter.ts       # самодостаточный HTML-отчёт
+├── cli.ts                     # Entry point (commander)
+├── index.ts                   # Public API
+├── types.ts                   # Base TypeScript types
+├── config/                    # Config schema & loader
+├── domain/                    # Layer 0: Models, Types, Invariants
+├── scanner/                   # Layer 1: AST Parser, Resolvers, V2 pipeline orchestrator
+├── routes/                    # Layer 2: Next.js / React Router matching
+├── classification/            # Layer 3: Deterministic analytical heuristics
+├── metrics/                   # Layer 4: Exact/Proxy formulas, Report aggregation
+└── output/                    # Layer 5: HTML, CLI table reporters
 
 tests/
-├── unit/                      # parser, categorizer, calculator, import-resolver,
-│                              # library-prescan, aggregator-reuse
-├── integration/               # full-scan.test.ts (runScan() e2e)
-└── fixtures/                  # simple-repo, barrel-exports, namespace-imports,
-                               # aliased-paths, mixed-categories
+├── unit/
+├── integration/
+└── fixtures/
+
 ai-instructions/
 ├── README.md
 ├── shadow-detection.md
@@ -916,12 +895,12 @@ ai-instructions/
 Чтобы не начинать каждый раз с нуля:
 
 1. Запусти `npm run codex:bootstrap`
-2. Прочитай `.codex/PROJECT_CONTEXT.md`
-3. Следуй `.codex/TASK_PLAYBOOK.md`
-4. После завершения задачи добавь короткую запись в `.codex/SESSION_MEMORY.md`
+2. Прочитай `docs/PROJECT_CONTEXT.md` (если есть)
+3. Следуй инструкциям в `AGENTS.md`
+4. Не забудь запустить тесты (`npm test`)
 
 ### Валидация метрик для продуктового аналитика
 
 Подробный гайд по проверке корректности расчётов (термины, формулы, инварианты, чеклист):
 
-- [docs/PRODUCT_ANALYST_VALIDATION_GUIDE.md](C:/Users/crash/beaver-analysis/docs/PRODUCT_ANALYST_VALIDATION_GUIDE.md)
+- `docs/PRODUCT_ANALYST_VALIDATION_GUIDE.md`

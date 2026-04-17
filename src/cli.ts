@@ -4,24 +4,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 import chalk from 'chalk';
 import { loadConfig, ConfigError } from './config/loader.js';
-import { runScan } from './scanner/orchestrator.js';
 import { runScanV2 } from './scanner/orchestrator-v2.js';
-import { printReport } from './output/table-reporter.js';
 import { printReportV2 } from './output/table-reporter-v2.js';
-import { writeJSON } from './output/json-reporter.js';
 import { writeJSONV2 } from './output/json-reporter-v2.js';
-import { writeHTML } from './output/html-reporter.js';
 import { writeHTMLV2 } from './output/html-reporter-v2.js';
 import {
   saveHistory,
   compareReports,
   loadReport,
-  saveHistoryV2,
-  compareReportsV2,
-  loadReportV2,
   type V2ReportComparison,
 } from './metrics/history.js';
-import type { ScanReport } from './types.js';
 import type { ScanReportV2 } from './domain/types.js';
 
 const VERSION = '0.1.0';
@@ -41,7 +33,6 @@ program
   .option('-c, --config <path>', 'Path to config file', '.ds-scanner.config.ts')
   .option('-o, --output <path>', 'Base output path (e.g. ./reports/scan → scan.json + scan.html)')
   .option('-v, --verbose', 'Verbose output (show parse warnings)')
-  .option('--model <version>', 'Report model: v1 or v2 (default: v2)', 'v2')
   .option('--min-adoption <number>', 'Fail if adoption rate is below this threshold (CI)')
   .option('--compare <path>', 'Compare with a previous scan JSON')
   .option('--save-history', 'Save result to historyDir')
@@ -61,12 +52,11 @@ program
       // Override output path / verbose from CLI flags
       if (opts.output) config.output.path = opts.output;
       if (opts.verbose) config.output.verbose = true;
-      const model = opts.model === 'v1' ? 'v1' : 'v2';
 
       const spinner = ora('Discovering files...').start();
       let lastRepo = '';
 
-      const report = await (model === 'v2' ? runScanV2(config, {
+      const report = await runScanV2(config, {
         configPath,
         verbose: opts.verbose ?? false,
         onProgress: (current, total, repoName) => {
@@ -77,18 +67,7 @@ program
             spinner.text = `Scanning ${repoName}... (${current}/${total} files)`;
           }
         },
-      }) : runScan(config, {
-        configPath,
-        verbose: opts.verbose ?? false,
-        onProgress: (current, total, repoName) => {
-          if (repoName !== lastRepo) {
-            lastRepo = repoName;
-            spinner.text = `Scanning ${repoName}... (${current}/${total} files)`;
-          } else {
-            spinner.text = `Scanning ${repoName}... (${current}/${total} files)`;
-          }
-        },
-      })).catch(err => {
+      }).catch(err => {
         spinner.fail('Scan failed');
         console.error(chalk.red(`\n[Scan Error] ${err instanceof Error ? err.message : String(err)}\n`));
         process.exit(3);
@@ -98,95 +77,46 @@ program
         `Scanned ${report.meta.filesScanned} files across ${report.meta.repositoriesScanned} repos in ${(report.meta.scanDurationMs / 1000).toFixed(1)}s`
       );
 
-      if (model === 'v1') {
-        const v1Report = report as ScanReport;
-        // Compare with baseline if requested
-        if (opts.compare) {
-          try {
-            const baseline = loadReport(opts.compare);
-            v1Report.comparison = compareReports(baseline, v1Report);
-            printComparison(v1Report);
-          } catch (err) {
-            console.warn(chalk.yellow(`[Warning] Could not load baseline: ${opts.compare}`));
-          }
-        }
-
-        // Save history if requested
-        if (opts.saveHistory) {
-          const savedPath = saveHistory(v1Report, config.historyDir);
-          console.log(chalk.dim(`  History saved: ${savedPath}`));
-        }
-        const { jsonPath, htmlPath } = deriveOutputPaths(config.output.path, model);
-
-        printReport(v1Report, config.output.verbose);
-
-        writeJSON(v1Report, jsonPath);
-        console.log(chalk.dim(`  JSON report: ${jsonPath}`));
-
+      if (opts.compare) {
         try {
-          writeHTML(v1Report, htmlPath);
-          console.log(chalk.dim(`  HTML report: ${htmlPath}`));
-        } catch (htmlErr) {
-          console.warn(chalk.yellow(`  Warning: could not write HTML report: ${htmlErr instanceof Error ? htmlErr.message : String(htmlErr)}`));
+          const baseline = loadReport(opts.compare);
+          const comparison = compareReports(baseline, report);
+          printComparisonV2(comparison);
+        } catch (err) {
+          console.warn(chalk.yellow(`[Warning] Could not load baseline: ${opts.compare}`));
         }
+      }
 
-        // Check adoption thresholds
-        const minAdoption = opts.minAdoption
-          ? parseFloat(opts.minAdoption)
-          : config.thresholds.minAdoptionRate;
+      if (opts.saveHistory) {
+        const savedPath = saveHistory(report, config.historyDir);
+        console.log(chalk.dim(`  History saved: ${savedPath}`));
+      }
 
-        if (minAdoption !== undefined && v1Report.summary.adoptionRate < minAdoption) {
-          console.error(
-            chalk.red(
-              `\n[Threshold] Adoption rate ${v1Report.summary.adoptionRate.toFixed(1)}% is below minimum ${minAdoption}%\n`
-            )
-          );
-          exitCode = 1;
-        }
-      } else {
-        const v2Report = report as ScanReportV2;
+      const { jsonPath, htmlPath } = deriveOutputPaths(config.output.path);
 
-        if (opts.compare) {
-          try {
-            const baseline = loadReportV2(opts.compare);
-            const comparison = compareReportsV2(baseline, v2Report);
-            printComparisonV2(comparison);
-          } catch (err) {
-            console.warn(chalk.yellow(`[Warning] Could not load v2 baseline: ${opts.compare}`));
-          }
-        }
+      printReportV2(report);
 
-        if (opts.saveHistory) {
-          const savedPath = saveHistoryV2(v2Report, config.historyDir);
-          console.log(chalk.dim(`  History saved: ${savedPath}`));
-        }
+      writeJSONV2(report, jsonPath);
+      console.log(chalk.dim(`  JSON report: ${jsonPath}`));
 
-        const { jsonPath, htmlPath } = deriveOutputPaths(config.output.path, model);
+      try {
+        writeHTMLV2(report, htmlPath);
+        console.log(chalk.dim(`  HTML report: ${htmlPath}`));
+      } catch (htmlErr) {
+        console.warn(chalk.yellow(`  Warning: could not write HTML report: ${htmlErr instanceof Error ? htmlErr.message : String(htmlErr)}`));
+      }
 
-        printReportV2(v2Report);
+      const minAdoption = opts.minAdoption
+        ? parseFloat(opts.minAdoption)
+        : config.thresholds.minAdoptionRate;
 
-        writeJSONV2(v2Report, jsonPath);
-        console.log(chalk.dim(`  JSON report: ${jsonPath}`));
-
-        try {
-          writeHTMLV2(v2Report, htmlPath);
-          console.log(chalk.dim(`  HTML report: ${htmlPath}`));
-        } catch (htmlErr) {
-          console.warn(chalk.yellow(`  Warning: could not write HTML report: ${htmlErr instanceof Error ? htmlErr.message : String(htmlErr)}`));
-        }
-
-        const minAdoption = opts.minAdoption
-          ? parseFloat(opts.minAdoption)
-          : config.thresholds.minAdoptionRate;
-
-        if (minAdoption !== undefined && v2Report.summary.directAdoption.percentage < minAdoption) {
-          console.error(
-            chalk.red(
-              `\n[Threshold] Direct adoption ${v2Report.summary.directAdoption.percentage.toFixed(1)}% is below minimum ${minAdoption}%\n`
-            )
-          );
-          exitCode = 1;
-        }
+      if (minAdoption !== undefined && report.summary.directAdoption.percentage < minAdoption) {
+        console.error(
+          chalk.red(
+            `\n[Threshold] Direct adoption ${report.summary.directAdoption.percentage.toFixed(1)}% is below minimum ${minAdoption}%\n`
+          )
+        );
+        exitCode = 1;
       }
 
     } catch (err) {
@@ -222,20 +152,12 @@ program
 
 program
   .command('compare <baseline> <current>')
-  .description('Compare two scan JSON reports (v1 or v2 auto-detected)')
+  .description('Compare two v2 scan JSON reports')
   .action(async (baselinePath: string, currentPath: string) => {
     try {
-      const currentRaw = JSON.parse(fs.readFileSync(currentPath, 'utf-8')) as { version?: string };
-      if (currentRaw.version === '2.0') {
-        const baseline = loadReportV2(baselinePath);
-        const current = loadReportV2(currentPath);
-        printComparisonV2(compareReportsV2(baseline, current));
-      } else {
-        const baseline = loadReport(baselinePath);
-        const current = loadReport(currentPath);
-        current.comparison = compareReports(baseline, current);
-        printComparison(current);
-      }
+      const baseline = loadReport(baselinePath);
+      const current = loadReport(currentPath);
+      printComparisonV2(compareReports(baseline, current));
     } catch (err) {
       console.error(chalk.red(`\n[Error] ${err instanceof Error ? err.message : String(err)}\n`));
       process.exit(1);
@@ -304,34 +226,6 @@ export default defineConfig({
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-function printComparison(report: ScanReport): void {
-  const cmp = report.comparison;
-  if (!cmp) return;
-
-  console.log(chalk.bold('\n  📈 Comparison with baseline'));
-  console.log(chalk.dim('  ' + '─'.repeat(65)));
-
-  const arrow = cmp.adoptionDelta >= 0 ? '↑' : '↓';
-  const deltaColor = cmp.adoptionDelta >= 0 ? chalk.green : chalk.red;
-  console.log(
-    `  Adoption delta: ${deltaColor(`${arrow} ${Math.abs(cmp.adoptionDelta).toFixed(1)}%`)}`
-  );
-
-  for (const ds of cmp.byDesignSystem) {
-    const a = ds.adoptionDelta >= 0 ? '↑' : '↓';
-    const c = ds.adoptionDelta >= 0 ? chalk.green : chalk.red;
-    console.log(`  ${ds.name}: ${c(`${a} ${Math.abs(ds.adoptionDelta).toFixed(1)}%`)}`);
-  }
-
-  if (cmp.newComponents.length > 0) {
-    console.log(chalk.dim(`\n  New DS components: ${cmp.newComponents.slice(0, 5).join(', ')}`));
-  }
-  if (cmp.removedComponents.length > 0) {
-    console.log(chalk.dim(`  Removed: ${cmp.removedComponents.slice(0, 5).join(', ')}`));
-  }
-  console.log();
-}
-
 function printComparisonV2(cmp: V2ReportComparison): void {
   console.log(chalk.bold('\n  Comparison with baseline (v2)'));
   console.log(chalk.dim('  ' + '-'.repeat(65)));
@@ -366,11 +260,9 @@ function printComparisonV2(cmp: V2ReportComparison): void {
   console.log();
 }
 
-function deriveOutputPaths(base: string | undefined, model: 'v1' | 'v2'): { jsonPath: string; htmlPath: string } {
+function deriveOutputPaths(base: string | undefined): { jsonPath: string; htmlPath: string } {
   if (!base) {
-    return model === 'v2'
-      ? { jsonPath: 'ds-report-v2.json', htmlPath: 'ds-report-v2.html' }
-      : { jsonPath: 'ds-report.json', htmlPath: 'ds-report.html' };
+    return { jsonPath: 'ds-report-v2.json', htmlPath: 'ds-report-v2.html' };
   }
   const noExt = base.replace(/\.(json|html|csv)$/i, '');
   return { jsonPath: noExt + '.json', htmlPath: noExt + '.html' };

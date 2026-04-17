@@ -14,6 +14,7 @@ import type {
 import type { ClassifiedUsage } from '../domain/types.js';
 import type { ResolvedConfig } from '../config/schema.js';
 import { REPORT_VERSION, FORMULAS, DENOMINATOR_EXPLANATION } from '../domain/constants.js';
+import path from 'node:path';
 
 // --- Cross-Repository Aggregation ---
 
@@ -28,6 +29,23 @@ export function aggregateCrossRepository(
   scanDurationMs: number,
   filesScanned: number
 ): ScanReportV2 {
+  // Filter out repositories that are design-system source repos
+  const dsPaths = new Set(
+    config.designSystems
+      .map(ds => ds.path)
+      .filter((p): p is string => !!p)
+      .map(p => path.normalize(p))
+  );
+  const filteredRepoMetrics = repoMetrics.filter(r => {
+    const normalized = path.normalize(r.path);
+    for (const dsPath of dsPaths) {
+      if (normalized === dsPath || normalized.startsWith(dsPath + path.sep)) {
+        return false;
+      }
+    }
+    return true;
+  });
+
   const allUsagesList = Array.from(allUsages.values()).flat();
   const hasUsageData = allUsagesList.length > 0;
 
@@ -42,13 +60,13 @@ export function aggregateCrossRepository(
 
   const totalAdoptionInstances = hasUsageData
     ? adoptionUsages.length
-    : repoMetrics.reduce((sum, r) => sum + r.bucketBreakdown.adoption.instances, 0);
+    : filteredRepoMetrics.reduce((sum, r) => sum + r.bucketBreakdown.adoption.instances, 0);
   const totalShadowInstances = hasUsageData
     ? shadowUsages.length
-    : repoMetrics.reduce((sum, r) => sum + r.bucketBreakdown.shadow.instances, 0);
+    : filteredRepoMetrics.reduce((sum, r) => sum + r.bucketBreakdown.shadow.instances, 0);
   const totalNeitherInstances = hasUsageData
     ? neitherUsages.length
-    : repoMetrics.reduce((sum, r) => sum + r.bucketBreakdown.neither.instances, 0);
+    : filteredRepoMetrics.reduce((sum, r) => sum + r.bucketBreakdown.neither.instances, 0);
 
   // metricDenominator: adoption + shadow only (for hero metric percentages)
   const metricDenominator = hasUsageData
@@ -60,7 +78,7 @@ export function aggregateCrossRepository(
   const directUsages = adoptionUsages.filter(u => u.classificationSource === 'direct-ds');
   const totalDirectInstances = hasUsageData
     ? directUsages.length
-    : repoMetrics.reduce((sum, r) => sum + r.directAdoption.instances, 0);
+    : filteredRepoMetrics.reduce((sum, r) => sum + r.directAdoption.instances, 0);
 
   const weightedTransitive = hasUsageData
     ? adoptionUsages
@@ -68,23 +86,23 @@ export function aggregateCrossRepository(
         .reduce((sum, u) => sum + (u.transitiveDS?.coverage ?? 0), 0)
     : Math.max(
         0,
-        repoMetrics.reduce((sum, r) => sum + r.effectiveAdoptionProxy.instances, 0) -
+        filteredRepoMetrics.reduce((sum, r) => sum + r.effectiveAdoptionProxy.instances, 0) -
           totalDirectInstances
       );
 
   const totalEffectiveInstances = hasUsageData
     ? totalDirectInstances + weightedTransitive
-    : repoMetrics.reduce((sum, r) => sum + r.effectiveAdoptionProxy.instances, 0);
+    : filteredRepoMetrics.reduce((sum, r) => sum + r.effectiveAdoptionProxy.instances, 0);
 
   const allAdoptionComponents = hasUsageData
     ? new Set(adoptionUsages.map(getComponentIdentityKey))
-    : new Set(repoMetrics.flatMap(r => r.bucketBreakdown.adoption.topComponents));
+    : new Set(filteredRepoMetrics.flatMap(r => r.bucketBreakdown.adoption.topComponents));
   const allShadowComponents = hasUsageData
     ? new Set(shadowUsages.map(getComponentIdentityKey))
-    : new Set(repoMetrics.flatMap(r => r.bucketBreakdown.shadow.topComponents));
+    : new Set(filteredRepoMetrics.flatMap(r => r.bucketBreakdown.shadow.topComponents));
   const allNeitherComponents = hasUsageData
     ? new Set(neitherUsages.map(getComponentIdentityKey))
-    : new Set(repoMetrics.flatMap(r => r.bucketBreakdown.neither.topComponents));
+    : new Set(filteredRepoMetrics.flatMap(r => r.bucketBreakdown.neither.topComponents));
   // metricDenominatorComponents = adoption + shadow only (for metric percentage denominators)
   const metricDenominatorComponents = hasUsageData
     ? new Set(metricUsages.map(getComponentIdentityKey)).size
@@ -95,7 +113,7 @@ export function aggregateCrossRepository(
           .filter(u => u.classificationSource !== 'unclassified')
           .map(getComponentIdentityKey)
       ).size
-    : repoMetrics.reduce((sum, r) => sum + r.effectiveAdoptionProxy.components, 0);
+    : filteredRepoMetrics.reduce((sum, r) => sum + r.effectiveAdoptionProxy.components, 0);
 
   // Summary metrics (use metricDenominator = adoption + shadow, neither excluded)
   const directAdoption: MetricWithDetails = {
@@ -145,7 +163,7 @@ export function aggregateCrossRepository(
       percentage: totalClassified > 0 ? (totalAdoptionInstances / totalClassified) * 100 : 0,
       topComponents: hasUsageData
         ? getTopComponentNames(adoptionUsages)
-        : [...new Set(repoMetrics.flatMap(r => r.bucketBreakdown.adoption.topComponents))].slice(0, 10),
+        : [...new Set(filteredRepoMetrics.flatMap(r => r.bucketBreakdown.adoption.topComponents))].slice(0, 10),
     },
     shadow: {
       instances: totalShadowInstances,
@@ -153,7 +171,7 @@ export function aggregateCrossRepository(
       percentage: totalClassified > 0 ? (totalShadowInstances / totalClassified) * 100 : 0,
       topComponents: hasUsageData
         ? getTopComponentNames(shadowUsages)
-        : [...new Set(repoMetrics.flatMap(r => r.bucketBreakdown.shadow.topComponents))].slice(0, 10),
+        : [...new Set(filteredRepoMetrics.flatMap(r => r.bucketBreakdown.shadow.topComponents))].slice(0, 10),
     },
     neither: {
       instances: totalNeitherInstances,
@@ -161,13 +179,13 @@ export function aggregateCrossRepository(
       percentage: totalClassified > 0 ? (totalNeitherInstances / totalClassified) * 100 : 0,
       topComponents: hasUsageData
         ? getTopComponentNames(neitherUsages)
-        : [...new Set(repoMetrics.flatMap(r => r.bucketBreakdown.neither.topComponents))].slice(0, 10),
+        : [...new Set(filteredRepoMetrics.flatMap(r => r.bucketBreakdown.neither.topComponents))].slice(0, 10),
     },
   };
 
   // Aggregate per-DS metrics
   const byDesignSystem = aggregatePerDSMetrics(
-    repoMetrics,
+    filteredRepoMetrics,
     allUsagesList,
     metricDenominator,
     metricDenominatorComponents
@@ -175,7 +193,7 @@ export function aggregateCrossRepository(
 
   // Aggregate routes if available
   const allRoutes: RouteMetrics[] = [];
-  for (const repo of repoMetrics) {
+  for (const repo of filteredRepoMetrics) {
     if (repo.routes) {
       allRoutes.push(...repo.routes);
     }
@@ -209,7 +227,7 @@ export function aggregateCrossRepository(
       scanDurationMs,
       configPath: '', // Would come from caller
       filesScanned,
-      repositoriesScanned: repoMetrics.length,
+      repositoriesScanned: filteredRepoMetrics.length,
       designSystemsConfigured: config.designSystems.map(ds => ds.name),
       routeResolutionEnabled: allRoutes.length > 0,
       shadowDetectionEnabled: true,
@@ -225,10 +243,10 @@ export function aggregateCrossRepository(
       effectiveAdoptionProxy,
       shadowUsageProxy,
       bucketBreakdown,
-      routeCoverage: calculateRouteCoverage(repoMetrics, filesScanned, allUsagesList),
+      routeCoverage: calculateRouteCoverage(filteredRepoMetrics, filesScanned, allUsagesList),
     },
     byDesignSystem,
-    byRepository: repoMetrics,
+    byRepository: filteredRepoMetrics,
     byRoute: allRoutes.length > 0 ? allRoutes : undefined,
     byComponent,
     localComponentProfiles: allProfilesList,

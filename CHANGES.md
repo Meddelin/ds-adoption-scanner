@@ -1,5 +1,36 @@
 # Changelog
 
+## v2.1.1 — Route Resolution Fixes (React Router aliases, feature routes, DS filtering)
+
+### Added
+
+- **TypeScript path alias support in React Router resolver**: `react-router-resolver.ts` now reads
+  `tsconfig.json` `compilerOptions.paths` / `baseUrl` and resolves imports like `@/pages/Home`,
+  `@features/alerts/routes` to absolute file paths. Shared utility extracted to `src/scanner/tsconfig-paths.ts`.
+
+- **Feature-based route file discovery**: `findRouteConfigFiles()` now detects `*.routes.tsx` / `*.routes.ts`
+  files inside `features/` directories (e.g. `src/features/incidents/incidents.routes.tsx`).
+
+- **Navigation directory support**: `findRouteConfigFiles()` now scans `navigation/` in addition to
+  `routes/` and `router/`.
+
+- **AST-based route-config validation**: Files in known route directories (`routes/`, `router/`, `navigation/`)
+  or with `*-routes.tsx` / `*-paths.tsx` / `*.routes.tsx` names are now validated by parsing AST for
+  `path` + `element`/`children` object properties, instead of requiring the string `"react-router"` in file content.
+  This fixes detection of route files that only export route objects without importing react-router directly.
+
+- **Navigate / Redirect route registration**: `walkRouteObjects()` now detects `<Navigate to="..." />`
+  and `<Redirect path="..." />` elements in route configs and registers them as medium-confidence routes.
+
+- **Debug logging**: `DS_SCANNER_DEBUG=1` env variable enables resolver detection logs showing:
+  candidate files found, resolver selection, and route extraction counts.
+
+### Fixed
+
+- **DS repository excluded from aggregation**: `aggregateCrossRepository()` in `aggregator-v2.ts` now
+  filters out repositories whose path matches a `designSystems[].path`, preventing the DS source repo
+  from appearing as a separate scanned repository in the report.
+
 ## v2.1.0 — React Router, Resolver Filters, Effective Adoption Everywhere, Bar Removal
 
 ### Added

@@ -22,7 +22,7 @@ Ambiguous cases include:
 ## What To Do
 
 1. Read the JSON report
-2. Look at the `byComponent.localMostUsed` section — components with `local` category
+2. Look at the `localComponentProfiles[]` or `byComponent.shadow[]` sections — these are components structurally categorized as `local` or `local-library`
 3. If you see suspicious patterns (names/paths similar to DS), check:
    - Where it's imported from (importSource)
    - Where it's defined (resolvedPath)
@@ -34,8 +34,8 @@ Ambiguous cases include:
 ## Transitive Adoption Cases
 
 If you find that a `local-library` or `third-party` component is built on a DS,
-it doesn't need to be reclassified — instead, recommend adding a `transitiveRule`
-to the config. This keeps the category accurate while crediting the DS in `effectiveAdoptionRate`.
+it doesn't need to be reclassified — instead, recommend declaring it in `libraries`
+or `transitiveRules` in the config. This enables crediting the DS in `effectiveAdoptionProxy.percentage`.
 
 **Signs that a package is DS-backed:**
 - Package name includes the DS name (e.g. `@ant-design/pro-components` → built on `antd`)

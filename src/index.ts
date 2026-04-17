@@ -1,11 +1,9 @@
 // Public API for programmatic use
 export { defineConfig } from './config/schema.js';
 export { loadConfig } from './config/loader.js';
-export { runScan } from './scanner/orchestrator.js';
-export { runScanDetailed } from './scanner/orchestrator.js';
 export { runScanV2 } from './scanner/orchestrator-v2.js';
 
-// V2 API (new deterministic analytical model)
+// V2 API (deterministic analytical model)
 export { AnalyticalClassifier, createClassificationContext } from './classification/classifier.js';
 export { RouteResolutionOrchestrator, createDefaultRouteConfig } from './routes/resolver.js';
 export {
@@ -25,7 +23,7 @@ export type {
   ResolvedConfig,
 } from './config/schema.js';
 
-// V1 types (existing)
+// Base types
 export type {
   ImportEntry,
   ImportMap,
@@ -37,16 +35,12 @@ export type {
   ComponentFamily,
   DSCatalog,
   FamilyStat,
-  ScanMetrics,
-  DesignSystemMetrics,
   CategoryMetrics,
   ComponentStat,
-  ScanReport,
-  RepositoryReport,
   DiscoveryResult,
 } from './types.js';
 
-// V2 types (new analytical model)
+// V2 types
 export type {
   AnalyticalBucket,
   ClassificationSource,
@@ -80,7 +74,7 @@ export type {
   NeitherHeuristic,
 } from './classification/types.js';
 
-// V2 Output
+// Output
 export { formatJSONV2, writeJSONV2 } from './output/json-reporter-v2.js';
 export { buildHTMLV2, writeHTMLV2 } from './output/html-reporter-v2.js';
 export { printReportV2 } from './output/table-reporter-v2.js';

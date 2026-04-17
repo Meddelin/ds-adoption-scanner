@@ -134,6 +134,191 @@ export const router = createBrowserRouter([
     const lazy = await resolver.resolve(path.join(repo, 'src', 'pages', 'LazyPage.tsx'));
     expect(lazy?.routeId).toBe('/lazy');
   });
+
+  it('resolves cross-file route arrays via named imports', async () => {
+    const repo = makeRepo();
+
+    write(repo, 'src/pages/Metrics.tsx', 'export default function Metrics() { return <div/>; }');
+    write(repo, 'src/pages/Dashboard.tsx', 'export default function Dashboard() { return <div/>; }');
+
+    write(
+      repo,
+      'src/navigation/routes/metrics-routes.tsx',
+      `import Metrics from '../../pages/Metrics';
+
+export const metricsRoutes = [
+  { path: '/metrics', element: <Metrics /> },
+];`
+    );
+
+    write(
+      repo,
+      'src/router.tsx',
+      `import { createBrowserRouter } from 'react-router-dom';
+import Dashboard from './pages/Dashboard';
+import { metricsRoutes } from './navigation/routes/metrics-routes';
+
+export const router = createBrowserRouter([
+  { path: '/dashboard', element: <Dashboard /> },
+  ...metricsRoutes,
+]);`
+    );
+
+    const resolver = new ReactRouterResolver();
+    const ok = await resolver.detect(repo);
+    expect(ok).toBe(true);
+
+    const metrics = await resolver.resolve(path.join(repo, 'src', 'pages', 'Metrics.tsx'));
+    expect(metrics?.routeId).toBe('/metrics');
+  });
+
+  it('resolves cross-file route arrays with tsconfig path aliases', async () => {
+    const repo = makeRepo();
+
+    // Write tsconfig with path alias
+    fs.writeFileSync(
+      path.join(repo, 'tsconfig.json'),
+      JSON.stringify({
+        compilerOptions: {
+          baseUrl: 'src',
+          paths: {
+            '@/*': ['*'],
+            '@pages/*': ['pages/*'],
+          },
+        },
+      }),
+      'utf-8'
+    );
+
+    write(repo, 'src/pages/Alerts.tsx', 'export default function Alerts() { return <div/>; }');
+    write(repo, 'src/pages/Pager.tsx', 'export default function Pager() { return <div/>; }');
+
+    write(
+      repo,
+      'src/navigation/routes/alerts-routes.tsx',
+      `import Alerts from '@pages/Alerts';
+
+export const alertsRoutes = [
+  { path: '/alerts', element: <Alerts /> },
+];`
+    );
+
+    write(
+      repo,
+      'src/router.tsx',
+      `import { createBrowserRouter } from 'react-router-dom';
+import Pager from '@pages/Pager';
+import { alertsRoutes } from '@/navigation/routes/alerts-routes';
+
+export const router = createBrowserRouter([
+  { path: '/alerts/pager', element: <Pager /> },
+  ...alertsRoutes,
+]);`
+    );
+
+    const resolver = new ReactRouterResolver();
+    const ok = await resolver.detect(repo);
+    expect(ok).toBe(true);
+
+    const alerts = await resolver.resolve(path.join(repo, 'src', 'pages', 'Alerts.tsx'));
+    expect(alerts?.routeId).toBe('/alerts');
+
+    const pager = await resolver.resolve(path.join(repo, 'src', 'pages', 'Pager.tsx'));
+    expect(pager?.routeId).toBe('/alerts/pager');
+  });
+
+  it('resolves feature-based *.routes.tsx files', async () => {
+    const repo = makeRepo();
+
+    write(repo, 'src/features/incidents/pages/List.tsx', 'export default function List() { return <div/>; }');
+
+    write(
+      repo,
+      'src/features/incidents/incidents.routes.tsx',
+      `import List from './pages/List';
+
+export const incidentRoutes = [
+  { path: '/incidents', element: <List /> },
+];`
+    );
+
+    write(
+      repo,
+      'src/router.tsx',
+      `import { createBrowserRouter } from 'react-router-dom';
+import { incidentRoutes } from './features/incidents/incidents.routes';
+
+export const router = createBrowserRouter([
+  ...incidentRoutes,
+]);`
+    );
+
+    const resolver = new ReactRouterResolver();
+    const ok = await resolver.detect(repo);
+    expect(ok).toBe(true);
+
+    const list = await resolver.resolve(path.join(repo, 'src', 'features', 'incidents', 'pages', 'List.tsx'));
+    expect(list?.routeId).toBe('/incidents');
+  });
+
+  it('resolves routes in navigation/ directory without react-router import', async () => {
+    const repo = makeRepo();
+
+    write(repo, 'src/pages/Home.tsx', 'export default function Home() { return <div/>; }');
+
+    // This file does NOT import react-router — it only exports route objects
+    write(
+      repo,
+      'src/navigation/routes/app-routes.tsx',
+      `import Home from '../../pages/Home';
+
+export const appRoutes = [
+  { path: '/', element: <Home /> },
+];`
+    );
+
+    write(
+      repo,
+      'src/navigation/router.tsx',
+      `import { createBrowserRouter } from 'react-router-dom';
+import { appRoutes } from './routes/app-routes';
+
+export const router = createBrowserRouter(appRoutes);`
+    );
+
+    const resolver = new ReactRouterResolver();
+    const ok = await resolver.detect(repo);
+    expect(ok).toBe(true);
+
+    const home = await resolver.resolve(path.join(repo, 'src', 'pages', 'Home.tsx'));
+    expect(home?.routeId).toBe('/');
+  });
+
+  it('registers Navigate redirect routes', async () => {
+    const repo = makeRepo();
+
+    write(repo, 'src/pages/DefaultPage.tsx', 'export default function DefaultPage() { return <div/>; }');
+
+    write(
+      repo,
+      'src/router.tsx',
+      `import { createBrowserRouter, Navigate } from 'react-router-dom';
+import DefaultPage from './pages/DefaultPage';
+
+export const router = createBrowserRouter([
+  { path: '/', element: <Navigate to="/default" /> },
+  { path: '/default', element: <DefaultPage /> },
+]);`
+    );
+
+    const resolver = new ReactRouterResolver();
+    const ok = await resolver.detect(repo);
+    expect(ok).toBe(true);
+
+    // The real page should still resolve (redirect itself has no component file)
+    const page = await resolver.resolve(path.join(repo, 'src', 'pages', 'DefaultPage.tsx'));
+    expect(page?.routeId).toBe('/default');
+  });
 });
 
 // ── JSX <Route> (v5 / v6 JSX) ─────────────────────────────────────────────────

@@ -157,4 +157,35 @@ describe('aggregateCrossRepository', () => {
     expect(report.summary.directAdoption.instances).toBe(1);
     expect(report.summary.directAdoption.percentage).toBeCloseTo(33.33, 1);
   });
+
+  it('filters out design-system source repositories', () => {
+    const productRepo: RepositoryMetricsV2 = {
+      ...makeRepoMetric(),
+      name: 'product-app',
+      path: '/repos/product-app',
+    };
+    const dsRepo: RepositoryMetricsV2 = {
+      ...makeRepoMetric(),
+      name: 'design-system',
+      path: '/repos/design-system',
+    };
+
+    const config = makeConfig();
+    config.designSystems = [
+      { name: 'DS', packages: ['@ds/ui'], path: '/repos/design-system' },
+    ];
+
+    const report = aggregateCrossRepository(
+      [productRepo, dsRepo],
+      new Map(),
+      new Map(),
+      config,
+      100,
+      10
+    );
+
+    expect(report.byRepository).toHaveLength(1);
+    expect(report.byRepository[0]!.name).toBe('product-app');
+    expect(report.meta.repositoriesScanned).toBe(1);
+  });
 });

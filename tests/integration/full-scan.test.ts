@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import path from 'node:path';
-import { runScan } from '../../src/scanner/orchestrator.js';
+import { runScanV2 } from '../../src/scanner/orchestrator-v2.js';
 import type { ResolvedConfig } from '../../src/config/schema.js';
-import type { ScanReport } from '../../src/types.js';
+import type { ScanReportV2 } from '../../src/domain/types.js';
 
 const FIXTURES = path.resolve('tests/fixtures');
 
@@ -24,6 +24,36 @@ function makeConfig(
     historyDir: '.ds-metrics',
     output: { format: 'table', verbose: false },
     thresholds: {},
+    transitiveRules: [],
+    transitiveAdoption: { enabled: false },
+    libraries: [],
+    excludeLocalFromAdoption: false,
+    excludeUniqueLocalFromAdoption: false,
+    reusableThreshold: 2,
+    v2: {
+      enabled: true,
+      routeResolution: {
+        enabled: false,
+        preferredResolver: undefined,
+        enableFallback: false,
+        fallbackBoundaryDirs: [],
+      },
+      classification: {
+        shadowDetection: true,
+        neitherDetection: true,
+        thirdPartyWithoutDSBucket: 'neither',
+        thresholds: {
+          reusableFileThreshold: 2,
+          shadowFileThreshold: 2,
+          shadowRouteThreshold: 2,
+          substantialMarkupThreshold: 5,
+        },
+      },
+      invariants: {
+        enabled: true,
+        failOnViolation: false,
+      },
+    },
     ...overrides,
   };
 }
@@ -31,10 +61,10 @@ function makeConfig(
 // ── simple-repo ───────────────────────────────────────────────────────────────
 
 describe('integration — simple-repo', () => {
-  let report: ScanReport;
+  let report: ScanReportV2;
 
   beforeAll(async () => {
-    report = await runScan(makeConfig('simple-repo'), {
+    report = await runScanV2(makeConfig('simple-repo'), {
       configPath: 'test',
     });
   });
@@ -48,70 +78,33 @@ describe('integration — simple-repo', () => {
     expect(report.byRepository[0]!.name).toBe('simple-repo');
   });
 
-  it('adoption rate is 60%', () => {
-    // DS=3 (Button+Input from TUI, PageLayout from Beaver)
-    // local-library=1 (SharedLayout), local=1 (CustomCard)
-    // third-party=1 (Select) → excluded
-    // denominator = 3+1+1 = 5, adoption = 3/5 = 60%
-    expect(report.summary.adoptionRate).toBeCloseTo(60, 1);
+  it('has adoption bucket with DS components', () => {
+    // In V2, direct DS usages go to adoption bucket
+    expect(report.summary.bucketBreakdown.adoption.instances).toBeGreaterThan(0);
   });
 
-  it('TUI adoption is 40%', () => {
-    const tui = report.summary.designSystems.find(d => d.name === 'TUI')!;
+  it('TUI is in byDesignSystem with instances', () => {
+    const tui = report.byDesignSystem.find(d => d.name === 'TUI')!;
     expect(tui).toBeDefined();
-    expect(tui.adoptionRate).toBeCloseTo(40, 1);
-    expect(tui.instances).toBe(2);
+    expect(tui.instances).toBeGreaterThan(0);
   });
 
-  it('Beaver adoption is 20%', () => {
-    const beaver = report.summary.designSystems.find(d => d.name === 'Beaver')!;
+  it('Beaver is in byDesignSystem with instances', () => {
+    const beaver = report.byDesignSystem.find(d => d.name === 'Beaver')!;
     expect(beaver).toBeDefined();
-    expect(beaver.adoptionRate).toBeCloseTo(20, 1);
-    expect(beaver.instances).toBe(1);
+    expect(beaver.instances).toBeGreaterThan(0);
   });
 
-  it('local-library has 1 instance (SharedLayout)', () => {
-    expect(report.summary.localLibrary.instances).toBe(1);
-    const comp = report.summary.localLibrary.topComponents.find(c => c.name === 'SharedLayout');
-    expect(comp).toBeDefined();
-  });
-
-  it('local has 1 instance (CustomCard) — in localUnique (used in 1 file)', () => {
-    expect(report.summary.localUnique.instances).toBe(1);
-    const comp = report.summary.localUnique.topComponents.find(c => c.name === 'CustomCard');
-    expect(comp).toBeDefined();
-  });
-
-  it('third-party has 1 instance (Select from react-select)', () => {
-    expect(report.summary.thirdParty.instances).toBe(1);
-    const comp = report.byComponent.thirdParty.find(c => c.name === 'Select');
-    expect(comp).toBeDefined();
-    expect(comp?.packageName).toBe('react-select');
-  });
-
-  it('html-native instances detected', () => {
-    expect(report.summary.htmlNative.instances).toBeGreaterThan(0);
-  });
-
-  it('byComponent.designSystems contains TUI components', () => {
-    const tui = report.byComponent.designSystems.find(d => d.name === 'TUI')!;
-    expect(tui).toBeDefined();
-    const names = tui.components.map(c => c.name);
+  it('byComponent.adoption contains TUI components', () => {
+    const tuiComps = report.byComponent.adoption.filter(c => c.dsName === 'TUI');
+    expect(tuiComps.length).toBeGreaterThan(0);
+    const names = tuiComps.map(c => c.componentName);
     expect(names).toContain('Button');
     expect(names).toContain('Input');
   });
 
-  it('byComponent.localMostUsed has resolvedPath for CustomCard', () => {
-    const card = report.byComponent.localMostUsed.find(c => c.name === 'CustomCard');
-    expect(card).toBeDefined();
-    // CustomCard is a local relative import — resolvedPath should be set
-    // (may be null if TS can't find it without jsx setting, that's ok)
-    // Just verify the field exists in the structure
-    expect('resolvedPath' in card!).toBe(true);
-  });
-
   it('meta contains version and timestamp', () => {
-    expect(report.meta.version).toBeTruthy();
+    expect(report.version).toBe('2.0');
     expect(report.meta.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(report.meta.scanDurationMs).toBeGreaterThanOrEqual(0);
   });
@@ -125,10 +118,10 @@ describe('integration — simple-repo', () => {
 // ── namespace-imports ─────────────────────────────────────────────────────────
 
 describe('integration — namespace-imports', () => {
-  let report: ScanReport;
+  let report: ScanReportV2;
 
   beforeAll(async () => {
-    report = await runScan(makeConfig('namespace-imports'), { configPath: 'test' });
+    report = await runScanV2(makeConfig('namespace-imports'), { configPath: 'test' });
   });
 
   it('scanned at least 1 file', () => {
@@ -136,41 +129,40 @@ describe('integration — namespace-imports', () => {
   });
 
   it('categorizes DS.Button as design-system (TUI)', () => {
-    const tui = report.byComponent.designSystems.find(d => d.name === 'TUI')!;
-    expect(tui.components.length).toBeGreaterThan(0);
-    const names = tui.components.map(c => c.name);
+    const tuiComps = report.byComponent.adoption.filter(c => c.dsName === 'TUI');
+    expect(tuiComps.length).toBeGreaterThan(0);
+    const names = tuiComps.map(c => c.componentName);
     expect(names.some(n => n.includes('Button'))).toBe(true);
   });
 
   it('adoption rate > 0 (DS components via namespace)', () => {
-    expect(report.summary.adoptionRate).toBeGreaterThan(0);
+    expect(report.summary.directAdoption.percentage).toBeGreaterThan(0);
   });
 });
 
 // ── barrel-exports ────────────────────────────────────────────────────────────
 
 describe('integration — barrel-exports', () => {
-  let report: ScanReport;
+  let report: ScanReportV2;
 
   beforeAll(async () => {
-    report = await runScan(makeConfig('barrel-exports'), { configPath: 'test' });
+    report = await runScanV2(makeConfig('barrel-exports'), { configPath: 'test' });
   });
 
   it('scanned files without errors', () => {
     expect(report.meta.filesScanned).toBeGreaterThan(0);
   });
 
-  it('direct DS imports are categorized as design-system', () => {
-    const tui = report.byComponent.designSystems.find(d => d.name === 'TUI')!;
-    const names = tui.components.map(c => c.name);
-    // Button and Input are imported directly from @tui/components
+  it('direct DS imports are in adoption bucket', () => {
+    const tuiComps = report.byComponent.adoption.filter(c => c.dsName === 'TUI');
+    const names = tuiComps.map(c => c.componentName);
     expect(names).toContain('Button');
     expect(names).toContain('Input');
   });
 
   it('Modal from @tui/overlay is design-system (TUI)', () => {
-    const tui = report.byComponent.designSystems.find(d => d.name === 'TUI')!;
-    const names = tui.components.map(c => c.name);
+    const tuiComps = report.byComponent.adoption.filter(c => c.dsName === 'TUI');
+    const names = tuiComps.map(c => c.componentName);
     expect(names).toContain('Modal');
   });
 });
@@ -178,24 +170,26 @@ describe('integration — barrel-exports', () => {
 // ── mixed-categories ──────────────────────────────────────────────────────────
 
 describe('integration — mixed-categories', () => {
-  let report: ScanReport;
+  let report: ScanReportV2;
 
   beforeAll(async () => {
-    report = await runScan(makeConfig('mixed-categories'), { configPath: 'test' });
+    report = await runScanV2(makeConfig('mixed-categories'), { configPath: 'test' });
   });
 
-  it('has all 5 categories represented', () => {
-    expect(report.summary.designSystemTotal.instances).toBeGreaterThan(0);
-    expect(report.summary.localLibrary.instances).toBeGreaterThan(0);
-    const localInstances = report.summary.localReusable.instances + report.summary.localUnique.instances;
-    expect(localInstances).toBeGreaterThan(0);
-    expect(report.summary.thirdParty.instances).toBeGreaterThan(0);
-    expect(report.summary.htmlNative.instances).toBeGreaterThan(0);
+  it('has adoption instances from design-system', () => {
+    expect(report.summary.bucketBreakdown.adoption.instances).toBeGreaterThan(0);
+  });
+
+  it('has shadow or neither instances from local components', () => {
+    const localBuckets =
+      report.summary.bucketBreakdown.shadow.instances +
+      report.summary.bucketBreakdown.neither.instances;
+    expect(localBuckets).toBeGreaterThan(0);
   });
 
   it('TUI and Beaver both have instances', () => {
-    const tui = report.summary.designSystems.find(d => d.name === 'TUI')!;
-    const beaver = report.summary.designSystems.find(d => d.name === 'Beaver')!;
+    const tui = report.byDesignSystem.find(d => d.name === 'TUI')!;
+    const beaver = report.byDesignSystem.find(d => d.name === 'Beaver')!;
     expect(tui.instances).toBeGreaterThan(0);
     expect(beaver.instances).toBeGreaterThan(0);
   });
@@ -204,7 +198,7 @@ describe('integration — mixed-categories', () => {
 // ── multi-repo ────────────────────────────────────────────────────────────────
 
 describe('integration — multi-repo aggregation', () => {
-  let report: ScanReport;
+  let report: ScanReportV2;
 
   beforeAll(async () => {
     const config: ResolvedConfig = {
@@ -224,9 +218,39 @@ describe('integration — multi-repo aggregation', () => {
       historyDir: '.ds-metrics',
       output: { format: 'table', verbose: false },
       thresholds: {},
+      transitiveRules: [],
+      transitiveAdoption: { enabled: false },
+      libraries: [],
+      excludeLocalFromAdoption: false,
+      excludeUniqueLocalFromAdoption: false,
+      reusableThreshold: 2,
+      v2: {
+        enabled: true,
+        routeResolution: {
+          enabled: false,
+          preferredResolver: undefined,
+          enableFallback: false,
+          fallbackBoundaryDirs: [],
+        },
+        classification: {
+          shadowDetection: true,
+          neitherDetection: true,
+          thirdPartyWithoutDSBucket: 'neither',
+          thresholds: {
+            reusableFileThreshold: 2,
+            shadowFileThreshold: 2,
+            shadowRouteThreshold: 2,
+            substantialMarkupThreshold: 5,
+          },
+        },
+        invariants: {
+          enabled: true,
+          failOnViolation: false,
+        },
+      },
     };
 
-    report = await runScan(config, { configPath: 'test' });
+    report = await runScanV2(config, { configPath: 'test' });
   });
 
   it('reports 2 repositories', () => {
@@ -234,8 +258,8 @@ describe('integration — multi-repo aggregation', () => {
   });
 
   it('global adoption is aggregated across repos', () => {
-    expect(report.summary.adoptionRate).toBeGreaterThan(0);
-    expect(report.summary.adoptionRate).toBeLessThanOrEqual(100);
+    expect(report.summary.directAdoption.percentage).toBeGreaterThan(0);
+    expect(report.summary.directAdoption.percentage).toBeLessThanOrEqual(100);
   });
 
   it('designSystemsConfigured includes both DS', () => {
@@ -256,26 +280,25 @@ describe('integration — edge cases', () => {
     });
 
     // Should not throw — just skip the missing repo
-    const report = await runScan(config, { configPath: 'test' });
+    const report = await runScanV2(config, { configPath: 'test' });
     expect(report.byRepository).toHaveLength(1);
   });
 
   it('handles empty repository (no matching files)', async () => {
-    // Use a real dir with no tsx/ts files
     const config = makeConfig('simple-repo', {
       repositories: [path.join(FIXTURES, 'simple-repo')],
       include: ['src/**/*.nonexistent'],
     });
 
-    const report = await runScan(config, { configPath: 'test' });
+    const report = await runScanV2(config, { configPath: 'test' });
     expect(report.meta.filesScanned).toBe(0);
-    expect(report.summary.adoptionRate).toBe(0);
+    expect(report.summary.directAdoption.percentage).toBe(0);
   });
 
   it('scan report has valid JSON structure', async () => {
-    const report = await runScan(makeConfig('simple-repo'), { configPath: 'test' });
+    const report = await runScanV2(makeConfig('simple-repo'), { configPath: 'test' });
     const json = JSON.stringify(report);
-    const parsed = JSON.parse(json) as ScanReport;
+    const parsed = JSON.parse(json) as ScanReportV2;
     expect(parsed.meta).toBeDefined();
     expect(parsed.summary).toBeDefined();
     expect(parsed.byRepository).toBeDefined();

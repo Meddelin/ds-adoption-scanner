@@ -1,5 +1,5 @@
 import path from 'node:path';
-import type { CategorizedUsage, DSCatalog, ScanReport } from '../types.js';
+import type { CategorizedUsage, DSCatalog } from '../types.js';
 import type { ResolvedConfig } from '../config/schema.js';
 import { discoverFiles } from './file-discovery.js';
 import { parseFile } from './parser.js';
@@ -9,10 +9,15 @@ import { enrichWithTransitiveDS } from './transitive-resolver.js';
 import { preScanLibraries, type LibraryRegistry } from './library-prescan.js';
 import { preScanDesignSystems } from './ds-prescan.js';
 import { enrichWithFamily } from './family-resolver.js';
-import { aggregateResults, type RepoScanData } from '../metrics/aggregator.js';
 
 const CONCURRENCY_LIMIT = 16;
-const VERSION = '0.1.0';
+
+export interface RepoScanData {
+  repositoryName: string;
+  repositoryPath: string;
+  usages: CategorizedUsage[];
+  filesScanned: number;
+}
 
 export interface ScanOptions {
   configPath: string;
@@ -20,32 +25,17 @@ export interface ScanOptions {
   onProgress?: (current: number, total: number, repoName: string) => void;
 }
 
-export interface DetailedScanResult {
-  report: ScanReport;
+export interface ScanPipelineResult {
   repoData: RepoScanData[];
+  dsCatalog: DSCatalog;
+  libraryRegistry: LibraryRegistry;
+  filesScanned: number;
 }
 
-export async function runScan(
+export async function executeScanPipeline(
   config: ResolvedConfig,
   options: ScanOptions
-): Promise<ScanReport> {
-  const { report } = await executeScan(config, options);
-  return report;
-}
-
-export async function runScanDetailed(
-  config: ResolvedConfig,
-  options: ScanOptions
-): Promise<DetailedScanResult> {
-  return executeScan(config, options);
-}
-
-async function executeScan(
-  config: ResolvedConfig,
-  options: ScanOptions
-): Promise<DetailedScanResult> {
-  const startTime = Date.now();
-
+): Promise<ScanPipelineResult> {
   // Stage 0: Pre-scan design systems configured with path/git → build family catalog
   let dsCatalog: DSCatalog = new Map();
   if (config.designSystems.some(ds => ds.path || ds.git)) {
@@ -53,7 +43,6 @@ async function executeScan(
   }
 
   // Stage 0.5: Pre-scan libraries configured with path/git for per-component DS detection
-  // Receives dsCatalog so it can map library components to DS families
   let libraryRegistry: LibraryRegistry = new Map();
   if ((config.libraries ?? []).some(l => l.path || l.git)) {
     libraryRegistry = await preScanLibraries(config, dsCatalog, options.verbose);
@@ -70,9 +59,7 @@ async function executeScan(
   for (const discovery of discovered) {
     const resolver = new ImportResolver(discovery.repository, config.tsconfig);
     const repoUsages: CategorizedUsage[] = [];
-    const parseErrors: string[] = [];
 
-    // Process files in parallel with concurrency limit
     await processWithConcurrency(
       discovery.files,
       CONCURRENCY_LIMIT,
@@ -112,83 +99,11 @@ async function executeScan(
     });
   }
 
-  const scanDurationMs = Date.now() - startTime;
-
-  // Stage 5: Aggregate metrics
-  const report = aggregateResults(repoData, config, {
-    version: VERSION,
-    configPath: options.configPath,
-    scanDurationMs,
-    dsCatalog,
-  });
-
-  // Attach library pre-scan summary when libraries[] were configured
-  if (libraryRegistry.size > 0) {
-    const allUsages = repoData.flatMap(r => r.usages);
-
-    // Count transitive usages per library package — only local-library usages to match the
-    // adoption formula (transitiveLocalLib). Third-party usages with transitiveDS exist but
-    // do not contribute to effective adoption rate.
-    // Prefer transitiveDS.libraryPackage (set during registry lookup in Case 0) for accurate
-    // attribution; fall back to extracting package name from importEntry.source.
-    const transitivePerPkg = new Map<string, number>();
-    for (const u of allUsages) {
-      if (u.category !== 'local-library' || !u.transitiveDS) continue;
-      const pkgName = u.transitiveDS.libraryPackage
-        ?? (() => {
-          const src = u.importEntry?.source ?? '';
-          if (!src) return null;
-          return src.startsWith('@')
-            ? src.split('/').slice(0, 2).join('/')
-            : (src.split('/')[0] ?? null);
-        })();
-      if (!pkgName) continue;
-      transitivePerPkg.set(pkgName, (transitivePerPkg.get(pkgName) ?? 0) + 1);
-    }
-
-    report.libraryPrescan = [];
-    for (const [pkg, entry] of libraryRegistry) {
-      const total = entry.familyMap.size;
-      const dsBacked = [...entry.familyMap.values()].filter(f => f.isDSBacked).length;
-
-      // Build the full chain: [dsName, ...intermediate libs, this package]
-      const chain: string[] = [entry.backedBy];
-      const visited = new Set<string>();
-      let cursor: string | undefined = entry.viaPackage;
-      while (cursor && !visited.has(cursor)) {
-        visited.add(cursor);
-        chain.push(cursor);
-        cursor = libraryRegistry.get(cursor)?.viaPackage;
-      }
-      chain.push(pkg);
-
-      report.libraryPrescan.push({
-        package: pkg,
-        backedBy: entry.backedBy,
-        totalFamilies: total,
-        dsBackedFamilies: dsBacked,
-        transitiveUsages: transitivePerPkg.get(pkg) ?? 0,
-        ...(chain.length > 2 ? { chain } : {}), // only include when there are intermediates
-      });
-    }
-  }
-
-  // Attach DS pre-scan summary when designSystems[] were pre-scanned
-  if (dsCatalog.size > 0) {
-    report.dsPrescan = [];
-    for (const [dsName, families] of dsCatalog) {
-      const totalComponents = families.reduce((s, f) => s + f.components.length, 0);
-      report.dsPrescan.push({
-        dsName,
-        totalFamilies: families.length,
-        totalComponents,
-      });
-    }
-  }
-
   return {
-    report,
     repoData,
+    dsCatalog,
+    libraryRegistry,
+    filesScanned: totalFiles,
   };
 }
 

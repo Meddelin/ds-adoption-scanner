@@ -8,7 +8,7 @@ import type {
   ScanReportV2,
 } from '../domain/types.js';
 import type { ResolvedConfig } from '../config/schema.js';
-import { runScanDetailed, type ScanOptions } from './orchestrator.js';
+import { executeScanPipeline, type ScanOptions } from './pipeline.js';
 import { AnalyticalClassifier, createClassificationContext } from '../classification/classifier.js';
 import { RouteResolutionOrchestrator } from '../routes/resolver.js';
 import { calculateRepositoryMetricsV2, calculateRouteMetrics } from '../metrics/calculator-v2.js';
@@ -31,7 +31,7 @@ export async function runScanV2(
   options: ScanOptions
 ): Promise<ScanReportV2> {
   const startedAt = Date.now();
-  const { report: v1Report, repoData } = await runScanDetailed(config, options);
+  const { repoData, filesScanned } = await executeScanPipeline(config, options);
 
   const repoMetrics: RepositoryMetricsV2[] = [];
   const allUsages = new Map<string, ClassifiedUsage[]>();
@@ -98,10 +98,10 @@ export async function runScanV2(
     allProfiles,
     config,
     scanDurationMs,
-    v1Report.meta.filesScanned
+    filesScanned
   );
 
-  report.meta.timestamp = v1Report.meta.timestamp;
+  report.meta.timestamp = new Date().toISOString();
   report.meta.configPath = options.configPath;
 
   if (config.v2.invariants.enabled) {
