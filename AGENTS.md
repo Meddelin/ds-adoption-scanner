@@ -118,6 +118,7 @@ AST-based extraction and structural categorization.
 | `family-resolver.ts` | DS family assignment |
 | `ds-prescan.ts` | DS catalog building |
 | `library-prescan.ts` | Library registry with per-component DS mapping |
+| `tsconfig-paths.ts` | TSConfig path alias resolution helpers |
 
 **Key Rule**: Categorizer does ONLY structural categorization. No analytical decisions here.
 
@@ -160,6 +161,7 @@ Formula-based metric calculation.
 | `aggregator-v2.ts` | Cross-repository aggregation, summary |
 | `calculator.ts` | V1 metric formulas (still used for V1 report) |
 | `aggregator.ts` | V1 aggregation |
+| `history.ts` | Scan history manifest + report comparison |
 
 **Critical**: All proxy metrics must be explicitly marked with `isProxy: true`.
 
@@ -392,7 +394,33 @@ Verify `localLibraryPatterns` includes the path where the wrapping components li
 (e.g. `src/ui-kit/**`). Without this pattern, components are categorized as `local` instead
 of `local-library` and the transitive check is never triggered.
 
+### "React Router resolver finds 0 routes / all routes are low confidence"
+1. **Route files don't import react-router directly**: Files like `src/navigation/routes/*-routes.tsx`
+   only export route objects. The resolver now uses AST validation (looks for `path` + `element`/`children`
+   in object literals) for files in `routes/`, `router/`, `navigation/` directories or with
+   `*.routes.tsx` / `*-routes.tsx` names. Ensure your route files match these patterns.
+2. **TypeScript path aliases not resolving**: The resolver reads `tsconfig.json` for `paths`/`baseUrl`.
+   Verify your tsconfig is at repo root and aliases like `@/...` are configured correctly.
+3. **Feature-based routes not found**: Files must match `*.routes.tsx` or `*.routes.ts` pattern
+   and be inside a `features/` directory, or use the standard `routes/` / `router/` / `navigation/` dirs.
+
+### "DS repository appears in byRepository report"
+The aggregator now automatically filters out repositories whose path matches any
+`designSystems[].path`. If you still see the DS repo, verify that `designSystems[].path`
+is set correctly and matches the repository path exactly (or as a parent directory).
+
 ---
 
-*Last Updated: 2026-04-10*
-*Status: v2.1 complete — all analytical features shipped*
+## 11. AI Agent Instructions
+
+- **Always check existing patterns** before adding new dependencies. Prefer the libraries already in use (e.g., `@typescript-eslint/typescript-estree`, `picomatch`, `fdir`).
+- **Run tests before committing changes**: `npm run test:unit` for targeted changes, `npm test` before any commit.
+- **Update documentation** when changing public APIs, CLI flags, report schemas, or config options.
+- **Never commit generated reports or environment files**: `ds-report*.html`, `ds-report*.json`, `.env*`, and `.ds-metrics/` are gitignored.
+- **Keep `.gitignore` in sync**: If you introduce new generated artifacts, add them to `.gitignore` immediately.
+- **Preserve invariants**: Any change to metrics, classification, or aggregation must maintain the invariants listed in Section 6.
+
+---
+
+*Last Updated: 2026-04-17*
+*Status: v2.1.1 — route resolution fixes shipped*

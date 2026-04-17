@@ -1,10 +1,48 @@
+# Dependencies
 node_modules/
+
+# Build outputs
 dist/
+build/
+*.tsbuildinfo
+
+# Generated reports and metrics
+*.html
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!eslint.config.js
+!vitest.config.ts
+!tsup.config.ts
+!ant-design.config.ts
+!demo.config.ts
+!.ds-scanner.config.example.ts
+reports/
 .ds-metrics/
-*.js.map
-*.d.ts
 coverage/
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+
+# IDE & OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+logs/
 .cache/
-repos/
+
+# AI agent working directories
 .claude/
+.codex/
+
+# Local config (user-specific)
 .ds-scanner.config.ts
